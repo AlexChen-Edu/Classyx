@@ -215,9 +215,16 @@ modalForm.addEventListener('submit', async (e) => {
   modalStatus.dataset.state = ''
 
   try {
-    const { error } = await supabase.from('waitlist').insert({ email })
-    if (error) {
-      if (error.code === '23505') {
+    const res = await fetch('https://rohiuuqsdhnfzktlxlno.supabase.co/functions/v1/send-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      if (res.status === 409) {
         showModalSuccess()
       } else {
         modalStatus.textContent = 'Something went wrong. Please try again in a moment.'

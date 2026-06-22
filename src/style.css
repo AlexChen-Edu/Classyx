@@ -6,7 +6,7 @@
 /* ---------- Design tokens ---------- */
 :root {
   /* Brand & surfaces */
-  --bg: #f6f8fc;
+  --bg: #f5f7f5;
   --surface: #ffffff;
   --surface-2: #fbfcfe;
   --tint: #eef2fb;
@@ -20,16 +20,16 @@
   --line: #e5e9f2;
   --line-2: #eef1f7;
 
-  /* Accents */
-  --brand: #4c5be0;
-  --brand-strong: #3b46c4;
-  --brand-tint: #edeffb;
-  --brand-ink: #2b3296;
-  --accent: #15bca6;
-  --accent-tint: #e3f7f3;
+ /* Accents */
+  --brand: #2d6a4f;
+  --brand-strong: #1a3d2b;
+  --brand-tint: #eaf3ee;
+  --brand-ink: #0d1f15;
+  --accent: #c9a13b;
+  --accent-tint: #faf3e0;
   --success: #1f9d6b;
   --success-tint: #e7f6ee;
-  --notice: #a96a12; /* calm amber for errors — never alarm red */
+  --notice: #a96a12;
   --notice-tint: #fbf1df;
 
   /* Radii */
@@ -42,7 +42,7 @@
   --shadow-sm: 0 1px 2px rgba(16, 23, 40, 0.04), 0 1px 3px rgba(16, 23, 40, 0.05);
   --shadow-md: 0 6px 16px -6px rgba(16, 23, 40, 0.10), 0 2px 6px -2px rgba(16, 23, 40, 0.06);
   --shadow-lg: 0 24px 48px -16px rgba(16, 23, 40, 0.18), 0 8px 20px -10px rgba(16, 23, 40, 0.10);
-  --shadow-brand: 0 12px 26px -10px rgba(76, 91, 224, 0.55);
+  --shadow-brand: 0 12px 26px -10px rgba(26, 61, 43, 0.40);
 
   /* Type */
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -650,6 +650,7 @@ section[id] {
 @media (min-width: 1000px) {
   .steps {
     grid-template-columns: repeat(4, 1fr);
+    align-items: start;
   }
   .steps::before {
     content: '';
@@ -670,6 +671,7 @@ section[id] {
   align-items: center;
   text-align: center;
   gap: 12px;
+  height: 100%;
 }
 
 .step__num {
@@ -706,6 +708,10 @@ section[id] {
 
 .step h3 {
   font-size: 1.08rem;
+  min-height: 2.6em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .step p {

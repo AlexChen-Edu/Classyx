@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirming your spot — Classyx</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        background: #f5f7f5;
+        color: #1a1a1a;
+      }
+      .box {
+        background: #fff;
+        border-radius: 16px;
+        padding: 48px 40px;
+        max-width: 420px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      }
+      .icon { font-size: 48px; margin-bottom: 16px; }
+      h1 { font-size: 22px; margin: 0 0 12px; }
+      p { color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 24px; }
+      a {
+        display: inline-block;
+        padding: 12px 24px;
+        background: #2d6a4f;
+        color: #fff;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      #status { margin-bottom: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div class="icon" id="icon">⏳</div>
+      <h1 id="title">Confirming your spot...</h1>
+      <p id="status">Just a moment while we verify your email.</p>
+      <a href="/" id="link" style="display:none">Back to Classyx</a>
+    </div>
+
+    <script type="module">
+      import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+      const supabase = createClient(
+        'https://rohiuuqsdhnfzktlxlno.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJvaGl1dXFzZGhuZnprdGx4bG5vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3ODgyOTQsImV4cCI6MjA5NzM2NDI5NH0.7JNK5bd2xiBcmoeXHe-u9qL_fFdf772JZmjCo6zD31Y'
+      );
+
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+
+      const icon = document.getElementById('icon');
+      const title = document.getElementById('title');
+      const status = document.getElementById('status');
+      const link = document.getElementById('link');
+
+      async function confirm() {
+        if (!token) {
+          icon.textContent = '❌';
+          title.textContent = 'Invalid link';
+          status.textContent = 'This confirmation link is missing or broken. Please try signing up again.';
+          link.style.display = 'inline-block';
+          return;
+        }
+
+        const now = new Date().toISOString();
+
+        const { data, error } = await supabase
+          .from('waitlist')
+          .select('id, confirmed, expires_at')
+          .eq('token', token)
+          .single();
+
+        if (error || !data) {
+          icon.textContent = '❌';
+          title.textContent = 'Link not found';
+          status.textContent = 'This confirmation link is invalid. Please try signing up again.';
+          link.style.display = 'inline-block';
+          return;
+        }
+
+        if (data.confirmed) {
+          icon.textContent = '✅';
+          title.textContent = "You're already confirmed!";
+          status.textContent = "You're on the Classyx waitlist. We'll email you when we launch.";
+          link.style.display = 'inline-block';
+          return;
+        }
+
+        if (data.expires_at && new Date(data.expires_at) < new Date(now)) {
+          icon.textContent = '⏰';
+          title.textContent = 'Link expired';
+          status.textContent = 'This confirmation link has expired. Please sign up again to get a new one.';
+          link.style.display = 'inline-block';
+          return;
+        }
+
+        const { error: updateError } = await supabase
+          .from('waitlist')
+          .update({ confirmed: true })
+          .eq('token', token);
+
+        if (updateError) {
+          icon.textContent = '❌';
+          title.textContent = 'Something went wrong';
+          status.textContent = 'We could not confirm your email. Please try again or contact us.';
+          link.style.display = 'inline-block';
+          return;
+        }
+
+        icon.textContent = '🎉';
+        title.textContent = "You're on the list!";
+        status.textContent = "Your spot is confirmed. We'll email you the moment Classyx opens — you'll be first in line.";
+        link.style.display = 'inline-block';
+      }
+
+      confirm();
+    </script>
+  </body>
+</html>
