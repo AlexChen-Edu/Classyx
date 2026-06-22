@@ -247,8 +247,14 @@ modalForm.addEventListener('submit', async (e) => {
 })
 
 function showModalSuccess() {
-  modalStatus.textContent = "You're on the list! We'll email you the moment Classyx opens."
-  modalStatus.dataset.state = 'success'
-  modalForm.reset()
-  modalSubmit.disabled = true
+  modalForm.style.display = 'none'
+  const successHtml = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:56px;margin-bottom:16px">📬</div>
+      <h2 style="font-size:22px;font-weight:700;margin:0 0 12px">Check your email!</h2>
+      <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px">We sent a confirmation link to your inbox. Click it to secure your spot on the Classyx waitlist.</p>
+      <p style="color:#999;font-size:13px;margin:0">Didn't get it? Check your spam folder.</p>
+    </div>
+  `
+  modalForm.insertAdjacentHTML('afterend', successHtml)
 }

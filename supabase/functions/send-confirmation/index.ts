@@ -44,6 +44,13 @@ serve(async (req) => {
     const siteUrl = Deno.env.get("SITE_URL") ?? "http://localhost:5173";
     const confirmUrl = `${siteUrl}/confirm.html?token=${token}`;
 
+    const emailHtml = "<div style='font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:40px 24px'>"
+      + "<h1 style='font-size:24px;color:#1a1a1a;margin-bottom:8px'>You're almost on the list.</h1>"
+      + "<p style='color:#555;font-size:15px;line-height:1.6'>Click the button below to confirm your spot. This link expires in 24 hours.</p>"
+      + "<a href='" + confirmUrl + "' style='display:inline-block;margin:24px 0;padding:14px 28px;background:#2d6a4f;color:#fff;border-radius:8px;text-decoration:none;font-size:15px;font-weight:600'>Confirm my spot</a>"
+      + "<p style='color:#999;font-size:13px'>If you didn't sign up for Classyx, ignore this email.</p>"
+      + "</div>";
+
     const resendRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -54,14 +61,7 @@ serve(async (req) => {
         from: "Classyx <hello@getclassyx.com>",
         to: email,
         subject: "Confirm your spot on the Classyx waitlist",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 24px;">
-            <h1 style="font-size: 24px; color: #1a1a1a; margin-bottom: 8px;">You're almost on the list.</h1>
-            <p style="color: #555; font-size: 15px; line-height: 1.6;">Click the button below to confirm your spot on the Classyx waitlist. This link expires in 24 hours.</p>
-            <a href="${confirmUrl}" style="display: inline-block; margin: 24px 0; padding: 14px 28px; background: #2d6a4f; color: #fff; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">Confirm my spot</a>
-            <p style="color: #999; font-size: 13px;">If you didn't sign up for Classyx, you can safely ignore this email.</p>
-          </div>
-        `,
+        html: emailHtml,
       }),
     });
 
@@ -73,6 +73,20 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")}`,
+      },
+      body: JSON.stringify({
+        from: "Classyx <hello@getclassyx.com>",
+        to: "alexlchen0416@icloud.com",
+        subject: "New waitlist signup: " + email,
+        html: "<p>New signup: <strong>" + email + "</strong></p>",
+      }),
+    }).catch(err => console.error("Notification error:", err));
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
