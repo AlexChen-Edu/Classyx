@@ -218,7 +218,10 @@ modalForm.addEventListener('submit', async (e) => {
     const res = await fetch('https://rohiuuqsdhnfzktlxlno.supabase.co/functions/v1/send-confirmation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ 
+  email,
+  turnstileToken: document.querySelector('.cf-turnstile input[name="cf-turnstile-response"]')?.value || ''
+})
     })
 
     const data = await res.json()
