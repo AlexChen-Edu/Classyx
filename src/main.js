@@ -148,3 +148,97 @@ if (form) {
     form.reset()
   }
 }
+/* ── Waitlist Modal ── */
+const modal = document.getElementById('waitlist-modal')
+const openBtn = document.getElementById('open-modal-btn')
+const closeBtn = modal.querySelector('.modal-close')
+const consentBox = document.getElementById('modal-consent-checkbox')
+const modalSubmit = document.getElementById('modal-submit')
+const modalEmail = document.getElementById('modal-email')
+const modalStatus = document.getElementById('modal-status')
+const modalForm = document.getElementById('modal-form')
+
+function openModal() {
+  modal.removeAttribute('hidden')
+  document.body.style.overflow = 'hidden'
+  modalEmail.focus()
+}
+
+function closeModal() {
+  modal.setAttribute('hidden', '')
+  document.body.style.overflow = ''
+  modalForm.reset()
+  modalSubmit.disabled = true
+  modalStatus.textContent = ''
+  modalStatus.dataset.state = ''
+}
+
+openBtn.addEventListener('click', openModal)
+document.querySelectorAll('.open-modal-btn, #open-modal-btn-nav').forEach(btn => {
+  btn.addEventListener('click', openModal)
+})
+closeBtn.addEventListener('click', closeModal)
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal() })
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal() })
+
+consentBox.addEventListener('change', () => {
+  modalSubmit.disabled = !consentBox.checked
+})
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+let modalSubmitting = false
+
+modalForm.addEventListener('submit', async (e) => {
+  e.preventDefault()
+  if (modalSubmitting || !consentBox.checked) return
+
+  const email = modalEmail.value.trim().toLowerCase()
+
+  if (!EMAIL_RE.test(email) || email.length > 254) {
+    modalStatus.textContent = 'Please enter a valid email address.'
+    modalStatus.dataset.state = 'error'
+    return
+  }
+
+  if (!supabase) {
+    modalStatus.textContent = 'Sign-ups are temporarily unavailable. Please try again later.'
+    modalStatus.dataset.state = 'error'
+    return
+  }
+
+  modalSubmitting = true
+  modalSubmit.disabled = true
+  const label = modalSubmit.querySelector('[data-btn-label]') || modalSubmit
+  const original = label.textContent
+  label.textContent = 'Joining…'
+  modalStatus.textContent = ''
+  modalStatus.dataset.state = ''
+
+  try {
+    const { error } = await supabase.from('waitlist').insert({ email })
+    if (error) {
+      if (error.code === '23505') {
+        showModalSuccess()
+      } else {
+        modalStatus.textContent = 'Something went wrong. Please try again in a moment.'
+        modalStatus.dataset.state = 'error'
+      }
+      return
+    }
+    showModalSuccess()
+  } catch {
+    modalStatus.textContent = "We couldn't reach the server. Check your connection and try again."
+    modalStatus.dataset.state = 'error'
+  } finally {
+    modalSubmitting = false
+    modalSubmit.disabled = !consentBox.checked
+    label.textContent = original
+  }
+})
+
+function showModalSuccess() {
+  modalStatus.textContent = "You're on the list! We'll email you the moment Classyx opens."
+  modalStatus.dataset.state = 'success'
+  modalForm.reset()
+  modalSubmit.disabled = true
+}

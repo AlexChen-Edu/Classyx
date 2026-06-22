@@ -66,7 +66,7 @@
           <a href="#story">Our story</a>
         </nav>
 
-        <a href="#waitlist" class="btn btn-primary btn-sm site-header__cta">Join the waitlist</a>
+        <button class="btn btn-primary btn-sm site-header__cta" id="open-modal-btn">Join the waitlist</button>
       </div>
     </header>
 
@@ -86,12 +86,12 @@
               stop wondering and start cheering them on.
             </p>
             <div class="hero__actions">
-              <a href="#waitlist" class="btn btn-primary btn-lg">Join the Waitlist</a>
+              <button class="btn btn-primary btn-lg open-modal-btn">Join the Waitlist</button>
               <a href="#how" class="btn btn-ghost btn-lg">See how it works</a>
             </div>
             <p class="hero__trust">
               <span class="hero__trust-dot" aria-hidden="true"></span>
-              Built by a student, for families. Launching soon — no charge until then.
+              Built by a student who lived the struggle. Join the waitlist — no cost, no commitment. Be first when Classyx opens.
             </p>
           </div>
 
@@ -366,7 +366,7 @@
             <span class="eyebrow">Simple pricing</span>
             <h2 class="section-title">One plan per family. No surprises.</h2>
             <p class="section-lead">
-              Free while we're in beta. Founding members lock in launch pricing for life.
+              Founding members get early access and special launch pricing
             </p>
           </div>
 
@@ -379,29 +379,31 @@
               <p class="plan__price"><span class="plan__amount">$7.99</span><span class="plan__per">/month</span></p>
               <ul class="plan__features">
                 <li>1 child account</li>
-                <li>Unlimited AI flashcards &amp; quizzes</li>
+                <li>Up to 330 AI flashcards a month</li>
+                <li>Up to 20 study guides a month</li>
                 <li>Focus &amp; recall tracking</li>
                 <li>Full parent dashboard</li>
                 <li>Weekly progress summary email</li>
               </ul>
-              <a href="#waitlist" class="btn btn-ghost btn-block">Join the waitlist</a>
+              <button class="btn btn-ghost btn-block open-modal-btn">Join the waitlist</button>
             </article>
 
             <article class="card plan plan--featured" data-reveal>
-              <span class="plan__badge">Most popular</span>
+              <span class="plan__badge">Recommended for 2+ kids</span>
               <div class="plan__head">
                 <h3 class="plan__name">Family</h3>
                 <p class="plan__for">For households with more than one student</p>
               </div>
-              <p class="plan__price"><span class="plan__amount">$14.99</span><span class="plan__per">/month</span></p>
+             <p class="plan__price"><span class="plan__amount">$19.99</span><span class="plan__per">/month</span></p>
               <ul class="plan__features">
                 <li>Up to 3 children</li>
-                <li>Everything in Student</li>
+                <li>Up to 840 AI flashcards a month</li>
+                <li>Up to 45 study guides a month</li>
                 <li>Per-child dashboards &amp; goals</li>
                 <li>Side-by-side family view</li>
                 <li>Priority support</li>
               </ul>
-              <a href="#waitlist" class="btn btn-primary btn-block">Join the waitlist</a>
+              <button class="btn btn-ghost btn-block open-modal-btn">Join the waitlist</button>
             </article>
           </div>
         </div>
@@ -426,7 +428,7 @@
               </p>
             </blockquote>
             <div class="story__author">
-              <span class="story__avatar" aria-hidden="true">A</span>
+              <img class="story__avatar" src="/src/founder-image.jpeg" alt="Alex, founder of Classyx" />
               <div>
                 <strong>Alex</strong>
                 <span>Founder &amp; student, Classyx</span>
@@ -443,32 +445,13 @@
             <span class="eyebrow eyebrow--center">Be first in line</span>
             <h2 class="section-title">Join the Classyx waitlist</h2>
             <p class="section-lead">
-              Be the first to know when we open. Founding families get early access and locked-in
-              pricing.
+              Be the first to know when we open. Founding members get early access and special launch pricing.
             </p>
 
-            <form id="waitlist-form" class="waitlist__form" novalidate>
-              <label for="email" class="sr-only">Email address</label>
-              <div class="field">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  inputmode="email"
-                  autocomplete="email"
-                  placeholder="you@example.com"
-                  required
-                  aria-describedby="form-status form-fineprint"
-                />
-                <button type="submit" class="btn btn-primary">
-                  <span data-btn-label>Join the waitlist</span>
-                </button>
-              </div>
-              <p id="form-status" class="form-status" role="status" aria-live="polite"></p>
-              <p id="form-fineprint" class="form-fineprint">
-                No spam, ever. One email when we launch — unsubscribe anytime.
-              </p>
-            </form>
+            <div class="waitlist__cta">
+              <button class="btn btn-primary btn-lg open-modal-btn">Join the waitlist</button>
+              <p class="form-fineprint">No spam, ever. One email when we launch — unsubscribe anytime.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -499,12 +482,12 @@
           <div>
             <h4>Company</h4>
             <a href="#story">Our story</a>
-            <a href="#waitlist">Waitlist</a>
+            <button class="nav-link-btn" id="open-modal-btn-nav">Waitlist</button>
           </div>
           <div>
             <h4>Legal</h4>
-            <a href="#" aria-label="Privacy Policy (coming soon)">Privacy Policy</a>
-            <a href="#" aria-label="Terms of Service (coming soon)">Terms</a>
+            <a href="/privacy-policy.html" aria-label="Privacy Policy">Privacy Policy</a>
+            
           </div>
         </nav>
       </div>
@@ -515,5 +498,32 @@
     </footer>
 
     <script type="module" src="/src/main.js"></script>
-  </body>
+  </body><!-- Waitlist Modal -->
+<div id="waitlist-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+  <div class="modal-box">
+    <button class="modal-close" aria-label="Close">&times;</button>
+    <h2 id="modal-title">Join the Classyx waitlist</h2>
+    <p class="modal-subtitle">Be first to know when we launch. One email, no spam.</p>
+    <form id="modal-form" novalidate>
+      <label for="modal-email" class="modal-label">Email address</label>
+      <input
+        id="modal-email"
+        name="email"
+        type="email"
+        inputmode="email"
+        autocomplete="email"
+        placeholder="you@example.com"
+        required
+      />
+      <label class="modal-consent">
+        <input type="checkbox" id="modal-consent-checkbox" />
+        <span>I agree to Classyx's <a href="/privacy-policy.html" target="_blank">Privacy Policy</a> and consent to receiving launch updates.</span>
+      </label>
+      <button type="submit" id="modal-submit" class="btn btn-primary" disabled>
+        <span data-btn-label>Join the waitlist</span>
+      </button>
+      <p id="modal-status" class="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</div>
 </html>
