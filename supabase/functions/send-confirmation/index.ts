@@ -31,7 +31,7 @@ serve(async (req) => {
 
     const { error: dbError } = await supabase
       .from("waitlist")
-      .upsert({ email, token, confirmed: false, expires_at }, { onConflict: "email" });
+      .insert({ email, token, confirmed: false, expires_at });
 
     if (dbError) {
       console.error("DB error:", dbError);
