@@ -35,6 +35,12 @@ serve(async (req) => {
 
     if (dbError) {
       console.error("DB error:", dbError);
+      if (dbError.code === '23505') {
+        return new Response(JSON.stringify({ error: "Already signed up" }), {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ error: "Database error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

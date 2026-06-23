@@ -228,7 +228,7 @@ modalForm.addEventListener('submit', async (e) => {
 
     if (!res.ok) {
       if (res.status === 409) {
-        showModalSuccess()
+        showAlreadySignedUp()
       } else {
         modalStatus.textContent = 'Something went wrong. Please try again in a moment.'
         modalStatus.dataset.state = 'error'
@@ -257,4 +257,16 @@ function showModalSuccess() {
     </div>
   `
   modalForm.insertAdjacentHTML('afterend', successHtml)
+}
+function showAlreadySignedUp() {
+  modalForm.style.display = 'none'
+  const html = `
+    <div style="text-align:center;padding:20px 0">
+      <div style="font-size:56px;margin-bottom:16px">👋</div>
+      <h2 style="font-size:22px;font-weight:700;margin:0 0 12px">You're already on the list!</h2>
+      <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px">We already have your email. You'll be one of the first to know when Classyx opens — we haven't forgotten about you.</p>
+      <p style="color:#999;font-size:13px;margin:0">Keep an eye on your inbox. Good things are coming.</p>
+    </div>
+  `
+  modalForm.insertAdjacentHTML('afterend', html)
 }
