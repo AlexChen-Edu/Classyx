@@ -126,6 +126,7 @@ body.app {
   box-shadow: 0 0 0 3px var(--brand-tint);
 }
 .hint { font-size: 0.8rem; color: var(--ink-3); }
+#turnstile-row { margin-bottom: 16px; }
 .divider {
   display: flex;
   align-items: center;
@@ -140,6 +141,44 @@ body.app {
   height: 1px;
   background: var(--line);
 }
+
+/* ---------- Password strength meter ---------- */
+.strength { margin: -6px 0 16px; }
+.strength__track {
+  height: 6px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.strength__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--ink-3);
+  transition: width 0.25s ease, background 0.25s ease;
+}
+.strength__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
+}
+.strength__label { font-size: 0.8rem; font-weight: 600; color: var(--ink-3); }
+.strength__reqs { font-size: 0.76rem; color: var(--ink-3); text-align: right; }
+
+/* Color the bar + label by score (0–5). */
+.strength[data-score='1'] .strength__fill,
+.strength[data-score='2'] .strength__fill { background: #c0492f; }
+.strength[data-score='3'] .strength__fill { background: var(--notice); }
+.strength[data-score='4'] .strength__fill { background: #3a9d5d; }
+.strength[data-score='5'] .strength__fill { background: var(--success); }
+.strength[data-score='1'] .strength__label,
+.strength[data-score='2'] .strength__label { color: #c0492f; }
+.strength[data-score='3'] .strength__label { color: var(--notice); }
+.strength[data-score='4'] .strength__label { color: #3a9d5d; }
+.strength[data-score='5'] .strength__label { color: var(--success); }
 
 /* ---------- Dashboard child cards ---------- */
 .child-grid {

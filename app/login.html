@@ -13,6 +13,7 @@
     />
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/app/app.css" />
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </head>
   <body class="app">
     <main class="auth-wrap">
@@ -34,10 +35,38 @@
             <label for="email">Parent email</label>
             <input class="input" id="email" type="email" autocomplete="email" required placeholder="you@example.com" />
           </div>
-          <div class="form-row">
-            <label for="password">Password</label>
-            <input class="input" id="password" type="password" autocomplete="current-password" required minlength="8" placeholder="At least 8 characters" />
+
+          <!-- Password section. Hidden during the "Create account" email step,
+               then revealed (with strength meter + confirm) after Continue. -->
+          <div id="password-section">
+            <div class="form-row">
+              <label for="password">Password</label>
+              <input class="input" id="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Password" />
+            </div>
+
+            <!-- Strength meter (Create account only) -->
+            <div id="strength" class="strength hidden" data-score="0" aria-live="polite">
+              <div class="strength__track"><span id="strength-fill" class="strength__fill"></span></div>
+              <div class="strength__row">
+                <span class="strength__label" id="strength-label">—</span>
+                <span class="strength__reqs" id="strength-reqs"></span>
+              </div>
+            </div>
+
+            <!-- Confirm password (Create account only) -->
+            <div class="form-row hidden" id="confirm-row">
+              <label for="confirm">Confirm password</label>
+              <input class="input" id="confirm" type="password" autocomplete="new-password" placeholder="confirm password" />
+              <span class="hint" id="match-hint"></span>
+            </div>
+
+            <!-- Cloudflare Turnstile (Create account only). Rendered explicitly
+                 via JS so we get a callback for the token; see login.js. -->
+            <div class="form-row hidden" id="turnstile-row">
+              <div id="turnstile-widget"></div>
+            </div>
           </div>
+
           <button class="btn btn-primary btn-lg btn-block" id="submit" type="submit">Sign in</button>
           <p class="form-status" data-status role="status" aria-live="polite"></p>
         </form>
