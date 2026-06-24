@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add a child · Classyx</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/app/app.css" />
+  </head>
+  <body class="app">
+    <header class="app-header">
+      <div class="container app-header__inner">
+        <a class="app-logo" href="/app/dashboard.html">
+          <span class="app-logo__mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
+          </span>
+          Classyx
+        </a>
+        <div class="app-header__spacer"></div>
+        <a class="btn btn-ghost btn-sm" href="/app/dashboard.html">← Dashboard</a>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="container center-narrow">
+        <div class="page-head"><div><h1>Add a child</h1><p>Create a study profile and set their PIN.</p></div></div>
+        <div class="card">
+          <form id="child-form" novalidate>
+            <div class="form-row">
+              <label for="name">Child's name</label>
+              <input class="input" id="name" type="text" required maxlength="80" placeholder="e.g. Mia" />
+            </div>
+            <div class="form-row">
+              <label for="grade">Grade level</label>
+              <select class="input" id="grade">
+                <option value="">Select grade…</option>
+                <option>K</option><option>1</option><option>2</option><option>3</option>
+                <option>4</option><option>5</option><option>6</option><option>7</option>
+                <option>8</option><option>9</option><option>10</option><option>11</option>
+                <option>12</option><option value="College">College</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="pin">4-digit PIN</label>
+              <input class="input" id="pin" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" required placeholder="••••" autocomplete="off" style="letter-spacing:.4em;max-width:160px" />
+              <span class="hint">Your child enters this to open their profile on a shared device.</span>
+            </div>
+            <button class="btn btn-primary btn-lg btn-block" id="submit" type="submit">Create profile</button>
+            <p class="form-status" data-status role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <script type="module" src="/src/app/add-child.js"></script>
+  </body>
+</html>

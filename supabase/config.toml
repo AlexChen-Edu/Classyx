@@ -9,3 +9,11 @@ entrypoint = "./functions/send-confirmation/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/send-confirmation/*.html" ]
+
+[functions.generate-content]
+enabled = true
+# Only authenticated parents call this; the platform rejects anon requests and
+# the function additionally verifies upload/child ownership.
+verify_jwt = true
+import_map = "./functions/generate-content/deno.json"
+entrypoint = "./functions/generate-content/index.ts"
