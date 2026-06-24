@@ -27,8 +27,8 @@
 
     <main class="app-main">
       <div class="container center-narrow">
-        <div class="page-head"><div><h1>Add a child</h1><p>Create a study profile and set their PIN.</p></div></div>
-        <div class="card">
+        <div class="page-head"><div><h1>Add a child</h1><p>Create a study profile and get their access code.</p></div></div>
+        <div class="card" id="form-card">
           <form id="child-form" novalidate>
             <div class="form-row">
               <label for="name">Child's name</label>
@@ -44,14 +44,19 @@
                 <option>12</option><option value="College">College</option>
               </select>
             </div>
-            <div class="form-row">
-              <label for="pin">4-digit PIN</label>
-              <input class="input" id="pin" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" required placeholder="••••" autocomplete="off" style="letter-spacing:.4em;max-width:160px" />
-              <span class="hint">Your child enters this to open their profile on a shared device.</span>
-            </div>
             <button class="btn btn-primary btn-lg btn-block" id="submit" type="submit">Create profile</button>
             <p class="form-status" data-status role="status" aria-live="polite"></p>
           </form>
+        </div>
+
+        <!-- Shown once, right after the profile + code are created. -->
+        <div class="card hidden" id="code-card">
+          <div class="code-reveal">
+            <p class="code-reveal__label">Your child's code is</p>
+            <p class="code-reveal__code" id="code-value"></p>
+            <p class="code-reveal__warn">Show this to them once. It won't be shown again.</p>
+          </div>
+          <button class="btn btn-primary btn-lg btn-block" id="code-done" type="button">Done</button>
         </div>
       </div>
     </main>

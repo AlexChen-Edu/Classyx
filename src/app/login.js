@@ -1,13 +1,17 @@
 // Parent auth.
 //  - Sign in: email + password in one step.
-//  - Create account: step 1 = email + "Continue with email"; step 2 = password
-//    (with a live strength check) + confirm password.
+//  - Create account: step 1 = email + "Continue with email"; step 2 = role
+//    selection (just me / student / parent); step 3 = password (with a live
+//    strength check) + confirm password. Picking "student" skips account
+//    creation entirely and redirects to the code-entry page.
 //  - Magic link: passwordless sign-in link.
 import { supabase } from '../supabaseClient.js'
-import { $, setStatus, loading } from './ui.js'
+import { $, $$, setStatus, loading } from './ui.js'
 
 const DASHBOARD = '/app/dashboard.html'
 const CHILD = '/app/child.html'
+const STUDY = '/app/study.html'
+const VERIFY = '/app/verify.html'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MIN_SCORE = 3 // minimum "Good" rating required to create an account
 const TURNSTILE_SITE_KEY = '0x4AAAAAADpSfVDp1j7V2mzn' // same widget as the waitlist form
@@ -16,6 +20,9 @@ const form = $('#auth-form')
 const emailEl = $('#email')
 const passwordEl = $('#password')
 const confirmEl = $('#confirm')
+const roleStep = $('#role-step')
+const roleCards = $$('.role-card')
+const roleBackBtn = $('#role-back')
 const passwordSection = $('#password-section')
 const strengthBox = $('#strength')
 const strengthFill = $('#strength-fill')
@@ -30,9 +37,31 @@ const statusEl = $('[data-status]')
 const magicBtn = $('#magic-link')
 
 let mode = 'signin' // 'signin' | 'signup'
-let signupStep = 'email' // 'email' | 'password' (signup only)
+let signupStep = 'email' // 'email' | 'role' | 'password' (signup only)
+let selectedRole = null // 'self' | 'parent' (signup only — 'kid' redirects immediately)
 let turnstileToken = null
 let turnstileWidgetId = null
+
+// --- Show/hide password toggles ---------------------------------------------
+function wirePasswordToggle(inputEl, buttonEl) {
+  buttonEl.addEventListener('click', () => {
+    const showing = inputEl.type === 'text'
+    inputEl.type = showing ? 'password' : 'text'
+    buttonEl.setAttribute('aria-pressed', String(!showing))
+    buttonEl.setAttribute('aria-label', showing ? 'Show password' : 'Hide password')
+    buttonEl.querySelector('.eye-open').classList.toggle('hidden', !showing)
+    buttonEl.querySelector('.eye-closed').classList.toggle('hidden', showing)
+  })
+}
+function resetPasswordVisibility(buttonEl, inputEl) {
+  inputEl.type = 'password'
+  buttonEl.setAttribute('aria-pressed', 'false')
+  buttonEl.setAttribute('aria-label', 'Show password')
+  buttonEl.querySelector('.eye-open').classList.remove('hidden')
+  buttonEl.querySelector('.eye-closed').classList.add('hidden')
+}
+wirePasswordToggle(passwordEl, $('#password-toggle'))
+wirePasswordToggle(confirmEl, $('#confirm-toggle'))
 
 if (!supabase) {
   setStatus(statusEl, 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.', 'error')
@@ -142,17 +171,31 @@ function resetTurnstile() {
   if (turnstileWidgetId !== null) window.turnstile?.reset(turnstileWidgetId)
 }
 
+function setRoleSelection(role) {
+  roleCards.forEach((card) => {
+    const selected = card === role
+    card.classList.toggle('is-selected', selected)
+    card.setAttribute('aria-pressed', String(selected))
+  })
+}
+
 function applyMode() {
   setStatus(statusEl, '')
   passwordEl.value = ''
   confirmEl.value = ''
+  resetPasswordVisibility($('#password-toggle'), passwordEl)
+  resetPasswordVisibility($('#confirm-toggle'), confirmEl)
   renderStrength()
   renderMatch()
+  selectedRole = null
+  setRoleSelection(null)
 
   if (mode === 'signin') {
     showEl(passwordSection)
     hide(strengthBox)
     hide(confirmRow)
+    hide(roleStep)
+    showEl(submitBtn)
     resetTurnstile()
     passwordEl.autocomplete = 'current-password'
     submitBtn.textContent = 'Sign in'
@@ -164,11 +207,19 @@ function applyMode() {
 }
 
 function applySignupStep() {
+  hide(roleStep)
+  showEl(submitBtn)
+
   if (signupStep === 'email') {
     hide(passwordSection) // no password field in the first signup screen
     resetTurnstile()
     submitBtn.textContent = 'Continue with email'
     submitBtn.disabled = false
+  } else if (signupStep === 'role') {
+    hide(passwordSection)
+    hide(submitBtn) // the cards themselves drive the next step, not this button
+    resetTurnstile() // Turnstile must not appear until the password step
+    showEl(roleStep)
   } else {
     showEl(passwordSection)
     showEl(strengthBox)
@@ -191,6 +242,29 @@ document.querySelectorAll('.auth-tab').forEach((tab) => {
     )
     applyMode()
   })
+})
+
+// --- Role selection ----------------------------------------------------------
+roleCards.forEach((card) => {
+  card.addEventListener('click', () => {
+    const role = card.dataset.role
+    if (role === 'kid') {
+      // No account at all — straight to the code-entry page.
+      location.href = CHILD
+      return
+    }
+    selectedRole = role
+    setRoleSelection(card)
+    signupStep = 'password'
+    setStatus(statusEl, '')
+    applySignupStep()
+  })
+})
+
+roleBackBtn.addEventListener('click', () => {
+  signupStep = 'email'
+  setStatus(statusEl, '')
+  applySignupStep()
 })
 
 passwordEl.addEventListener('input', () => {
@@ -218,9 +292,15 @@ form.addEventListener('submit', async (e) => {
       setStatus(statusEl, 'Enter a valid email address.', 'error')
       return
     }
-    signupStep = 'password'
+    signupStep = 'role'
     setStatus(statusEl, '')
     applySignupStep()
+    return
+  }
+
+  if (signupStep === 'role') {
+    // Role is chosen via the cards themselves; an accidental Enter-key submit
+    // here (e.g. from the still-visible email field) does nothing.
     return
   }
 
@@ -238,7 +318,7 @@ form.addEventListener('submit', async (e) => {
     setStatus(statusEl, 'Please complete the verification challenge.', 'error')
     return
   }
-  await doSignUp(email, pw, turnstileToken)
+  await doSignUp(email, pw, turnstileToken, selectedRole)
 })
 
 async function doSignIn(email, password) {
@@ -258,24 +338,25 @@ async function doSignIn(email, password) {
   }
 }
 
-async function doSignUp(email, password, turnstileToken) {
+async function doSignUp(email, password, turnstileToken, role) {
   const restore = loading(submitBtn, 'Creating…')
   setStatus(statusEl, '')
   try {
-    // Captured for the record alongside the account; server-side verification
-    // (calling Cloudflare's siteverify endpoint, as send-confirmation does for
-    // the waitlist) is not wired up yet.
+    // turnstile_token is captured for the record alongside the account;
+    // server-side verification (calling Cloudflare's siteverify endpoint, as
+    // send-confirmation does for the waitlist) is not wired up yet.
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { turnstile_token: turnstileToken } },
+      options: { data: { role, turnstile_token: turnstileToken } },
     })
     if (error) throw error
     if (data.session) {
-      location.replace(DASHBOARD)
+      location.replace(role === 'self' ? STUDY : DASHBOARD)
     } else {
-      setStatus(statusEl, 'Account created! Check your email to confirm, then sign in.', 'success')
-      restore()
+      // Email confirmation required — hand off to the OTP verification page.
+      sessionStorage.setItem('classyx.verifyEmail', email)
+      location.href = VERIFY
     }
   } catch (err) {
     setStatus(statusEl, friendly(err), 'error')
@@ -310,5 +391,6 @@ function friendly(err) {
   const m = err?.message || 'Something went wrong.'
   if (/invalid login credentials/i.test(m)) return 'Wrong email or password.'
   if (/already registered/i.test(m)) return 'That email already has an account — try signing in.'
+  if (/email not confirmed/i.test(m)) return 'Please confirm your email before signing in — check your inbox for the confirmation link.'
   return m
 }

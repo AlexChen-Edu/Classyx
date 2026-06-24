@@ -29,15 +29,27 @@ export async function createChild({ name, grade }) {
   return data
 }
 
-/** Set a child's PIN via the SECURITY DEFINER function (hashes server-side). */
-export async function setChildPin(childId, pin) {
-  const { error } = await supabase.rpc('set_child_pin', { child: childId, new_pin: pin })
+const CODE_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
+
+/**
+ * Generate a 6-character lowercase-alphanumeric code using crypto.getRandomValues()
+ * (not Math.random()) so it's drawn from a cryptographically secure source.
+ */
+export function generateChildCode() {
+  const bytes = new Uint8Array(6)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('')
+}
+
+/** Set a child's access code via the SECURITY DEFINER function (hashes server-side). */
+export async function setChildPin(childId, code) {
+  const { error } = await supabase.rpc('set_child_pin', { child: childId, new_pin: code })
   if (error) throw error
 }
 
-/** Returns true if the PIN is correct OR no PIN is set (open profile). */
-export async function verifyChildPin(childId, pin) {
-  const { data, error } = await supabase.rpc('verify_child_pin', { child: childId, attempt: pin })
+/** Returns true if the code is correct OR no code is set (open profile). */
+export async function verifyChildPin(childId, code) {
+  const { data, error } = await supabase.rpc('verify_child_pin', { child: childId, attempt: code })
   if (error) throw error
   return data === true
 }

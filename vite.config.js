@@ -11,6 +11,7 @@ export default defineConfig({
         privacy: 'privacy-policy.html',
         // --- authenticated app ---
         login: 'app/login.html',
+        verify: 'app/verify.html',
         dashboard: 'app/dashboard.html',
         child: 'app/child.html',
         study: 'app/study.html',

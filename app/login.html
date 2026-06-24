@@ -36,12 +36,58 @@
             <input class="input" id="email" type="email" autocomplete="email" required placeholder="you@example.com" />
           </div>
 
-          <!-- Password section. Hidden during the "Create account" email step,
-               then revealed (with strength meter + confirm) after Continue. -->
+          <!-- Role selection (Create account only). Shown after "Continue with
+               email", before the password step. -->
+          <div id="role-step" class="hidden">
+            <p class="role-step__heading">Who are you?</p>
+            <div class="role-cards" role="group" aria-label="Who are you?">
+              <button type="button" class="role-card" data-role="self" aria-pressed="false">
+                <span class="role-card__icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+                </span>
+                <span class="role-card__text">
+                  <span class="role-card__label">Just me</span>
+                  <span class="role-card__sub">I want to track my own learning</span>
+                </span>
+              </button>
+
+              <button type="button" class="role-card" data-role="kid" aria-pressed="false">
+                <span class="role-card__icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.6 5.27 5.82.85-4.21 4.1.99 5.78L12 15.27l-5.2 2.73.99-5.78-4.21-4.1 5.82-.85L12 2Z"/></svg>
+                </span>
+                <span class="role-card__text">
+                  <span class="role-card__label">I'm a student</span>
+                  <span class="role-card__sub">My parent gave me a code to enter</span>
+                  <span class="role-card__note">No account needed — just enter the code your parent gave you.</span>
+                </span>
+              </button>
+
+              <button type="button" class="role-card" data-role="parent" aria-pressed="false">
+                <span class="role-card__icon">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Z"/></svg>
+                </span>
+                <span class="role-card__text">
+                  <span class="role-card__label">I'm a parent</span>
+                  <span class="role-card__sub">I want to support my child's learning</span>
+                </span>
+              </button>
+            </div>
+            <button type="button" class="btn btn-ghost btn-block" id="role-back">← Back</button>
+          </div>
+
+          <!-- Password section. Hidden during the "Create account" email and
+               role steps, then revealed (with strength meter + confirm) after
+               a role is chosen. -->
           <div id="password-section">
             <div class="form-row">
               <label for="password">Password</label>
-              <input class="input" id="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Password" />
+              <div class="password-wrap">
+                <input class="input" id="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Password" />
+                <button type="button" class="password-toggle" id="password-toggle" aria-label="Show password" aria-pressed="false">
+                  <svg class="eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-closed hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.4 18.4 0 0 1 4.22-5.06M9.9 4.24A10.6 10.6 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+                </button>
+              </div>
             </div>
 
             <!-- Strength meter (Create account only) -->
@@ -56,17 +102,19 @@
             <!-- Confirm password (Create account only) -->
             <div class="form-row hidden" id="confirm-row">
               <label for="confirm">Confirm password</label>
-              <input class="input" id="confirm" type="password" autocomplete="new-password" placeholder="confirm password" />
+              <div class="password-wrap">
+                <input class="input" id="confirm" type="password" autocomplete="new-password" placeholder="confirm password" />
+                <button type="button" class="password-toggle" id="confirm-toggle" aria-label="Show password" aria-pressed="false">
+                  <svg class="eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg class="eye-closed hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.4 18.4 0 0 1 4.22-5.06M9.9 4.24A10.6 10.6 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>
+                </button>
+              </div>
               <span class="hint" id="match-hint"></span>
             </div>
 
-            <!-- Cloudflare Turnstile (Create account only). Rendered explicitly
-                 via JS so we get a callback for the token; see login.js. -->
-            <div class="form-row hidden" id="turnstile-row">
-              <div id="turnstile-widget"></div>
-            </div>
           </div>
 
+          <div id="turnstile-row" class="form-row hidden"><div id="turnstile-widget"></div></div>
           <button class="btn btn-primary btn-lg btn-block" id="submit" type="submit">Sign in</button>
           <p class="form-status" data-status role="status" aria-live="polite"></p>
         </form>

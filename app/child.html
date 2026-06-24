@@ -36,16 +36,18 @@
       </div>
     </main>
 
-    <!-- PIN modal -->
+    <!-- Code modal -->
     <div class="overlay" id="pin-overlay" hidden>
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pin-title">
-        <h2 id="pin-title">Enter PIN</h2>
-        <p class="muted" id="pin-sub">Enter your 4-digit PIN</p>
+        <h2 id="pin-title">Enter code</h2>
+        <p class="muted" id="pin-sub">Enter your 6-character code</p>
         <div class="pin-inputs" id="pin-inputs">
-          <input class="pin-box" inputmode="numeric" maxlength="1" aria-label="PIN digit 1" />
-          <input class="pin-box" inputmode="numeric" maxlength="1" aria-label="PIN digit 2" />
-          <input class="pin-box" inputmode="numeric" maxlength="1" aria-label="PIN digit 3" />
-          <input class="pin-box" inputmode="numeric" maxlength="1" aria-label="PIN digit 4" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 1" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 2" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 3" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 4" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 5" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 6" />
         </div>
         <p class="form-status" data-status role="status" aria-live="polite"></p>
         <button class="btn btn-ghost btn-sm" id="pin-cancel" type="button" style="margin-top:10px">Cancel</button>

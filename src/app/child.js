@@ -1,6 +1,6 @@
-// Profile selector + PIN gate. Students land here from the magic link.
+// Profile selector + code gate. Students land here from the magic link.
 import { requireSession, signOut, setActiveChild } from './auth.js'
-import { listChildren, verifyChildPin } from './api.js'
+import { listChildren, verifyChildPin, setChildPin, generateChildCode } from './api.js'
 import { $, $$, setStatus, escapeHtml, initials, tintFor } from './ui.js'
 
 const STUDY = '/app/study.html'
@@ -62,9 +62,9 @@ function enter(child) {
   location.href = STUDY
 }
 
-// --- PIN modal ---
+// --- Code modal ---
 function openPin(child) {
-  pinSub.textContent = `Enter ${child.name}'s 4-digit PIN`
+  pinSub.textContent = `Enter ${child.name}'s 6-character code`
   setStatus(pinStatus, '')
   pinBoxes.forEach((b) => (b.value = ''))
   overlay.hidden = false
@@ -78,7 +78,7 @@ function closePin() {
 
 pinBoxes.forEach((box, i) => {
   box.addEventListener('input', () => {
-    box.value = box.value.replace(/\D/g, '')
+    box.value = box.value.replace(/[^a-z0-9]/gi, '').slice(0, 1).toLowerCase()
     if (box.value && i < pinBoxes.length - 1) pinBoxes[i + 1].focus()
     if (pinBoxes.every((b) => b.value)) submitPin()
   })
@@ -89,21 +89,34 @@ pinBoxes.forEach((box, i) => {
 
 async function submitPin() {
   if (!activeCandidate) return
-  const pin = pinBoxes.map((b) => b.value).join('')
-  if (pin.length !== 4) return
+  const code = pinBoxes.map((b) => b.value).join('')
+  if (code.length !== 6) return
   setStatus(pinStatus, 'Checking…')
   try {
-    const ok = await verifyChildPin(activeCandidate.id, pin)
+    const ok = await verifyChildPin(activeCandidate.id, code)
     if (ok) {
-      enter(activeCandidate)
+      // Clear immediately so the code is no longer visible on screen.
+      pinBoxes.forEach((b) => (b.value = ''))
+      const child = activeCandidate
+      // Silently rotate the code in the background so this one can never be
+      // reused. Awaited (but invisible — no status shown) so it completes
+      // before navigation tears the page down.
+      await rotateChildCode(child.id)
+      enter(child)
     } else {
-      setStatus(pinStatus, 'Incorrect PIN. Try again.', 'error')
+      setStatus(pinStatus, 'Incorrect code. Try again.', 'error')
       pinBoxes.forEach((b) => (b.value = ''))
       pinBoxes[0].focus()
     }
   } catch (err) {
-    setStatus(pinStatus, err.message || 'Could not verify PIN.', 'error')
+    setStatus(pinStatus, err.message || 'Could not verify code.', 'error')
   }
+}
+
+async function rotateChildCode(childId) {
+  try {
+    await setChildPin(childId, generateChildCode())
+  } catch { /* best effort — a failed rotation just leaves the old code valid */ }
 }
 
 main()
