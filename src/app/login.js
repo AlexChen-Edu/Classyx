@@ -355,8 +355,8 @@ async function doSignUp(email, password, turnstileToken, role) {
       location.replace(role === 'self' ? STUDY : DASHBOARD)
     } else {
       // Email confirmation required — hand off to the OTP verification page.
-      sessionStorage.setItem('classyx.verifyEmail', email)
-      location.href = VERIFY
+      sessionStorage.setItem('verify_email', email)
+      location.replace(VERIFY)
     }
   } catch (err) {
     setStatus(statusEl, friendly(err), 'error')

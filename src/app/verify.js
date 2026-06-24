@@ -8,7 +8,7 @@ import { $, $$, setStatus, loading } from './ui.js'
 
 const LOGIN = '/app/login.html'
 const DASHBOARD = '/app/dashboard.html'
-const EMAIL_KEY = 'classyx.verifyEmail'
+const EMAIL_KEY = 'verify_email'
 
 const form = $('#verify-form')
 const subEl = $('#verify-sub')
