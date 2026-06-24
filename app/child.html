@@ -33,6 +33,26 @@
         <div id="profiles" class="profiles" aria-live="polite">
           <div class="generating"><span class="spinner spinner--lg"></span></div>
         </div>
+
+        <!-- Account-less code entry: shown instead of the profile grid when
+             there is no parent session (e.g. "I'm a student" with no account).
+             There's nothing to list/click here — the code itself identifies
+             the child via the anon-safe redeem_child_code RPC. -->
+        <div id="anon-code-section" class="hidden center-narrow" style="margin-top:24px">
+          <div class="card">
+            <h2 style="font-size:1.1rem;margin-bottom:6px">Enter your code</h2>
+            <p class="muted" style="margin-bottom:14px">Ask your parent for your 6-character code.</p>
+            <div class="pin-inputs" id="anon-pin-inputs">
+              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 1" />
+              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 2" />
+              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 3" />
+              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 4" />
+              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 5" />
+              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 6" />
+            </div>
+            <p class="form-status" data-anon-status role="status" aria-live="polite"></p>
+          </div>
+        </div>
       </div>
     </main>
 

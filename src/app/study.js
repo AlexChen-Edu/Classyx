@@ -1,6 +1,7 @@
 // Study interface: upload -> AI generate -> flashcards / guide / self-test,
 // with a study timer that auto-saves to study_sessions.
-import { requireSession, getActiveChild } from './auth.js'
+import { supabase } from '../supabaseClient.js'
+import { getActiveChild, getChildSession } from './auth.js'
 import {
   uploadNote, generateContent, getFlashcards, getStudyGuide,
   recordQuizResult, startSession, touchSession,
@@ -8,9 +9,9 @@ import {
 import { $, $$, setStatus, loading, escapeHtml } from './ui.js'
 
 const MAX_BYTES = 10 * 1024 * 1024
+const CHILD_URL = '/app/child.html'
 
-const child = getActiveChild()
-if (!child) location.replace('/app/child.html')
+let child = null
 
 const els = {
   childName: $('#child-name'),
@@ -28,9 +29,33 @@ const els = {
 
 let chosenFile = null
 
+/**
+ * The active child can come from either trust path:
+ *  - a parent's authenticated session + a profile picked on child.html, or
+ *  - an account-less child session (redeem_child_code) stored for this tab.
+ * If neither is present there is nothing to study — back to child.html.
+ */
+async function resolveActiveChild() {
+  if (supabase) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      const picked = getActiveChild()
+      if (picked) return picked
+    }
+  }
+  const childSession = getChildSession()
+  if (childSession) {
+    return { id: childSession.child_id, name: childSession.child_name, family_id: childSession.family_id }
+  }
+  return null
+}
+
 async function main() {
-  const session = await requireSession()
-  if (!session || !child) return
+  child = await resolveActiveChild()
+  if (!child) {
+    location.replace(CHILD_URL)
+    return
+  }
   els.childName.textContent = child.name
   startTimer()
   wireUpload()

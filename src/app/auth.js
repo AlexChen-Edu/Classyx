@@ -52,6 +52,7 @@ export async function getFamily() {
 
 export async function signOut() {
   clearActiveChild()
+  clearChildSession()
   if (supabase) await supabase.auth.signOut()
   location.replace(LOGIN_URL)
 }
@@ -73,4 +74,28 @@ export function getActiveChild() {
 
 export function clearActiveChild() {
   sessionStorage.removeItem(ACTIVE_KEY)
+}
+
+// --- Account-less child session (redeem_child_code result) -----------------
+// Unlike getActiveChild() above (a UI cache for an authenticated parent's own
+// picker — actual access is still enforced server-side by RLS on every
+// request), this IS the proof of identity for an account-less child: there
+// is no parent session to fall back on, so study.js trusts this value
+// directly once it's been set by a successful redeem_child_code call.
+const CHILD_SESSION_KEY = 'classyx.childSession'
+
+export function setChildSession({ child_id, child_name, family_id }) {
+  sessionStorage.setItem(CHILD_SESSION_KEY, JSON.stringify({ child_id, child_name, family_id }))
+}
+
+export function getChildSession() {
+  try {
+    return JSON.parse(sessionStorage.getItem(CHILD_SESSION_KEY) || 'null')
+  } catch {
+    return null
+  }
+}
+
+export function clearChildSession() {
+  sessionStorage.removeItem(CHILD_SESSION_KEY)
 }
