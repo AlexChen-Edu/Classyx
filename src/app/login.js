@@ -41,6 +41,11 @@ let signupStep = 'email' // 'email' | 'role' | 'password' (signup only)
 let selectedRole = null // 'self' | 'parent' (signup only — 'kid' redirects immediately)
 let turnstileToken = null
 let turnstileWidgetId = null
+// Guards against a race: the kid-card click navigates synchronously, but the
+// already-signed-in check below is async and could otherwise resolve after
+// the click and override the navigation (e.g. a parent still signed in on a
+// shared device, then a kid clicks "I'm a student").
+let navigatingAway = false
 
 // --- Show/hide password toggles ---------------------------------------------
 function wirePasswordToggle(inputEl, buttonEl) {
@@ -73,7 +78,7 @@ if (!supabase) {
 ;(async () => {
   if (!supabase) return
   const { data: { session } } = await supabase.auth.getSession()
-  if (session) location.replace(DASHBOARD)
+  if (session && !navigatingAway) location.replace(DASHBOARD)
 })()
 
 // --- Password strength ------------------------------------------------------
@@ -249,7 +254,10 @@ roleCards.forEach((card) => {
   card.addEventListener('click', () => {
     const role = card.dataset.role
     if (role === 'kid') {
-      // No account at all — straight to the code-entry page.
+      // No account at all — straight to the code-entry page. Set the guard
+      // first so the async signed-in check above can't race this and bounce
+      // to the dashboard instead.
+      navigatingAway = true
       location.href = CHILD
       return
     }

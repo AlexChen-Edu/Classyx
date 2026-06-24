@@ -17,3 +17,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/generate-content/deno.json"
 entrypoint = "./functions/generate-content/index.ts"
+
+# Signup confirmation email — sends the {{ .Token }} 6-digit OTP code (read by
+# app/verify.html) instead of the default {{ .ConfirmationURL }} link.
+[auth.email.template.confirmation]
+subject = "Verify your Classyx account"
+content_path = "./supabase/templates/confirmation.html"

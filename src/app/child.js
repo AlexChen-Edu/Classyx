@@ -1,5 +1,10 @@
-// Profile selector + code gate. Students land here from the magic link.
-import { requireSession, signOut, setActiveChild } from './auth.js'
+// Profile selector + code gate. Reached either via a parent's authenticated
+// session (e.g. the magic link) OR by an account-less visitor who picked
+// "I'm a student" on the login page — this page must stay reachable WITHOUT
+// being logged in (unlike the other /app/* pages, it does not call
+// requireSession(), which would redirect an account-less visitor away).
+import { supabase } from '../supabaseClient.js'
+import { signOut, setActiveChild } from './auth.js'
 import { listChildren, verifyChildPin, setChildPin, generateChildCode } from './api.js'
 import { $, $$, setStatus, escapeHtml, initials, tintFor } from './ui.js'
 
@@ -15,8 +20,21 @@ $('#pin-cancel')?.addEventListener('click', closePin)
 let activeCandidate = null
 
 async function main() {
-  const session = await requireSession()
-  if (!session) return
+  if (!supabase) {
+    profilesEl.innerHTML = `<div class="empty" style="margin-top:20px"><p class="muted">No profiles yet.</p></div>`
+    return
+  }
+  // Listing children is RLS-scoped to an authenticated parent's family, so an
+  // account-less visitor simply sees the empty state below rather than an
+  // error — the page itself never redirects them away.
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    profilesEl.innerHTML = `
+      <div class="empty" style="margin-top:20px">
+        <p class="muted">No profiles yet. Ask your parent to set one up.</p>
+      </div>`
+    return
+  }
   try {
     const children = await listChildren()
     renderProfiles(children)
