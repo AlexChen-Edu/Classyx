@@ -383,6 +383,95 @@ section[id] {
   }
 }
 
+/* ---------- Mobile nav toggle (hamburger) ---------- */
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  margin-left: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.nav-toggle:hover {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+}
+
+.nav-toggle__bar {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand);
+  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.nav-toggle[aria-expanded='true'] {
+  border-color: var(--accent);
+  background: var(--accent-tint);
+}
+
+.nav-toggle[aria-expanded='true'] .nav-toggle__bar {
+  background: var(--brand-ink);
+}
+
+.nav-toggle[aria-expanded='true'] .nav-toggle__bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded='true'] .nav-toggle__bar:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle[aria-expanded='true'] .nav-toggle__bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile-only: show the toggle and turn .site-nav into a dropdown panel.
+   This block is scoped to < 860px, so the desktop layout above is untouched. */
+@media (max-width: 859px) {
+  .nav-toggle {
+    display: inline-flex;
+  }
+
+  .site-nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: 0;
+    padding: 10px clamp(20px, 4vw, 32px) 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow-md);
+  }
+
+  .site-nav.is-open {
+    display: flex;
+  }
+
+  .site-nav a {
+    padding: 11px 6px;
+    border-radius: 9px;
+  }
+
+  .site-nav a:hover {
+    background: var(--brand-tint);
+    color: var(--brand);
+  }
+}
+
 /* ---------- Hero ---------- */
 .hero {
   position: relative;
