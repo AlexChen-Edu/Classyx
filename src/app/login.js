@@ -35,6 +35,7 @@ const turnstileWidget = $('#turnstile-widget')
 const submitBtn = $('#submit')
 const statusEl = $('[data-status]')
 const magicBtn = $('#magic-link')
+const signupConsent = $('#signup-consent')
 
 let mode = 'signin' // 'signin' | 'signup'
 let signupStep = 'email' // 'email' | 'role' | 'password' (signup only)
@@ -201,11 +202,13 @@ function applyMode() {
     hide(confirmRow)
     hide(roleStep)
     showEl(submitBtn)
+    hide(signupConsent)
     resetTurnstile()
     passwordEl.autocomplete = 'current-password'
     submitBtn.textContent = 'Sign in'
     submitBtn.disabled = false
   } else {
+    showEl(signupConsent)
     signupStep = 'email'
     applySignupStep()
   }
