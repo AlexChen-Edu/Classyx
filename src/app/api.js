@@ -2,7 +2,7 @@
 // to their family automatically. We never select '*' on children (pin_hash is
 // revoked) — only explicit, safe columns.
 
-import { supabase } from '../supabaseClient.js'
+import { supabase, supabaseAnon } from '../supabaseClient.js'
 import { getFamily } from './auth.js'
 
 const CHILD_COLS = 'id, name, grade, created_at'
@@ -152,6 +152,82 @@ export async function touchSession({ sessionId, startedAtMs }) {
     .from('study_sessions')
     .update({ ended_at: new Date().toISOString(), duration_minutes: minutes })
     .eq('id', sessionId)
+}
+
+// --- Live presence (active_sessions) ----------------------------------------
+// Always written via supabaseAnon: the anon insert/update policies on this
+// table are intentionally unscoped (a student using a parent-generated code
+// has no Supabase Auth identity to scope a policy to — see the migration),
+// so there's no need to branch on whether the caller is actually a signed-in
+// parent. Only the SELECT side (getActiveSessions, used by the dashboard) is
+// ownership-scoped, via the regular authenticated `supabase` client.
+
+/**
+ * Plain INSERT, falling back to UPDATE on a unique-violation (child_id
+ * already has a row from an earlier session). Deliberately not `.upsert()`:
+ * under RLS, INSERT...ON CONFLICT DO UPDATE must satisfy both the INSERT and
+ * UPDATE policies simultaneously for the conflict branch, which fails here
+ * even though each policy independently allows the plain operation — this
+ * two-step approach avoids that interaction entirely (verified live).
+ */
+export async function startPresence(childId) {
+  if (!supabaseAnon) return
+  const now = new Date().toISOString()
+  const { error } = await supabaseAnon
+    .from('active_sessions')
+    .insert({ child_id: childId, started_at: now, last_ping: now })
+  if (error?.code === '23505') {
+    await supabaseAnon
+      .from('active_sessions')
+      .update({ started_at: now, last_ping: now })
+      .eq('child_id', childId)
+  }
+}
+
+export async function pingPresence(childId) {
+  if (!supabaseAnon) return
+  await supabaseAnon
+    .from('active_sessions')
+    .update({ last_ping: new Date().toISOString() })
+    .eq('child_id', childId)
+}
+
+/**
+ * Best-effort presence cleanup on tab close/navigation, called from a
+ * pagehide/beforeunload listener. Posts to the end_active_session RPC
+ * (the table itself has no anon DELETE policy/grant — see the migration).
+ *
+ * navigator.sendBeacon was tried first and verified NOT to work reliably
+ * here: a Blob with Content-Type: application/json is a non-"simple" CORS
+ * content-type, which requires a preflight that sendBeacon doesn't reliably
+ * wait for — the browser reports success (sendBeacon returns true) but the
+ * request never actually reaches the server (confirmed live: the row was
+ * never deleted). `fetch` with `keepalive: true` is the modern replacement
+ * for exactly this "survive page unload" use case and handles the preflight
+ * correctly; verified live that the row IS deleted with this approach.
+ */
+export function endPresenceBeacon(childId) {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/end_active_session`
+    fetch(url, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ p_child_id: childId }),
+    }).catch(() => {})
+  } catch { /* best effort */ }
+}
+
+/** RLS-scoped to the caller's own children; used by the parent dashboard. */
+export async function getActiveSessions() {
+  const { data, error } = await supabase
+    .from('active_sessions')
+    .select('child_id, started_at, last_ping')
+  if (error) throw error
+  return data ?? []
 }
 
 // --- Dashboard aggregates ---------------------------------------------------

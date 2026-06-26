@@ -5,7 +5,8 @@
 //    strength check) + confirm password. Picking "student" skips account
 //    creation entirely and redirects to the code-entry page.
 //  - Magic link: passwordless sign-in link.
-import { supabase } from '../supabaseClient.js'
+import { supabase, supabaseAnon } from '../supabaseClient.js'
+import { setChildSession } from './auth.js'
 import { $, $$, setStatus, loading } from './ui.js'
 
 const DASHBOARD = '/app/dashboard.html'
@@ -405,3 +406,78 @@ function friendly(err) {
   if (/email not confirmed/i.test(m)) return 'Please confirm your email before signing in — check your inbox for the confirmation link.'
   return m
 }
+
+// ============================================================================
+// Account-less student entry. Entirely separate from #auth-form/applyMode —
+// does not touch the sign in or create account flows at all. Only visible on
+// the Sign in screen (a second, independent tab listener below just toggles
+// this section's container; it never reads/writes any signin/signup state).
+// ============================================================================
+const studentToggleRow = $('#student-toggle-row')
+const studentToggle = $('#student-toggle')
+const studentSection = $('#student-code-section')
+const studentCodeInput = $('#student-code')
+const studentStartBtn = $('#student-start-btn')
+const studentStatusEl = $('[data-student-status]')
+
+studentToggle.addEventListener('click', () => {
+  const opening = studentSection.classList.contains('hidden')
+  studentSection.classList.toggle('hidden', !opening)
+  studentToggle.setAttribute('aria-expanded', String(opening))
+  if (opening) studentCodeInput.focus()
+})
+
+studentCodeInput.addEventListener('input', () => {
+  studentCodeInput.value = studentCodeInput.value.replace(/[^a-z0-9]/gi, '').slice(0, 6).toLowerCase()
+})
+
+studentCodeInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault()
+    startStudying()
+  }
+})
+
+studentStartBtn.addEventListener('click', startStudying)
+
+async function startStudying() {
+  const code = studentCodeInput.value
+  if (code.length !== 6 || !supabaseAnon) {
+    setStatus(studentStatusEl, 'Enter your 6-character code.', 'error')
+    return
+  }
+  const restore = loading(studentStartBtn, 'Checking…')
+  setStatus(studentStatusEl, '')
+  try {
+    const { data, error } = await supabaseAnon.rpc('redeem_child_code', { code })
+    if (error) throw error
+    const row = data?.[0]
+    if (!row) throw new Error('Invalid or expired code')
+    // Clear immediately so the code is no longer visible on screen.
+    studentCodeInput.value = ''
+    setChildSession({ child_id: row.child_id, child_name: row.child_name, family_id: row.family_id })
+    location.href = STUDY
+  } catch (err) {
+    const msg = err?.message || ''
+    setStatus(studentStatusEl, /invalid or expired/i.test(msg) ? 'Incorrect code. Try again.' : (msg || 'Could not verify code.'), 'error')
+    studentCodeInput.value = ''
+    studentCodeInput.focus()
+    restore()
+  }
+}
+
+// A second, independent listener on the same tabs (registered after the
+// existing one, so `mode` has already been updated by the time this runs) —
+// keeps the student section Sign-in-only without modifying the original tab
+// handler or applyMode().
+document.querySelectorAll('.auth-tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    if (mode === 'signin') {
+      showEl(studentToggleRow)
+    } else {
+      hide(studentToggleRow)
+      hide(studentSection)
+      studentToggle.setAttribute('aria-expanded', 'false')
+    }
+  })
+})

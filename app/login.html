@@ -116,7 +116,7 @@
 
           <div id="turnstile-row" class="form-row hidden"><div id="turnstile-widget"></div></div>
           <button class="btn btn-primary btn-lg btn-block" id="submit" type="submit">Sign in</button>
-          <p class="hint hidden" id="signup-consent" style="text-align:center;margin-top:8px">By creating an account you agree to Classyx's <a href="/privacy-policy.html" target="_blank" style="color:#2563eb">Privacy Policy</a>.</p>
+          <p class="hint hidden" id="signup-consent" style="text-align:center;margin-top:8px">By creating an account you agree to Classyx's <a href='/privacy-policy.html' target='_blank' style='color:#2563eb'>Privacy Policy</a> and <a href='/tos.html' target='_blank' style='color:#2563eb'>Terms of Service</a>.</p>
           <p class="form-status" data-status role="status" aria-live="polite"></p>
         </form>
 
@@ -128,6 +128,32 @@
         <p class="hint" style="margin-top:10px;text-align:center">
           A magic link works great on your child's device — open it there to start studying.
         </p>
+
+        <!-- Account-less student entry (Sign in screen only). Fully separate
+             from #auth-form — never touches the sign in / create account
+             logic. Toggled open/closed independently in login.js. -->
+        <div id="student-toggle-row" style="margin-top:18px">
+          <div class="divider">or</div>
+          <button class="btn btn-ghost btn-block" id="student-toggle" type="button" aria-expanded="false">
+            I'm a student — enter my code
+          </button>
+          <div id="student-code-section" class="hidden" style="margin-top:14px">
+            <div class="form-row">
+              <label for="student-code">Your 6-character code</label>
+              <input
+                class="input"
+                id="student-code"
+                type="text"
+                maxlength="6"
+                autocomplete="off"
+                placeholder="e.g. a3k9mz"
+                style="text-align:center;letter-spacing:.3em;text-transform:lowercase"
+              />
+            </div>
+            <button class="btn btn-primary btn-block" id="student-start-btn" type="button">Start studying</button>
+            <p class="form-status" data-student-status role="status" aria-live="polite"></p>
+          </div>
+        </div>
       </div>
     </main>
     <script type="module" src="/src/app/login.js"></script>

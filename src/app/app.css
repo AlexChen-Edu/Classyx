@@ -284,6 +284,29 @@ body.app {
 .child-card__name { font-family: var(--font-display); font-weight: 600; color: var(--ink); }
 .child-card__grade { font-size: 0.83rem; color: var(--ink-3); }
 
+.presence {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--success);
+  background: var(--success-tint);
+  border-radius: 999px;
+  padding: 5px 11px;
+}
+.presence__dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success);
+  animation: pulse 2s ease-in-out infinite;
+  flex: none;
+}
+.presence__timer {
+  font-family: var(--font-display);
+  margin-left: 2px;
+}
+
 .stat-mini-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

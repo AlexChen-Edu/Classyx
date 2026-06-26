@@ -1,7 +1,10 @@
-// Parent dashboard: per-child weekly study time, quiz accuracy, last studied.
+// Parent dashboard: per-child weekly study time, quiz accuracy, last studied,
+// and a live "Active now" presence indicator polled from active_sessions.
 import { requireSession, getFamily, signOut, setActiveChild } from './auth.js'
-import { getDashboardData } from './api.js'
+import { getDashboardData, getActiveSessions } from './api.js'
 import { $, escapeHtml, relativeDay, initials, tintFor } from './ui.js'
+
+const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
 
 const content = $('#content')
 $('[data-signout]')?.addEventListener('click', signOut)
@@ -12,13 +15,40 @@ async function main() {
   try {
     await getFamily() // bootstrap the family row on first login
     const children = await getDashboardData()
-    render(children)
+    const presence = await fetchPresence()
+    render(children, presence)
+    startPolling()
   } catch (err) {
     content.innerHTML = `<div class="banner banner--error">Couldn't load your dashboard: ${escapeHtml(err.message)}</div>`
   }
 }
 
-function render(children) {
+/** Map of child_id -> started_at ISO string, for sessions pinged within the last 2 minutes. */
+async function fetchPresence() {
+  try {
+    const rows = await getActiveSessions()
+    const now = Date.now()
+    const map = new Map()
+    for (const row of rows) {
+      if (now - new Date(row.last_ping).getTime() <= STALE_MS) {
+        map.set(row.child_id, row.started_at)
+      }
+    }
+    return map
+  } catch {
+    return new Map() // presence is a nice-to-have; never blocks the rest of the dashboard
+  }
+}
+
+function startPolling() {
+  // Refresh active/inactive state every 30s without re-fetching the rest of
+  // the dashboard's stats (those don't need to be this fresh).
+  setInterval(async () => applyPresence(await fetchPresence()), 30000)
+  // Cheap per-second tick so the "Active now" timers count up smoothly.
+  setInterval(updateTimers, 1000)
+}
+
+function render(children, presence) {
   if (!children.length) {
     content.innerHTML = `
       <div class="empty">
@@ -32,28 +62,7 @@ function render(children) {
     return
   }
 
-  const cards = children.map((c) => {
-    const tint = tintFor(c.name)
-    const week = c.weekMinutes ? `${c.weekMinutes}m` : '0m'
-    const acc = c.accuracy == null ? '—' : `${c.accuracy}%`
-    return `
-      <article class="card child-card">
-        <div class="child-card__top">
-          <span class="avatar" style="background:${tint}">${escapeHtml(initials(c.name))}</span>
-          <div>
-            <div class="child-card__name">${escapeHtml(c.name)}</div>
-            <div class="child-card__grade">${c.grade ? 'Grade ' + escapeHtml(c.grade) : 'Learner'}</div>
-          </div>
-        </div>
-        <div class="stat-mini-row">
-          <div class="stat-mini"><div class="stat-mini__label">This week</div><div class="stat-mini__value">${week}</div></div>
-          <div class="stat-mini"><div class="stat-mini__label">Quiz accuracy</div><div class="stat-mini__value">${acc}</div></div>
-          <div class="stat-mini"><div class="stat-mini__label">Last studied</div><div class="stat-mini__value" style="font-size:.95rem">${escapeHtml(relativeDay(c.lastStudied))}</div></div>
-        </div>
-        <button class="btn btn-ghost btn-block" data-study="${c.id}">Start study session →</button>
-      </article>`
-  }).join('')
-
+  const cards = children.map((c) => renderCard(c, presence.get(c.id))).join('')
   content.innerHTML = `<div class="child-grid">${cards}</div>`
 
   content.querySelectorAll('[data-study]').forEach((btn) => {
@@ -63,6 +72,61 @@ function render(children) {
       setActiveChild(child)
       location.href = '/app/study.html'
     })
+  })
+
+  updateTimers()
+}
+
+function renderCard(c, startedAt) {
+  const tint = tintFor(c.name)
+  const week = c.weekMinutes ? `${c.weekMinutes}m` : '0m'
+  const acc = c.accuracy == null ? '—' : `${c.accuracy}%`
+  const timerAttr = startedAt ? ` data-started-at="${escapeHtml(startedAt)}"` : ''
+  return `
+      <article class="card child-card" data-child-id="${c.id}">
+        <div class="child-card__top">
+          <span class="avatar" style="background:${tint}">${escapeHtml(initials(c.name))}</span>
+          <div>
+            <div class="child-card__name">${escapeHtml(c.name)}</div>
+            <div class="child-card__grade">${c.grade ? 'Grade ' + escapeHtml(c.grade) : 'Learner'}</div>
+          </div>
+        </div>
+        <div class="presence${startedAt ? '' : ' hidden'}" data-presence>
+          <span class="presence__dot" aria-hidden="true"></span>
+          <span>Active now</span>
+          <span class="presence__timer"${timerAttr}>0:00</span>
+        </div>
+        <div class="stat-mini-row">
+          <div class="stat-mini"><div class="stat-mini__label">This week</div><div class="stat-mini__value">${week}</div></div>
+          <div class="stat-mini"><div class="stat-mini__label">Quiz accuracy</div><div class="stat-mini__value">${acc}</div></div>
+          <div class="stat-mini"><div class="stat-mini__label">Last studied</div><div class="stat-mini__value" style="font-size:.95rem">${escapeHtml(relativeDay(c.lastStudied))}</div></div>
+        </div>
+        <button class="btn btn-ghost btn-block" data-study="${c.id}">Start study session →</button>
+      </article>`
+}
+
+/** Updates each card's presence dot/timer in place — never re-renders the grid. */
+function applyPresence(presence) {
+  content.querySelectorAll('[data-child-id]').forEach((card) => {
+    const presenceEl = card.querySelector('[data-presence]')
+    if (!presenceEl) return
+    const timerEl = presenceEl.querySelector('.presence__timer')
+    const startedAt = presence.get(card.dataset.childId)
+    if (startedAt) {
+      presenceEl.classList.remove('hidden')
+      timerEl.dataset.startedAt = startedAt
+    } else {
+      presenceEl.classList.add('hidden')
+      delete timerEl.dataset.startedAt
+    }
+  })
+  updateTimers()
+}
+
+function updateTimers() {
+  content.querySelectorAll('.presence__timer[data-started-at]').forEach((el) => {
+    const s = Math.max(0, Math.floor((Date.now() - new Date(el.dataset.startedAt).getTime()) / 1000))
+    el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   })
 }
 

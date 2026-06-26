@@ -5,6 +5,7 @@ import { getActiveChild, getChildSession } from './auth.js'
 import {
   uploadNote, generateContent, getFlashcards, getStudyGuide,
   recordQuizResult, startSession, touchSession,
+  startPresence, pingPresence, endPresenceBeacon,
 } from './api.js'
 import { $, $$, setStatus, loading, escapeHtml } from './ui.js'
 
@@ -67,6 +68,8 @@ let sessionRow = null
 let startedAtMs = Date.now()
 let tickInterval = null
 let saveInterval = null
+let presenceInterval = null
+let presenceEnded = false
 
 async function startTimer() {
   startedAtMs = Date.now()
@@ -84,10 +87,25 @@ async function startTimer() {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') saveSession()
   })
+
+  // Live presence for the parent dashboard's "Active now" indicator.
+  try { await startPresence(child.id) } catch { /* best effort */ }
+  presenceInterval = setInterval(() => pingPresence(child.id).catch(() => {}), 30000)
+  // pagehide fires both on real tab close and on normal in-app navigation
+  // (e.g. clicking "Switch"), so this also ends presence on the latter.
+  window.addEventListener('pagehide', endPresence)
+  window.addEventListener('beforeunload', endPresence)
 }
 
 function saveSession() {
   if (sessionRow) touchSession({ sessionId: sessionRow.id, startedAtMs })
+}
+
+function endPresence() {
+  if (presenceEnded || !child) return
+  presenceEnded = true
+  clearInterval(presenceInterval)
+  endPresenceBeacon(child.id)
 }
 
 // ============================ Upload + generate ============================

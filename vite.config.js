@@ -9,6 +9,7 @@ export default defineConfig({
         main: 'index.html',
         confirm: 'confirm.html',
         privacy: 'privacy-policy.html',
+        tos: 'tos.html',
         // --- authenticated app ---
         login: 'app/login.html',
         verify: 'app/verify.html',
