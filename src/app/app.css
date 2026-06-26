@@ -307,6 +307,60 @@ body.app {
   margin-left: 2px;
 }
 
+.child-card__analytics-link {
+  display: block;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--brand);
+}
+.child-card__analytics-link:hover { text-decoration: underline; }
+
+/* ---------- Analytics page (app/analytics.html) ---------- */
+/* Mobile-first: 1 column by default, 2 on wider screens. rem/% sizing only —
+   no fixed pixel widths — so this also works unmodified in a WebView. */
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 44rem) {
+  .analytics-grid { grid-template-columns: 1fr 1fr; }
+}
+.analytics-card { display: flex; flex-direction: column; gap: 0.25rem; }
+.analytics-card--wide { grid-column: 1 / -1; }
+.analytics-card__label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.analytics-card__value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(1.5rem, 4vw, 1.9rem);
+  color: var(--ink);
+}
+.analytics-card__sub {
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+
+.subject-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 0.25rem;
+}
+.subject-row__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  margin-bottom: 0.4rem;
+}
+
 .stat-mini-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

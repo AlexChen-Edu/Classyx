@@ -230,6 +230,34 @@ export async function getActiveSessions() {
   return data ?? []
 }
 
+// --- Per-child analytics (app/analytics.html) -------------------------------
+// One bulk, unfiltered-by-period fetch per child; analytics.js slices this
+// same dataset client-side for "This Week" vs "This Month" so switching tabs
+// never re-queries. RLS (owns_child / owns_family) scopes every query to the
+// caller's own family — a child_id from another family simply returns no
+// rows / null, never an error that would leak its existence.
+export async function getChildAnalytics(childId) {
+  const [{ data: child, error: childErr }, { data: sessions, error: sessErr }, { data: quizzes, error: quizErr }] =
+    await Promise.all([
+      supabase.from('children').select('id, name, grade').eq('id', childId).maybeSingle(),
+      supabase
+        .from('study_sessions')
+        .select('started_at, duration_minutes, subject')
+        .eq('child_id', childId)
+        .order('started_at', { ascending: true }),
+      supabase
+        .from('quiz_results')
+        .select('correct, answered_at')
+        .eq('child_id', childId)
+        .order('answered_at', { ascending: true }),
+    ])
+  if (childErr) throw childErr
+  if (sessErr) throw sessErr
+  if (quizErr) throw quizErr
+  if (!child) throw new Error('Child not found')
+  return { child, sessions: sessions ?? [], quizzes: quizzes ?? [] }
+}
+
 // --- Dashboard aggregates ---------------------------------------------------
 
 export async function getDashboardData() {

@@ -14,6 +14,7 @@ export default defineConfig({
         login: 'app/login.html',
         verify: 'app/verify.html',
         dashboard: 'app/dashboard.html',
+        analytics: 'app/analytics.html',
         child: 'app/child.html',
         study: 'app/study.html',
         addChild: 'app/add-child.html',

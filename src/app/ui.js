@@ -45,6 +45,25 @@ export function relativeDay(iso) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
+/** 134 -> "2h 14m"; 45 -> "45m"; 0/null -> "0m". */
+export function formatMinutes(totalMinutes) {
+  const m = Math.max(0, Math.round(totalMinutes || 0))
+  const h = Math.floor(m / 60)
+  const rem = m % 60
+  if (h === 0) return `${rem}m`
+  if (rem === 0) return `${h}h`
+  return `${h}h ${rem}m`
+}
+
+/** ISO string -> "Jun 24, 3:45 PM"; null -> "Never". */
+export function formatDateTime(iso) {
+  if (!iso) return 'Never'
+  const d = new Date(iso)
+  const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+  return `${date}, ${time}`
+}
+
 export function initials(name) {
   return String(name || '?')
     .trim()

@@ -102,6 +102,7 @@ function renderCard(c, startedAt) {
           <div class="stat-mini"><div class="stat-mini__label">Last studied</div><div class="stat-mini__value" style="font-size:.95rem">${escapeHtml(relativeDay(c.lastStudied))}</div></div>
         </div>
         <button class="btn btn-ghost btn-block" data-study="${c.id}">Start study session →</button>
+        <a class="child-card__analytics-link" href="/app/analytics.html?child=${c.id}">Analytics →</a>
       </article>`
 }
 
