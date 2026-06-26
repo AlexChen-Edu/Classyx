@@ -65,14 +65,7 @@ function render(children, presence) {
   const cards = children.map((c) => renderCard(c, presence.get(c.id))).join('')
   content.innerHTML = `<div class="child-grid">${cards}</div>`
 
-  content.querySelectorAll('[data-study]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const child = children.find((c) => c.id === btn.dataset.study)
-      // Parent is authenticated and trusted here, so we skip the PIN gate.
-      setActiveChild(child)
-      location.href = '/app/study.html'
-    })
-  })
+
 
   updateTimers()
 }
@@ -101,7 +94,7 @@ function renderCard(c, startedAt) {
           <div class="stat-mini"><div class="stat-mini__label">Quiz accuracy</div><div class="stat-mini__value">${acc}</div></div>
           <div class="stat-mini"><div class="stat-mini__label">Last studied</div><div class="stat-mini__value" style="font-size:.95rem">${escapeHtml(relativeDay(c.lastStudied))}</div></div>
         </div>
-        <button class="btn btn-ghost btn-block" data-study="${c.id}">Start study session →</button>
+       
         <a class="child-card__analytics-link" href="/app/analytics.html?child=${c.id}">Analytics →</a>
       </article>`
 }
