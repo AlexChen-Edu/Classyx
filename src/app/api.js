@@ -173,6 +173,42 @@ export async function touchSession({ sessionId, startedAtMs }) {
     .eq('id', sessionId)
 }
 
+/**
+ * Account-less child path: anon has no direct RLS access to study_sessions
+ * (see the save_child_session migration), so this calls the SECURITY
+ * DEFINER RPC instead. Requires a live active_sessions row for childId —
+ * call this before endPresence()/endPresenceBeacon() tears that row down.
+ */
+export async function saveChildSession({ childId, subject, durationMinutes }) {
+  if (!supabaseAnon) return
+  const { error } = await supabaseAnon.rpc('save_child_session', {
+    p_child_id: childId,
+    p_subject: subject || null,
+    p_duration_minutes: durationMinutes,
+  })
+  if (error) throw error
+}
+
+/**
+ * Best-effort beacon variant for pagehide/beforeunload, same rationale as
+ * endPresenceBeacon — a normal awaited call can't be trusted to complete
+ * before the page is torn down.
+ */
+export function saveChildSessionBeacon({ childId, subject, durationMinutes }) {
+  try {
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/save_child_session`
+    fetch(url, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ p_child_id: childId, p_subject: subject || null, p_duration_minutes: durationMinutes }),
+    }).catch(() => {})
+  } catch { /* best effort */ }
+}
+
 // --- Live presence (active_sessions) ----------------------------------------
 // Always written via supabaseAnon: the anon insert/update policies on this
 // table are intentionally unscoped (a student using a parent-generated code

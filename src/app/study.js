@@ -6,6 +6,7 @@ import {
   uploadNote, generateContent, getFlashcards, getStudyGuide,
   recordQuizResult, startSession, touchSession,
   startPresence, pingPresence, endPresenceBeacon, getChildStreak,
+  saveChildSession, saveChildSessionBeacon,
 } from './api.js'
 import { $, $$, setStatus, loading, escapeHtml, computeStreak, renderStreakBadge } from './ui.js'
 
@@ -13,6 +14,8 @@ const MAX_BYTES = 10 * 1024 * 1024
 const CHILD_URL = '/app/child.html'
 
 let child = null
+/** True only for a parent's authenticated session + a profile picked on child.html. */
+let viaParentSession = false
 
 const els = {
   childName: $('#child-name'),
@@ -43,7 +46,10 @@ async function resolveActiveChild() {
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       const picked = getActiveChild()
-      if (picked) return picked
+      if (picked) {
+        viaParentSession = true
+        return picked
+      }
     }
   }
   const childSession = getChildSession()
@@ -102,7 +108,13 @@ function wireEndSession() {
   $('#end-session')?.addEventListener('click', async () => {
     const btn = $('#end-session')
     const restore = loading(btn, 'Saving…')
-    try { if (sessionRow) await touchSession({ sessionId: sessionRow.id, startedAtMs }) } catch { /* best effort */ }
+    try {
+      if (viaParentSession) {
+        if (sessionRow) await touchSession({ sessionId: sessionRow.id, startedAtMs })
+      } else {
+        await saveAnonSessionAwaited()
+      }
+    } catch { /* best effort */ }
     endPresence()
     location.href = CHILD_URL
     restore()
@@ -129,18 +141,32 @@ let totalPausedMs = 0
 let hiddenFlag = false
 let inactiveFlag = false
 let inactivityTimeout = null
+let anonSessionSaved = false
 
 async function startTimer() {
   startedAtMs = Date.now()
   totalPausedMs = 0
   els.timer.textContent = '0:00'
   startTick()
-  try {
-    sessionRow = await startSession({ childId: child.id, subject: els.subject.value || null })
-  } catch { /* timer still shows; we just won't persist if this failed */ }
-  // Auto-save every 60s so progress survives an abrupt close.
-  saveInterval = setInterval(saveSession, 60000)
-  window.addEventListener('pagehide', saveSession)
+  if (viaParentSession) {
+    try {
+      sessionRow = await startSession({ childId: child.id, subject: els.subject.value || null })
+    } catch { /* timer still shows; we just won't persist if this failed */ }
+    // Auto-save every 60s so progress survives an abrupt close. Safe to call
+    // repeatedly since it's an UPDATE on the same row, unlike the anon path's
+    // one-shot RPC below.
+    saveInterval = setInterval(saveSession, 60000)
+    window.addEventListener('pagehide', saveSession)
+  } else {
+    // Account-less child: no row to update, so there's nothing to autosave —
+    // just a single save at the true end of the session (pagehide/
+    // beforeunload here, or the "End session" button). Registered before
+    // endPresence's own pagehide/beforeunload listeners below so the save
+    // request is issued first, while its required active_sessions row still
+    // exists (see the save_child_session migration).
+    window.addEventListener('pagehide', saveAnonSessionBeacon)
+    window.addEventListener('beforeunload', saveAnonSessionBeacon)
+  }
   document.addEventListener('visibilitychange', () => {
     hiddenFlag = document.hidden
     evalPause()
@@ -233,6 +259,25 @@ function resumeTimer() {
 
 function saveSession() {
   if (sessionRow) touchSession({ sessionId: sessionRow.id, startedAtMs })
+}
+
+/** Same calc touchSession uses internally, exposed here so the anon path can pass it explicitly. */
+function elapsedMinutes() {
+  return Math.max(0, Math.round((Date.now() - startedAtMs) / 60000))
+}
+
+/** Fire-and-forget; for pagehide/beforeunload, where an awaited call can't be trusted to finish. */
+function saveAnonSessionBeacon() {
+  if (anonSessionSaved || viaParentSession) return
+  anonSessionSaved = true
+  saveChildSessionBeacon({ childId: child.id, subject: els.subject.value || null, durationMinutes: elapsedMinutes() })
+}
+
+/** Awaited variant for the "End session" button, where we can show a loading state and wait. */
+async function saveAnonSessionAwaited() {
+  if (anonSessionSaved || viaParentSession) return
+  anonSessionSaved = true
+  await saveChildSession({ childId: child.id, subject: els.subject.value || null, durationMinutes: elapsedMinutes() })
 }
 
 function endPresence() {
