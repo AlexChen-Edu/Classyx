@@ -29,7 +29,7 @@ async function main() {
   }
 }
 
-/** Map of child_id -> started_at ISO string, for sessions pinged within the last 2 minutes. */
+/** Map of child_id -> { startedAt, pausedMs }, for sessions pinged within the last 2 minutes. */
 async function fetchPresence() {
   try {
     const rows = await getActiveSessions()
@@ -38,7 +38,7 @@ async function fetchPresence() {
     const map = new Map()
     for (const row of rows) {
       if (now - new Date(row.last_ping).getTime() <= STALE_MS) {
-        map.set(row.child_id, row.started_at)
+        map.set(row.child_id, { startedAt: row.started_at, pausedMs: row.paused_ms || 0 })
       }
     }
     console.log('fetchPresence: resulting map =', map)
@@ -81,11 +81,13 @@ function render(children, presence) {
   updateTimers()
 }
 
-function renderCard(c, startedAt) {
+function renderCard(c, presence) {
   const tint = tintFor(c.name)
   const week = c.weekMinutes ? `${c.weekMinutes}m` : '0m'
   const acc = c.accuracy == null ? '—' : `${c.accuracy}%`
-  const timerAttr = startedAt ? ` data-started-at="${escapeHtml(startedAt)}"` : ''
+  const timerAttr = presence
+    ? ` data-started-at="${escapeHtml(presence.startedAt)}" data-paused-ms="${presence.pausedMs}"`
+    : ''
   return `
       <article class="card child-card" data-child-id="${c.id}">
         <div class="child-card__top">
@@ -103,7 +105,7 @@ function renderCard(c, startedAt) {
           <span class="code-pill" data-code-pill></span>
           <p class="code-pill__note">Share this code with your child. It changes each time you view it.</p>
         </div>
-        <div class="presence${startedAt ? '' : ' hidden'}" data-presence>
+        <div class="presence${presence ? '' : ' hidden'}" data-presence>
           <span class="presence__dot" aria-hidden="true"></span>
           <span>Active now</span>
           <span class="presence__timer"${timerAttr}>0:00</span>
@@ -145,13 +147,15 @@ function applyPresence(presence) {
     const presenceEl = card.querySelector('[data-presence]')
     if (!presenceEl) return
     const timerEl = presenceEl.querySelector('.presence__timer')
-    const startedAt = presence.get(card.dataset.childId)
-    if (startedAt) {
+    const entry = presence.get(card.dataset.childId)
+    if (entry) {
       presenceEl.classList.remove('hidden')
-      timerEl.dataset.startedAt = startedAt
+      timerEl.dataset.startedAt = entry.startedAt
+      timerEl.dataset.pausedMs = entry.pausedMs
     } else {
       presenceEl.classList.add('hidden')
       delete timerEl.dataset.startedAt
+      delete timerEl.dataset.pausedMs
     }
   })
   updateTimers()
@@ -159,7 +163,9 @@ function applyPresence(presence) {
 
 function updateTimers() {
   content.querySelectorAll('.presence__timer[data-started-at]').forEach((el) => {
-    const s = Math.max(0, Math.floor((Date.now() - new Date(el.dataset.startedAt).getTime()) / 1000))
+    const pausedMs = Number(el.dataset.pausedMs) || 0
+    const elapsedMs = Date.now() - new Date(el.dataset.startedAt).getTime() - pausedMs
+    const s = Math.max(0, Math.floor(elapsedMs / 1000))
     el.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   })
 }

@@ -88,9 +88,11 @@ let presenceInterval = null
 let presenceEnded = false
 let isPaused = false
 let pausedAtMs = null
+let totalPausedMs = 0
 
 async function startTimer() {
   startedAtMs = Date.now()
+  totalPausedMs = 0
   els.timer.textContent = '0:00'
   startTick()
   try {
@@ -121,7 +123,7 @@ function startTick() {
 }
 
 function startPresencePing() {
-  presenceInterval = setInterval(() => pingPresence(child.id).catch(() => {}), 30000)
+  presenceInterval = setInterval(() => pingPresence(child.id, totalPausedMs).catch(() => {}), 30000)
 }
 
 /**
@@ -143,15 +145,20 @@ function pauseTimer() {
  * Tab back in view: shift startedAtMs forward by the time spent paused, so
  * that elapsed-time math (the on-screen timer and touchSession's duration
  * calc) never counts the paused gap, then resume the timer and presence
- * pings.
+ * pings. The same paused duration is added to totalPausedMs, which is sent
+ * as active_sessions.paused_ms so the parent dashboard — which only ever
+ * sees the original started_at — can compute true active time as
+ * (now - started_at) - paused_ms instead of raw wall-clock elapsed.
  */
 function resumeTimer() {
   if (!isPaused) return
   isPaused = false
-  startedAtMs += Date.now() - pausedAtMs
+  const pauseDurationMs = Date.now() - pausedAtMs
+  startedAtMs += pauseDurationMs
+  totalPausedMs += pauseDurationMs
   pausedAtMs = null
   startTick()
-  pingPresence(child.id).catch(() => {})
+  pingPresence(child.id, totalPausedMs).catch(() => {})
   startPresencePing()
 }
 

@@ -187,20 +187,21 @@ export async function startPresence(childId) {
   const now = new Date().toISOString()
   const { error } = await supabaseAnon
     .from('active_sessions')
-    .insert({ child_id: childId, started_at: now, last_ping: now })
+    .insert({ child_id: childId, started_at: now, last_ping: now, paused_ms: 0 })
   if (error?.code === '23505') {
     await supabaseAnon
       .from('active_sessions')
-      .update({ started_at: now, last_ping: now })
+      .update({ started_at: now, last_ping: now, paused_ms: 0 })
       .eq('child_id', childId)
   }
 }
 
-export async function pingPresence(childId) {
+/** pausedMs is the session's cumulative paused time so far, in milliseconds. */
+export async function pingPresence(childId, pausedMs = 0) {
   if (!supabaseAnon) return
   await supabaseAnon
     .from('active_sessions')
-    .update({ last_ping: new Date().toISOString() })
+    .update({ last_ping: new Date().toISOString(), paused_ms: pausedMs })
     .eq('child_id', childId)
 }
 
@@ -237,7 +238,7 @@ export function endPresenceBeacon(childId) {
 export async function getActiveSessions() {
   const { data, error } = await supabase
     .from('active_sessions')
-    .select('child_id, started_at, last_ping')
+    .select('child_id, started_at, last_ping, paused_ms')
   if (error) throw error
   return data ?? []
 }
