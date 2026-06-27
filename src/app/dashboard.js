@@ -5,6 +5,7 @@ import { getDashboardData, getActiveSessions, refreshChildCode } from './api.js'
 import { $, escapeHtml, relativeDay, initials, tintFor, setStatus, loading } from './ui.js'
 
 const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
+const FREEZE_MS = 35 * 1000 // pings are sent every 30s; > 35s means the child paused or went inactive
 
 const content = $('#content')
 $('[data-signout]')?.addEventListener('click', signOut)
@@ -29,7 +30,7 @@ async function main() {
   }
 }
 
-/** Map of child_id -> { startedAt, pausedMs }, for sessions pinged within the last 2 minutes. */
+/** Map of child_id -> { startedAt, pausedMs, lastPing }, for sessions pinged within the last 2 minutes. */
 async function fetchPresence() {
   try {
     const rows = await getActiveSessions()
@@ -38,7 +39,7 @@ async function fetchPresence() {
     const map = new Map()
     for (const row of rows) {
       if (now - new Date(row.last_ping).getTime() <= STALE_MS) {
-        map.set(row.child_id, { startedAt: row.started_at, pausedMs: row.paused_ms || 0 })
+        map.set(row.child_id, { startedAt: row.started_at, pausedMs: row.paused_ms || 0, lastPing: row.last_ping })
       }
     }
     console.log('fetchPresence: resulting map =', map)
@@ -86,7 +87,7 @@ function renderCard(c, presence) {
   const week = c.weekMinutes ? `${c.weekMinutes}m` : '0m'
   const acc = c.accuracy == null ? '—' : `${c.accuracy}%`
   const timerAttr = presence
-    ? ` data-started-at="${escapeHtml(presence.startedAt)}" data-paused-ms="${presence.pausedMs}"`
+    ? ` data-started-at="${escapeHtml(presence.startedAt)}" data-paused-ms="${presence.pausedMs}" data-last-ping="${escapeHtml(presence.lastPing)}"`
     : ''
   return `
       <article class="card child-card" data-child-id="${c.id}">
@@ -152,10 +153,12 @@ function applyPresence(presence) {
       presenceEl.classList.remove('hidden')
       timerEl.dataset.startedAt = entry.startedAt
       timerEl.dataset.pausedMs = entry.pausedMs
+      timerEl.dataset.lastPing = entry.lastPing
     } else {
       presenceEl.classList.add('hidden')
       delete timerEl.dataset.startedAt
       delete timerEl.dataset.pausedMs
+      delete timerEl.dataset.lastPing
     }
   })
   updateTimers()
@@ -163,6 +166,9 @@ function applyPresence(presence) {
 
 function updateTimers() {
   content.querySelectorAll('.presence__timer[data-started-at]').forEach((el) => {
+    if (el.dataset.lastPing && Date.now() - new Date(el.dataset.lastPing).getTime() > FREEZE_MS) {
+      return // child paused or went inactive — leave the displayed time as-is instead of counting up
+    }
     const pausedMs = Number(el.dataset.pausedMs) || 0
     const elapsedMs = Date.now() - new Date(el.dataset.startedAt).getTime() - pausedMs
     const s = Math.max(0, Math.floor(elapsedMs / 1000))

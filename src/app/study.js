@@ -130,7 +130,9 @@ function startPresencePing() {
  * Tab switched away: stop the visible timer and stop pinging active_sessions
  * so the parent dashboard's "Active now" dot goes stale (and disappears
  * after 2 minutes per the staleness check) instead of staying lit while the
- * child isn't actually studying.
+ * child isn't actually studying. One last ping fires immediately (instead of
+ * waiting for the next 30s tick) so the dashboard's timer reflects the pause
+ * within seconds rather than up to 30s late.
  */
 function pauseTimer() {
   if (isPaused) return
@@ -138,6 +140,7 @@ function pauseTimer() {
   pausedAtMs = Date.now()
   clearInterval(tickInterval)
   clearInterval(presenceInterval)
+  pingPresence(child.id, totalPausedMs).catch(() => {})
   saveSession()
 }
 
