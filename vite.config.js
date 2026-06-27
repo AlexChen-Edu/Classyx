@@ -13,6 +13,8 @@ export default defineConfig({
         // --- authenticated app ---
         login: 'app/login.html',
         verify: 'app/verify.html',
+        forgotPassword: 'app/forgot-password.html',
+        resetPassword: 'app/reset-password.html',
         dashboard: 'app/dashboard.html',
         analytics: 'app/analytics.html',
         child: 'app/child.html',

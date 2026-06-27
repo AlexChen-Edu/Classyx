@@ -37,6 +37,7 @@ const submitBtn = $('#submit')
 const statusEl = $('[data-status]')
 const magicBtn = $('#magic-link')
 const signupConsent = $('#signup-consent')
+const forgotPasswordRow = $('#forgot-password-row')
 
 let mode = 'signin' // 'signin' | 'signup'
 let signupStep = 'email' // 'email' | 'role' | 'password' (signup only)
@@ -204,12 +205,14 @@ function applyMode() {
     hide(roleStep)
     showEl(submitBtn)
     hide(signupConsent)
+    showEl(forgotPasswordRow)
     resetTurnstile()
     passwordEl.autocomplete = 'current-password'
     submitBtn.textContent = 'Sign in'
     submitBtn.disabled = false
   } else {
     showEl(signupConsent)
+    hide(forgotPasswordRow)
     signupStep = 'email'
     applySignupStep()
   }
@@ -341,9 +344,10 @@ async function doSignIn(email, password) {
   const restore = loading(submitBtn, 'Signing in…')
   setStatus(statusEl, '')
   try {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
-    location.replace(DASHBOARD)
+    const role = data.user?.user_metadata?.role
+    location.replace(role === 'parent' || role === 'self' ? DASHBOARD : CHILD)
   } catch (err) {
     setStatus(statusEl, friendly(err), 'error')
     restore()
@@ -386,9 +390,13 @@ magicBtn.addEventListener('click', async () => {
   }
   const restore = loading(magicBtn, 'Sending…')
   try {
+    // Land on the dashboard — its own role check (see dashboard.js) bounces
+    // non-parent/self accounts to /app/child.html once the session from this
+    // link is established, so the redirect target here can't itself inspect
+    // user_metadata.role yet.
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${location.origin}${CHILD}` },
+      options: { emailRedirectTo: `${location.origin}${DASHBOARD}` },
     })
     if (error) throw error
     setStatus(statusEl, 'Check your email for a sign-in link.', 'success')
