@@ -33,6 +33,7 @@ async function main() {
 async function fetchPresence() {
   try {
     const rows = await getActiveSessions()
+    console.log('fetchPresence: active_sessions rows =', rows)
     const now = Date.now()
     const map = new Map()
     for (const row of rows) {
@@ -40,9 +41,11 @@ async function fetchPresence() {
         map.set(row.child_id, row.started_at)
       }
     }
+    console.log('fetchPresence: resulting map =', map)
     return map
-  } catch {
-    return new Map() // presence is a nice-to-have; never blocks the rest of the dashboard
+  } catch (err) {
+    console.error('fetchPresence failed:', err) // presence is a nice-to-have; never blocks the rest of the dashboard
+    return new Map()
   }
 }
 
