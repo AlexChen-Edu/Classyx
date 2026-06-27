@@ -15,9 +15,17 @@ const formCard = $('#form-card')
 const codeCard = $('#code-card')
 const codeValueEl = $('#code-value')
 
-// Redirect to login if there's no session (no top-level await — keeps the
-// production build target happy).
-requireSession()
+// Redirect to login if there's no session, or to child.html if the signed-in
+// user isn't a parent (no top-level await — keeps the production build
+// target happy).
+;(async () => {
+  const session = await requireSession()
+  if (!session) return
+  const role = session.user.user_metadata?.role
+  if (role !== 'parent' && role !== 'self') {
+    location.replace('/app/child.html')
+  }
+})()
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault()

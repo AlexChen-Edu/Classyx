@@ -28,29 +28,40 @@
 
     <main class="app-main">
       <div class="container" style="text-align:center">
-        <h1>Who's studying?</h1>
-        <p class="muted">Pick your profile to begin.</p>
-        <div id="profiles" class="profiles" aria-live="polite">
-          <div class="generating"><span class="spinner spinner--lg"></span></div>
+        <!-- Remembered device: shown instead of everything below when a
+             classyx_child_profile is found in localStorage (see child.js). -->
+        <div id="welcome-back" class="hidden center-narrow">
+          <span class="avatar-lg" id="welcome-avatar" style="margin-inline:auto"></span>
+          <h1 id="welcome-name" style="margin-top:14px"></h1>
+          <button class="btn btn-primary btn-lg btn-block" id="welcome-start" type="button" style="margin-top:18px">Start studying</button>
+          <p style="margin-top:12px"><button class="btn-link" id="welcome-switch" type="button">Not you? Switch profile</button></p>
         </div>
 
-        <!-- Account-less code entry: shown instead of the profile grid when
-             there is no parent session (e.g. "I'm a student" with no account).
-             There's nothing to list/click here — the code itself identifies
-             the child via the anon-safe redeem_child_code RPC. -->
-        <div id="anon-code-section" class="hidden center-narrow" style="margin-top:24px">
-          <div class="card">
-            <h2 style="font-size:1.1rem;margin-bottom:6px">Enter your code</h2>
-            <p class="muted" style="margin-bottom:14px">Ask your parent for your 6-character code.</p>
-            <div class="pin-inputs" id="anon-pin-inputs">
-              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 1" />
-              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 2" />
-              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 3" />
-              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 4" />
-              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 5" />
-              <input class="pin-box" type="text" maxlength="1" aria-label="Code character 6" />
+        <div id="code-gate">
+          <h1>Who's studying?</h1>
+          <p class="muted">Pick your profile to begin.</p>
+          <div id="profiles" class="profiles" aria-live="polite">
+            <div class="generating"><span class="spinner spinner--lg"></span></div>
+          </div>
+
+          <!-- Account-less code entry: shown instead of the profile grid when
+               there is no parent session (e.g. "I'm a student" with no account).
+               There's nothing to list/click here — the code itself identifies
+               the child via the anon-safe redeem_child_code RPC. -->
+          <div id="anon-code-section" class="hidden center-narrow" style="margin-top:24px">
+            <div class="card">
+              <h2 style="font-size:1.1rem;margin-bottom:6px">Enter your code</h2>
+              <p class="muted" style="margin-bottom:14px">Ask your parent for your 6-character code.</p>
+              <div class="pin-inputs" id="anon-pin-inputs">
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 1" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 2" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 3" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 4" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 5" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 6" />
+              </div>
+              <p class="form-status" data-anon-status role="status" aria-live="polite"></p>
             </div>
-            <p class="form-status" data-anon-status role="status" aria-live="polite"></p>
           </div>
         </div>
       </div>

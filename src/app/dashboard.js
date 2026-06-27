@@ -1,8 +1,8 @@
 // Parent dashboard: per-child weekly study time, quiz accuracy, last studied,
 // and a live "Active now" presence indicator polled from active_sessions.
 import { requireSession, getFamily, signOut, setActiveChild } from './auth.js'
-import { getDashboardData, getActiveSessions } from './api.js'
-import { $, escapeHtml, relativeDay, initials, tintFor } from './ui.js'
+import { getDashboardData, getActiveSessions, refreshChildCode } from './api.js'
+import { $, escapeHtml, relativeDay, initials, tintFor, setStatus, loading } from './ui.js'
 
 const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
 
@@ -12,6 +12,11 @@ $('[data-signout]')?.addEventListener('click', signOut)
 async function main() {
   const session = await requireSession()
   if (!session) return
+  const role = session.user.user_metadata?.role
+  if (role !== 'parent' && role !== 'self') {
+    location.replace('/app/child.html')
+    return
+  }
   try {
     await getFamily() // bootstrap the family row on first login
     const children = await getDashboardData()
@@ -65,7 +70,9 @@ function render(children, presence) {
   const cards = children.map((c) => renderCard(c, presence.get(c.id))).join('')
   content.innerHTML = `<div class="child-grid">${cards}</div>`
 
-
+  content.querySelectorAll('[data-show-code]').forEach((btn) => {
+    btn.addEventListener('click', () => handleShowCode(btn))
+  })
 
   updateTimers()
 }
@@ -79,10 +86,18 @@ function renderCard(c, startedAt) {
       <article class="card child-card" data-child-id="${c.id}">
         <div class="child-card__top">
           <span class="avatar" style="background:${tint}">${escapeHtml(initials(c.name))}</span>
-          <div>
-            <div class="child-card__name">${escapeHtml(c.name)}</div>
+          <div class="child-card__identity">
+            <div class="child-card__name-row">
+              <span class="child-card__name">${escapeHtml(c.name)}</span>
+              <button class="btn btn-ghost btn-sm" data-show-code type="button">Show code</button>
+            </div>
             <div class="child-card__grade">${c.grade ? 'Grade ' + escapeHtml(c.grade) : 'Learner'}</div>
           </div>
+        </div>
+        <p class="form-status" data-code-status role="status" aria-live="polite"></p>
+        <div class="code-reveal-inline hidden" data-code-area>
+          <span class="code-pill" data-code-pill></span>
+          <p class="code-pill__note">Share this code with your child. It changes each time you view it.</p>
         </div>
         <div class="presence${startedAt ? '' : ' hidden'}" data-presence>
           <span class="presence__dot" aria-hidden="true"></span>
@@ -94,9 +109,30 @@ function renderCard(c, startedAt) {
           <div class="stat-mini"><div class="stat-mini__label">Quiz accuracy</div><div class="stat-mini__value">${acc}</div></div>
           <div class="stat-mini"><div class="stat-mini__label">Last studied</div><div class="stat-mini__value" style="font-size:.95rem">${escapeHtml(relativeDay(c.lastStudied))}</div></div>
         </div>
-       
+
         <a class="child-card__analytics-link" href="/app/analytics.html?child=${c.id}">Analytics →</a>
       </article>`
+}
+
+async function handleShowCode(btn) {
+  const card = btn.closest('[data-child-id]')
+  const childId = card.dataset.childId
+  const statusEl = card.querySelector('[data-code-status]')
+  const areaEl = card.querySelector('[data-code-area]')
+  const pillEl = card.querySelector('[data-code-pill]')
+
+  setStatus(statusEl, '')
+  const restore = loading(btn, 'Generating…')
+  try {
+    const code = await refreshChildCode(childId)
+    restore()
+    btn.textContent = 'Refresh code'
+    pillEl.textContent = code
+    areaEl.classList.remove('hidden')
+  } catch (err) {
+    restore()
+    setStatus(statusEl, err.message || 'Could not generate a code. Try again.', 'error')
+  }
 }
 
 /** Updates each card's presence dot/timer in place — never re-renders the grid. */

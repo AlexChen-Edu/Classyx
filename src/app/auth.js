@@ -99,3 +99,31 @@ export function getChildSession() {
 export function clearChildSession() {
   sessionStorage.removeItem(CHILD_SESSION_KEY)
 }
+
+// --- Remembered device (account-less "stay signed in" on this browser) ----
+// Unlike CHILD_SESSION_KEY above (sessionStorage — gone when the tab closes),
+// this persists in localStorage across tab/browser restarts so a kid doesn't
+// have to re-enter their code every time. It's still just a UI convenience,
+// not a security boundary: it only ever holds the same child_id/name/family_id
+// that redeem_child_code already returned, and every actual data request is
+// still enforced server-side by RLS. No expiry by design — it lasts until the
+// "Forget this device" / "Switch profile" actions clear it.
+const REMEMBERED_DEVICE_KEY = 'classyx_child_profile'
+
+export function setRememberedDevice({ child_id, child_name, family_id }) {
+  localStorage.setItem(REMEMBERED_DEVICE_KEY, JSON.stringify({
+    child_id, child_name, family_id, saved_at: new Date().toISOString(),
+  }))
+}
+
+export function getRememberedDevice() {
+  try {
+    return JSON.parse(localStorage.getItem(REMEMBERED_DEVICE_KEY) || 'null')
+  } catch {
+    return null
+  }
+}
+
+export function clearRememberedDevice() {
+  localStorage.removeItem(REMEMBERED_DEVICE_KEY)
+}

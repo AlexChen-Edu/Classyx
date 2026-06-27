@@ -5,11 +5,18 @@
 // redeem_child_code RPC. This page must stay reachable WITHOUT being logged
 // in, so it never calls requireSession() (which would redirect them away).
 import { supabase, supabaseAnon } from '../supabaseClient.js'
-import { signOut, setActiveChild, setChildSession } from './auth.js'
+import {
+  signOut, setActiveChild, setChildSession,
+  getRememberedDevice, setRememberedDevice, clearRememberedDevice,
+} from './auth.js'
 import { listChildren, verifyChildPin, setChildPin, generateChildCode } from './api.js'
 import { $, $$, setStatus, escapeHtml, initials, tintFor } from './ui.js'
 
 const STUDY = '/app/study.html'
+const welcomeBack = $('#welcome-back')
+const codeGate = $('#code-gate')
+const welcomeAvatar = $('#welcome-avatar')
+const welcomeName = $('#welcome-name')
 const profilesEl = $('#profiles')
 const anonSection = $('#anon-code-section')
 const anonBoxes = $$('.pin-box', $('#anon-pin-inputs'))
@@ -20,10 +27,25 @@ const pinStatus = $('[data-status]', overlay)
 const pinSub = $('#pin-sub')
 $('[data-signout]')?.addEventListener('click', signOut)
 $('#pin-cancel')?.addEventListener('click', closePin)
+$('#welcome-start')?.addEventListener('click', startFromRememberedDevice)
+$('#welcome-switch')?.addEventListener('click', switchProfile)
 
 let activeCandidate = null
 
 async function main() {
+  // Account-less child, remembered on this device — skip straight past the
+  // code entry form entirely. This only ever applies on a tab with no parent
+  // session: a signed-in parent always sees the normal family profile grid.
+  const remembered = getRememberedDevice()
+  if (remembered) {
+    showWelcomeBack(remembered)
+    return
+  }
+  await showCodeGate()
+}
+
+/** The normal profile grid (parent session) or code entry (account-less) view. */
+async function showCodeGate() {
   if (!supabase) {
     profilesEl.innerHTML = `<div class="empty" style="margin-top:20px"><p class="muted">No profiles yet.</p></div>`
     return
@@ -35,6 +57,7 @@ async function main() {
   if (!session) {
     profilesEl.innerHTML = ''
     anonSection.classList.remove('hidden')
+    anonBoxes.forEach((b) => (b.value = ''))
     anonBoxes[0].focus()
     return
   }
@@ -44,6 +67,29 @@ async function main() {
   } catch (err) {
     profilesEl.innerHTML = `<div class="banner banner--error">${escapeHtml(err.message)}</div>`
   }
+}
+
+// --- Remembered device ("Welcome back") -------------------------------------
+function showWelcomeBack(remembered) {
+  welcomeAvatar.textContent = initials(remembered.child_name)
+  welcomeAvatar.style.background = tintFor(remembered.child_name)
+  welcomeName.textContent = `Welcome back, ${remembered.child_name} 👋`
+  codeGate.classList.add('hidden')
+  welcomeBack.classList.remove('hidden')
+}
+
+function startFromRememberedDevice() {
+  const remembered = getRememberedDevice()
+  if (!remembered) { switchProfile(); return }
+  setChildSession({ child_id: remembered.child_id, child_name: remembered.child_name, family_id: remembered.family_id })
+  location.href = STUDY
+}
+
+function switchProfile() {
+  clearRememberedDevice()
+  welcomeBack.classList.add('hidden')
+  codeGate.classList.remove('hidden')
+  showCodeGate()
 }
 
 // --- Account-less code entry (redeem_child_code) ----------------------------
@@ -69,7 +115,9 @@ async function redeemCode() {
     if (!row) throw new Error('Invalid or expired code')
     // Clear immediately so the code is no longer visible on screen.
     anonBoxes.forEach((b) => (b.value = ''))
-    setChildSession({ child_id: row.child_id, child_name: row.child_name, family_id: row.family_id })
+    const { child_id, child_name, family_id } = row
+    setChildSession({ child_id, child_name, family_id })
+    setRememberedDevice({ child_id, child_name, family_id })
     location.href = STUDY
   } catch (err) {
     setStatus(anonStatus, friendlyCodeError(err), 'error')

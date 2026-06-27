@@ -54,6 +54,18 @@ export async function verifyChildPin(childId, code) {
   return data === true
 }
 
+/**
+ * Generates and stores a brand-new code for a child, returning it in plain
+ * text — the only moment it's ever visible, since pin_hash can't be reversed.
+ * Calling this again (e.g. "Refresh code") invalidates whatever code was
+ * shown before, by design (see the get_child_code migration).
+ */
+export async function refreshChildCode(childId) {
+  const { data, error } = await supabase.rpc('get_child_code', { p_child_id: childId })
+  if (error) throw error
+  return data
+}
+
 // --- Uploads + AI generation ------------------------------------------------
 
 /** Upload a file to the private bucket and create an uploads row. */

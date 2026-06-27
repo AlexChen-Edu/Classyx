@@ -1,7 +1,7 @@
 // Study interface: upload -> AI generate -> flashcards / guide / self-test,
 // with a study timer that auto-saves to study_sessions.
 import { supabase } from '../supabaseClient.js'
-import { getActiveChild, getChildSession } from './auth.js'
+import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, clearRememberedDevice } from './auth.js'
 import {
   uploadNote, generateContent, getFlashcards, getStudyGuide,
   recordQuizResult, startSession, touchSession,
@@ -34,7 +34,9 @@ let chosenFile = null
  * The active child can come from either trust path:
  *  - a parent's authenticated session + a profile picked on child.html, or
  *  - an account-less child session (redeem_child_code) stored for this tab.
- * If neither is present there is nothing to study — back to child.html.
+ * If neither is present, fall back to the remembered device in localStorage
+ * — this is the case of a closed-and-reopened tab, where sessionStorage was
+ * wiped but the "remember this device" profile survived.
  */
 async function resolveActiveChild() {
   if (supabase) {
@@ -47,6 +49,11 @@ async function resolveActiveChild() {
   const childSession = getChildSession()
   if (childSession) {
     return { id: childSession.child_id, name: childSession.child_name, family_id: childSession.family_id }
+  }
+  const remembered = getRememberedDevice()
+  if (remembered) {
+    setChildSession({ child_id: remembered.child_id, child_name: remembered.child_name, family_id: remembered.family_id })
+    return { id: remembered.child_id, name: remembered.child_name, family_id: remembered.family_id }
   }
   return null
 }
@@ -61,6 +68,15 @@ async function main() {
   startTimer()
   wireUpload()
   wireTabs()
+  wireForgetDevice()
+}
+
+function wireForgetDevice() {
+  $('#forget-device')?.addEventListener('click', () => {
+    if (!confirm("Are you sure? You'll need to enter your code again next time.")) return
+    clearRememberedDevice()
+    location.href = CHILD_URL
+  })
 }
 
 // ============================ Timer / session ==============================
