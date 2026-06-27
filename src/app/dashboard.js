@@ -13,7 +13,8 @@ async function main() {
   const session = await requireSession()
   if (!session) return
   const role = session.user.user_metadata?.role
-  if (role !== 'parent' && role !== 'self') {
+  console.log('session.user.user_metadata:', session.user.user_metadata)
+  if (role && role !== 'parent' && role !== 'self') {
     location.replace('/app/child.html')
     return
   }
