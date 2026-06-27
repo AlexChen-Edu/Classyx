@@ -9,6 +9,13 @@ const CHILD_COLS = 'id, name, grade, created_at'
 
 // --- Children ---------------------------------------------------------------
 
+/** Max child profiles per plan. Missing/unrecognized plan -> treated as free. */
+export const PLAN_CHILD_LIMITS = { free: 1, single_child: 1, family: 3 }
+
+export function childLimitFor(plan) {
+  return PLAN_CHILD_LIMITS[plan] ?? PLAN_CHILD_LIMITS.free
+}
+
 export async function listChildren() {
   const { data, error } = await supabase
     .from('children')
@@ -239,6 +246,21 @@ export async function getActiveSessions() {
   const { data, error } = await supabase
     .from('active_sessions')
     .select('child_id, started_at, last_ping, paused_ms')
+  if (error) throw error
+  return data ?? []
+}
+
+/**
+ * Just the session dates needed for a streak calc — used by study.js, which
+ * may be running as an account-less child (no parent JWT). Under RLS that
+ * has no SELECT access to study_sessions at all, so this throws for that
+ * case; callers should treat a thrown error the same as "no streak yet".
+ */
+export async function getChildStreak(childId) {
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .select('started_at')
+    .eq('child_id', childId)
   if (error) throw error
   return data ?? []
 }

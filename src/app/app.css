@@ -294,6 +294,7 @@ body.app {
 .child-card__name-row .btn { flex: none; white-space: nowrap; }
 
 .code-reveal-inline { margin-top: -6px; }
+.code-pill-row { display: flex; align-items: center; gap: 8px; }
 .code-pill {
   display: inline-block;
   font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -306,6 +307,24 @@ body.app {
   border-radius: 8px;
   padding: 4px 11px;
 }
+.code-refresh-btn {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--brand);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+.code-refresh-btn:hover { border-color: var(--brand); background: var(--brand-tint); transform: rotate(45deg); }
+.code-refresh-btn:disabled { opacity: 0.6; cursor: progress; }
 .code-pill__note {
   margin-top: 6px;
   font-size: 0.78rem;

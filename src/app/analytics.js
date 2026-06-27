@@ -10,7 +10,7 @@
 // actually in the data.
 import { requireSession, signOut } from './auth.js'
 import { getChildAnalytics } from './api.js'
-import { $, escapeHtml, formatMinutes, formatDateTime } from './ui.js'
+import { $, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge } from './ui.js'
 
 $('[data-signout]')?.addEventListener('click', signOut)
 
@@ -112,37 +112,9 @@ function computeStats({ sessions, quizzes }, start, end) {
   return { totalMinutes, activeDays, flashcardsReviewed, accuracy, subjects, periodSessions }
 }
 
-/** Current consecutive days studied, counting back from today. Not period-scoped — a streak is a global, ongoing thing. */
-function computeStreak(sessions) {
-  const days = new Set(sessions.map((s) => new Date(s.started_at).toDateString()))
-  const cursor = new Date()
-  if (!days.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1) // hasn't studied yet today — don't zero the streak for that alone
-  let streak = 0
-  while (days.has(cursor.toDateString())) {
-    streak++
-    cursor.setDate(cursor.getDate() - 1)
-  }
-  return streak
-}
-
 /** Most recent session overall, not period-scoped — "last active" should be true regardless of which tab is open. */
 function lastActive(sessions) {
   return sessions.length ? sessions[sessions.length - 1].started_at : null
-}
-
-// --- Streak badge --------------------------------------------------------------
-function renderStreakBadge(streak) {
-  if (streak <= 0) return ''
-  let tier
-  if (streak <= 3) tier = 'cool'
-  else if (streak <= 6) tier = 'orange'
-  else if (streak <= 13) tier = 'red'
-  else tier = 'gold'
-  return `
-    <div class="streak-badge streak-badge--${tier}">
-      <span class="streak-badge__emoji" aria-hidden="true">🔥</span>
-      <span>${streak}-day streak</span>
-    </div>`
 }
 
 // --- Line graph (pure SVG, no chart library) --------------------------------

@@ -364,7 +364,8 @@ async function doSignUp(email, password, turnstileToken, role) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { role, turnstile_token: turnstileToken } },
+      // All new accounts start on the free plan; upgrades happen via Stripe later.
+      options: { data: { role, plan: 'free', turnstile_token: turnstileToken } },
     })
     if (error) throw error
     if (data.session) {

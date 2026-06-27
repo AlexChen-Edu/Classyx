@@ -80,3 +80,34 @@ export function tintFor(name) {
   for (const ch of String(name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0
   return palette[h % palette.length]
 }
+
+/** Current consecutive days studied, counting back from today. Not period-scoped — a streak is a global, ongoing thing. */
+export function computeStreak(sessions) {
+  const days = new Set(sessions.map((s) => new Date(s.started_at).toDateString()))
+  const cursor = new Date()
+  if (!days.has(cursor.toDateString())) cursor.setDate(cursor.getDate() - 1) // hasn't studied yet today — don't zero the streak for that alone
+  let streak = 0
+  while (days.has(cursor.toDateString())) {
+    streak++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return streak
+}
+
+/**
+ * 0 days -> '' (nothing shown); 1-3 gray, 4-6 orange, 7-13 red, 14+ gold with
+ * a pulse animation. Tiers/colors defined in app.css (.streak-badge--*).
+ */
+export function renderStreakBadge(streak) {
+  if (streak <= 0) return ''
+  let tier
+  if (streak <= 3) tier = 'cool'
+  else if (streak <= 6) tier = 'orange'
+  else if (streak <= 13) tier = 'red'
+  else tier = 'gold'
+  return `
+    <div class="streak-badge streak-badge--${tier}">
+      <span class="streak-badge__emoji" aria-hidden="true">🔥</span>
+      <span>${streak}-day streak</span>
+    </div>`
+}

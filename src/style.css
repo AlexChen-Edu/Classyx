@@ -1390,6 +1390,16 @@ section[id] {
   box-shadow: var(--shadow-xs);
 }
 
+.plan__features-no {
+  color: var(--ink-3) !important;
+}
+.plan__features-no::before {
+  content: '–' !important;
+  background: var(--surface-2) !important;
+  color: var(--ink-3) !important;
+  box-shadow: none !important;
+}
+
 /* ---------- Founder story ---------- */
 .story__card {
   position: relative;

@@ -76,7 +76,10 @@ function render(children, presence) {
   content.innerHTML = `<div class="child-grid">${cards}</div>`
 
   content.querySelectorAll('[data-show-code]').forEach((btn) => {
-    btn.addEventListener('click', () => handleShowCode(btn))
+    btn.addEventListener('click', () => handleToggleCode(btn))
+  })
+  content.querySelectorAll('[data-refresh-code]').forEach((btn) => {
+    btn.addEventListener('click', () => handleRefreshCode(btn))
   })
 
   updateTimers()
@@ -103,7 +106,10 @@ function renderCard(c, presence) {
         </div>
         <p class="form-status" data-code-status role="status" aria-live="polite"></p>
         <div class="code-reveal-inline hidden" data-code-area>
-          <span class="code-pill" data-code-pill></span>
+          <div class="code-pill-row">
+            <span class="code-pill" data-code-pill></span>
+            <button class="code-refresh-btn" data-refresh-code type="button" title="Code not working? Generate a new one" aria-label="Generate a new code">↻</button>
+          </div>
           <p class="code-pill__note">Share this code with your child. It changes each time you view it.</p>
         </div>
         <div class="presence${presence ? '' : ' hidden'}" data-presence>
@@ -121,11 +127,20 @@ function renderCard(c, presence) {
       </article>`
 }
 
-async function handleShowCode(btn) {
+/** "Show code" generates + reveals a fresh code and flips the button to "Hide";
+ *  "Hide" just collapses the area again — no new code is generated. */
+async function handleToggleCode(btn) {
   const card = btn.closest('[data-child-id]')
+  const areaEl = card.querySelector('[data-code-area]')
+
+  if (btn.textContent === 'Hide') {
+    areaEl.classList.add('hidden')
+    btn.textContent = 'Show code'
+    return
+  }
+
   const childId = card.dataset.childId
   const statusEl = card.querySelector('[data-code-status]')
-  const areaEl = card.querySelector('[data-code-area]')
   const pillEl = card.querySelector('[data-code-pill]')
 
   setStatus(statusEl, '')
@@ -133,12 +148,31 @@ async function handleShowCode(btn) {
   try {
     const code = await refreshChildCode(childId)
     restore()
-    btn.textContent = 'Refresh code'
     pillEl.textContent = code
     areaEl.classList.remove('hidden')
+    btn.textContent = 'Hide'
   } catch (err) {
     restore()
     setStatus(statusEl, err.message || 'Could not generate a code. Try again.', 'error')
+  }
+}
+
+/** Refresh icon next to the revealed code: rotates the code in place without touching the Show/Hide button state. */
+async function handleRefreshCode(btn) {
+  const card = btn.closest('[data-child-id]')
+  const childId = card.dataset.childId
+  const statusEl = card.querySelector('[data-code-status]')
+  const pillEl = card.querySelector('[data-code-pill]')
+
+  setStatus(statusEl, '')
+  btn.disabled = true
+  try {
+    const code = await refreshChildCode(childId)
+    pillEl.textContent = code
+  } catch (err) {
+    setStatus(statusEl, err.message || 'Could not generate a code. Try again.', 'error')
+  } finally {
+    btn.disabled = false
   }
 }
 

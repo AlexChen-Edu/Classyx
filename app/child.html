@@ -37,6 +37,25 @@
           <p style="margin-top:12px"><button class="btn-link" id="welcome-switch" type="button">Not you? Switch profile</button></p>
         </div>
 
+        <!-- Shown instead of the code form for an account-less visitor with no
+             saved profile yet — lets an adult bail out to the real login page
+             instead of being funneled straight into a kid-only code box. -->
+        <div id="role-fork" class="hidden center-narrow">
+          <h1>Who's studying?</h1>
+          <p class="muted" style="margin-bottom:18px">Pick one to continue.</p>
+          <button class="btn btn-primary btn-lg btn-block" id="fork-student" type="button">I'm a student</button>
+          <button class="btn btn-ghost btn-lg btn-block" id="fork-adult" type="button" style="margin-top:10px">I'm an adult / self learner</button>
+        </div>
+
+        <!-- "Ready to study?" confirmation, shown after a code is verified
+             (either path) and before the redirect to study.html. -->
+        <div id="confirm-start" class="hidden center-narrow">
+          <span class="avatar-lg" id="confirm-avatar" style="margin-inline:auto"></span>
+          <h1 id="confirm-name" style="margin-top:14px"></h1>
+          <button class="btn btn-primary btn-lg btn-block" id="confirm-go" type="button" style="margin-top:18px">Start study session</button>
+          <p style="margin-top:12px"><button class="btn-link" id="confirm-not-you" type="button">Not you?</button></p>
+        </div>
+
         <div id="code-gate">
           <h1>Who's studying?</h1>
           <p class="muted">Pick your profile to begin.</p>

@@ -5,9 +5,9 @@ import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, 
 import {
   uploadNote, generateContent, getFlashcards, getStudyGuide,
   recordQuizResult, startSession, touchSession,
-  startPresence, pingPresence, endPresenceBeacon,
+  startPresence, pingPresence, endPresenceBeacon, getChildStreak,
 } from './api.js'
-import { $, $$, setStatus, loading, escapeHtml } from './ui.js'
+import { $, $$, setStatus, loading, escapeHtml, computeStreak, renderStreakBadge } from './ui.js'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const CHILD_URL = '/app/child.html'
@@ -69,6 +69,25 @@ async function main() {
   wireUpload()
   wireTabs()
   wireForgetDevice()
+  wireEndSession()
+  renderStreak()
+}
+
+/**
+ * Account-less children have no RLS access to study_sessions (anon has no
+ * policy on that table at all — only the parent-authenticated path does),
+ * so this throws for them; treated the same as "no streak yet" (0 days =
+ * nothing shown), which is the correct UI anyway.
+ */
+async function renderStreak() {
+  const slot = $('#streak-slot')
+  if (!slot) return
+  try {
+    const sessions = await getChildStreak(child.id)
+    slot.innerHTML = renderStreakBadge(computeStreak(sessions))
+  } catch {
+    slot.innerHTML = ''
+  }
 }
 
 function wireForgetDevice() {
@@ -79,7 +98,20 @@ function wireForgetDevice() {
   })
 }
 
+function wireEndSession() {
+  $('#end-session')?.addEventListener('click', async () => {
+    const btn = $('#end-session')
+    const restore = loading(btn, 'Saving…')
+    try { if (sessionRow) await touchSession({ sessionId: sessionRow.id, startedAtMs }) } catch { /* best effort */ }
+    endPresence()
+    location.href = CHILD_URL
+    restore()
+  })
+}
+
 // ============================ Timer / session ==============================
+const INACTIVITY_MS = 5 * 60 * 1000
+
 let sessionRow = null
 let startedAtMs = Date.now()
 let tickInterval = null
@@ -89,6 +121,14 @@ let presenceEnded = false
 let isPaused = false
 let pausedAtMs = null
 let totalPausedMs = 0
+
+// Two independent reasons the timer can be paused — tab hidden, and no
+// mouse/keyboard/scroll activity for 5 minutes. The timer only resumes once
+// BOTH clear, so e.g. switching back to an already-inactive tab doesn't
+// resume it.
+let hiddenFlag = false
+let inactiveFlag = false
+let inactivityTimeout = null
 
 async function startTimer() {
   startedAtMs = Date.now()
@@ -102,9 +142,10 @@ async function startTimer() {
   saveInterval = setInterval(saveSession, 60000)
   window.addEventListener('pagehide', saveSession)
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) pauseTimer()
-    else resumeTimer()
+    hiddenFlag = document.hidden
+    evalPause()
   })
+  wireInactivityTracking()
 
   // Live presence for the parent dashboard's "Active now" indicator.
   try { await startPresence(child.id) } catch { /* best effort */ }
@@ -113,6 +154,31 @@ async function startTimer() {
   // (e.g. clicking "Switch"), so this also ends presence on the latter.
   window.addEventListener('pagehide', endPresence)
   window.addEventListener('beforeunload', endPresence)
+}
+
+/** Tracks mouse/keyboard/scroll activity; auto-pauses after 5 minutes of none. */
+function wireInactivityTracking() {
+  const resetInactivity = () => {
+    clearTimeout(inactivityTimeout)
+    inactivityTimeout = setTimeout(() => {
+      inactiveFlag = true
+      evalPause()
+    }, INACTIVITY_MS)
+    if (inactiveFlag) {
+      inactiveFlag = false
+      evalPause()
+    }
+  }
+  ;['mousemove', 'keydown', 'scroll', 'touchstart'].forEach((evt) =>
+    window.addEventListener(evt, resetInactivity, { passive: true }))
+  resetInactivity()
+}
+
+/** Pauses when either reason is active, resumes only once both have cleared. */
+function evalPause() {
+  const shouldPause = hiddenFlag || inactiveFlag
+  if (shouldPause && !isPaused) pauseTimer()
+  else if (!shouldPause && isPaused) resumeTimer()
 }
 
 function startTick() {

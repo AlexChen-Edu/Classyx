@@ -7,14 +7,19 @@
 import { supabase, supabaseAnon } from '../supabaseClient.js'
 import {
   signOut, setActiveChild, setChildSession,
-  getRememberedDevice, setRememberedDevice, clearRememberedDevice,
+  getRememberedDevice, setRememberedDevice, clearRememberedDevice, clearChildSession, clearActiveChild,
 } from './auth.js'
 import { listChildren, verifyChildPin, setChildPin, generateChildCode } from './api.js'
 import { $, $$, setStatus, escapeHtml, initials, tintFor } from './ui.js'
 
 const STUDY = '/app/study.html'
+const LOGIN = '/app/login.html'
 const welcomeBack = $('#welcome-back')
 const codeGate = $('#code-gate')
+const roleFork = $('#role-fork')
+const confirmStart = $('#confirm-start')
+const confirmAvatar = $('#confirm-avatar')
+const confirmName = $('#confirm-name')
 const welcomeAvatar = $('#welcome-avatar')
 const welcomeName = $('#welcome-name')
 const profilesEl = $('#profiles')
@@ -29,6 +34,10 @@ $('[data-signout]')?.addEventListener('click', signOut)
 $('#pin-cancel')?.addEventListener('click', closePin)
 $('#welcome-start')?.addEventListener('click', startFromRememberedDevice)
 $('#welcome-switch')?.addEventListener('click', switchProfile)
+$('#fork-student')?.addEventListener('click', showAnonCodeEntry)
+$('#fork-adult')?.addEventListener('click', () => { location.href = LOGIN })
+$('#confirm-go')?.addEventListener('click', () => { location.href = STUDY })
+$('#confirm-not-you')?.addEventListener('click', notYou)
 
 let activeCandidate = null
 
@@ -44,21 +53,19 @@ async function main() {
   await showCodeGate()
 }
 
-/** The normal profile grid (parent session) or code entry (account-less) view. */
+/** The normal profile grid (parent session) or role fork (account-less) view. */
 async function showCodeGate() {
   if (!supabase) {
     profilesEl.innerHTML = `<div class="empty" style="margin-top:20px"><p class="muted">No profiles yet.</p></div>`
     return
   }
   // Listing children is RLS-scoped to an authenticated parent's family, so an
-  // account-less visitor can't use that grid at all — show the direct code
-  // entry instead. The page itself never redirects them away.
+  // account-less visitor can't use that grid at all — offer the student/adult
+  // fork instead. The page itself never redirects them away.
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) {
-    profilesEl.innerHTML = ''
-    anonSection.classList.remove('hidden')
-    anonBoxes.forEach((b) => (b.value = ''))
-    anonBoxes[0].focus()
+    codeGate.classList.add('hidden')
+    roleFork.classList.remove('hidden')
     return
   }
   try {
@@ -67,6 +74,37 @@ async function showCodeGate() {
   } catch (err) {
     profilesEl.innerHTML = `<div class="banner banner--error">${escapeHtml(err.message)}</div>`
   }
+}
+
+/** "I'm a student" on the role fork — reveals the code entry form. */
+function showAnonCodeEntry() {
+  roleFork.classList.add('hidden')
+  codeGate.classList.remove('hidden')
+  profilesEl.innerHTML = ''
+  anonSection.classList.remove('hidden')
+  anonBoxes.forEach((b) => (b.value = ''))
+  anonBoxes[0].focus()
+}
+
+/** "Ready to study, NAME?" shown after a code/PIN is verified, before the
+ *  redirect to study.html. By this point setActiveChild/setChildSession has
+ *  already run, so "Start study session" is just a navigation. */
+function showConfirmStart(child) {
+  welcomeBack.classList.add('hidden')
+  codeGate.classList.add('hidden')
+  roleFork.classList.add('hidden')
+  overlay.hidden = true
+  confirmAvatar.textContent = initials(child.name)
+  confirmAvatar.style.background = tintFor(child.name)
+  confirmName.textContent = `Ready to study, ${child.name}?`
+  confirmStart.classList.remove('hidden')
+}
+
+function notYou() {
+  clearRememberedDevice()
+  clearChildSession()
+  clearActiveChild()
+  location.reload()
 }
 
 // --- Remembered device ("Welcome back") -------------------------------------
@@ -118,7 +156,7 @@ async function redeemCode() {
     const { child_id, child_name, family_id } = row
     setChildSession({ child_id, child_name, family_id })
     setRememberedDevice({ child_id, child_name, family_id })
-    location.href = STUDY
+    showConfirmStart({ id: child_id, name: child_name, family_id })
   } catch (err) {
     setStatus(anonStatus, friendlyCodeError(err), 'error')
     anonBoxes.forEach((b) => (b.value = ''))
@@ -166,7 +204,7 @@ async function selectChild(child) {
 
 function enter(child) {
   setActiveChild(child)
-  location.href = STUDY
+  showConfirmStart(child)
 }
 
 // --- Code modal ---
