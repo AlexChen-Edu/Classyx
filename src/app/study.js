@@ -86,14 +86,13 @@ let tickInterval = null
 let saveInterval = null
 let presenceInterval = null
 let presenceEnded = false
+let isPaused = false
+let pausedAtMs = null
 
 async function startTimer() {
   startedAtMs = Date.now()
   els.timer.textContent = '0:00'
-  tickInterval = setInterval(() => {
-    const s = Math.floor((Date.now() - startedAtMs) / 1000)
-    els.timer.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-  }, 1000)
+  startTick()
   try {
     sessionRow = await startSession({ childId: child.id, subject: els.subject.value || null })
   } catch { /* timer still shows; we just won't persist if this failed */ }
@@ -101,16 +100,59 @@ async function startTimer() {
   saveInterval = setInterval(saveSession, 60000)
   window.addEventListener('pagehide', saveSession)
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') saveSession()
+    if (document.hidden) pauseTimer()
+    else resumeTimer()
   })
 
   // Live presence for the parent dashboard's "Active now" indicator.
   try { await startPresence(child.id) } catch { /* best effort */ }
-  presenceInterval = setInterval(() => pingPresence(child.id).catch(() => {}), 30000)
+  startPresencePing()
   // pagehide fires both on real tab close and on normal in-app navigation
   // (e.g. clicking "Switch"), so this also ends presence on the latter.
   window.addEventListener('pagehide', endPresence)
   window.addEventListener('beforeunload', endPresence)
+}
+
+function startTick() {
+  tickInterval = setInterval(() => {
+    const s = Math.floor((Date.now() - startedAtMs) / 1000)
+    els.timer.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  }, 1000)
+}
+
+function startPresencePing() {
+  presenceInterval = setInterval(() => pingPresence(child.id).catch(() => {}), 30000)
+}
+
+/**
+ * Tab switched away: stop the visible timer and stop pinging active_sessions
+ * so the parent dashboard's "Active now" dot goes stale (and disappears
+ * after 2 minutes per the staleness check) instead of staying lit while the
+ * child isn't actually studying.
+ */
+function pauseTimer() {
+  if (isPaused) return
+  isPaused = true
+  pausedAtMs = Date.now()
+  clearInterval(tickInterval)
+  clearInterval(presenceInterval)
+  saveSession()
+}
+
+/**
+ * Tab back in view: shift startedAtMs forward by the time spent paused, so
+ * that elapsed-time math (the on-screen timer and touchSession's duration
+ * calc) never counts the paused gap, then resume the timer and presence
+ * pings.
+ */
+function resumeTimer() {
+  if (!isPaused) return
+  isPaused = false
+  startedAtMs += Date.now() - pausedAtMs
+  pausedAtMs = null
+  startTick()
+  pingPresence(child.id).catch(() => {})
+  startPresencePing()
 }
 
 function saveSession() {
