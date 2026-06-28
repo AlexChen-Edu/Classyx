@@ -95,15 +95,19 @@ export function computeStreak(sessions) {
 }
 
 /**
- * 0 days -> '' (nothing shown); 1-3 gray, 4-6 orange, 7-13 red, 14+ gold with
- * a pulse animation. Tiers/colors defined in app.css (.streak-badge--*).
+ * 0 days -> '' (nothing shown); 1-3 orange, 4-6 red, 7-13 blue, 14-20 purple,
+ * 21+ gold with a pulse animation. Tiers/colors defined in app.css
+ * (.streak-badge--*) — the emoji itself can't be recolored directly, so each
+ * tier retints the native 🔥 via a CSS filter (hue-rotate/saturate) on the
+ * .streak-badge__emoji span.
  */
 export function renderStreakBadge(streak) {
   if (streak <= 0) return ''
   let tier
-  if (streak <= 3) tier = 'cool'
-  else if (streak <= 6) tier = 'orange'
-  else if (streak <= 13) tier = 'red'
+  if (streak <= 3) tier = 'orange'
+  else if (streak <= 6) tier = 'red'
+  else if (streak <= 13) tier = 'blue'
+  else if (streak <= 20) tier = 'purple'
   else tier = 'gold'
   return `
     <div class="streak-badge streak-badge--${tier}">

@@ -238,9 +238,15 @@ function saveSession() {
   if (sessionRow) touchSession({ sessionId: sessionRow.id, startedAtMs, pausedMs: totalPausedMs })
 }
 
-/** Same calc touchSession uses internally, exposed here so the anon path can pass it explicitly. */
+/**
+ * Same calc touchSession uses internally, exposed here so the anon path can
+ * pass it explicitly. Floors at 1 (not 0): a session under 30 seconds would
+ * otherwise round down to 0 minutes and effectively vanish from the
+ * dashboard/streak — any session that actually started counts for at least
+ * one minute.
+ */
 function elapsedMinutes() {
-  return Math.max(0, Math.round((Date.now() - startedAtMs - totalPausedMs) / 60000))
+  return Math.max(1, Math.round((Date.now() - startedAtMs - totalPausedMs) / 60000))
 }
 
 /** Fire-and-forget; for pagehide/beforeunload, where an awaited call can't be trusted to finish. */

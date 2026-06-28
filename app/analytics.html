@@ -61,23 +61,50 @@
     <div class="overlay" id="settings-overlay" hidden>
       <div class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <button class="modal-close" id="settings-close" type="button" aria-label="Close">&times;</button>
-        <h2 id="settings-title">Settings</h2>
-        <p class="muted settings-modal__sub">Manage <span id="settings-child-name">this profile</span></p>
+        <div class="settings-layout">
+          <nav class="settings-sidebar" aria-label="Settings sections">
+            <button class="settings-tab" data-settings-tab="goals" type="button" aria-selected="true">Goals</button>
+            <button class="settings-tab" data-settings-tab="general" type="button" aria-selected="false">General</button>
+            <button class="settings-tab" data-settings-tab="billing" type="button" aria-selected="false">Billing</button>
+            <button class="settings-tab settings-tab--danger" data-settings-tab="danger" type="button" aria-selected="false">Danger Zone</button>
+          </nav>
 
-        <div class="settings-section">
-          <label for="goal-input" class="settings-label">Daily study goal (minutes)</label>
-          <div class="settings-goal-row">
-            <input type="number" class="input" id="goal-input" min="5" max="600" step="5" />
-            <button class="btn btn-primary btn-sm" id="goal-save" type="button">Save</button>
+          <div class="settings-panel-body">
+            <h2 id="settings-title" class="settings-panel-title">Goals</h2>
+
+            <div class="settings-pane" data-settings-pane="goals">
+              <label for="goal-input" class="settings-label">Daily study goal</label>
+              <div class="settings-goal-row">
+                <input type="number" class="input" id="goal-input" min="5" max="600" step="5" />
+                <button class="btn btn-primary btn-sm" id="goal-save" type="button">Set</button>
+              </div>
+              <p class="settings-current-goal" id="current-goal-label">Current goal: 30 min/day</p>
+              <p class="form-status" id="goal-status" role="status" aria-live="polite"></p>
+            </div>
+
+            <div class="settings-pane hidden" data-settings-pane="general">
+              <div class="settings-field">
+                <span class="settings-field__label">Name</span>
+                <span class="settings-field__value" id="general-name"></span>
+              </div>
+              <div class="settings-field">
+                <span class="settings-field__label">Grade</span>
+                <span class="settings-field__value" id="general-grade"></span>
+              </div>
+            </div>
+
+            <div class="settings-pane hidden" data-settings-pane="billing">
+              <p class="settings-plan-label">Free plan</p>
+              <p class="muted" style="margin-bottom:14px">Upgrade for more children, deeper analytics, and priority support.</p>
+              <button class="btn btn-primary" id="upgrade-btn" type="button">Upgrade</button>
+            </div>
+
+            <div class="settings-pane hidden" data-settings-pane="danger">
+              <p class="muted" style="margin-bottom:14px">Removing a profile permanently deletes their data. This can't be undone.</p>
+              <button class="btn btn-danger btn-block" id="remove-child-btn" type="button">Remove child</button>
+              <p class="form-status" id="remove-status" role="status" aria-live="polite"></p>
+            </div>
           </div>
-          <p class="form-status" id="goal-status" role="status" aria-live="polite"></p>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="settings-section">
-          <button class="btn btn-danger btn-block" id="remove-child-btn" type="button">Remove child</button>
-          <p class="form-status" id="remove-status" role="status" aria-live="polite"></p>
         </div>
       </div>
     </div>

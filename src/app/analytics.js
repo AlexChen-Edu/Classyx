@@ -20,30 +20,48 @@ const streakSlot = $('#streak-badge-slot')
 const contentEl = $('#analytics-content')
 const tabs = document.querySelectorAll('[data-period]')
 
-// --- Settings panel (daily goal + remove child) -----------------------------
+// --- Settings panel (Goals / General / Billing / Danger Zone tabs) ---------
 const settingsBtn = $('#settings-btn')
 const settingsOverlay = $('#settings-overlay')
 const settingsClose = $('#settings-close')
-const settingsChildName = $('#settings-child-name')
+const settingsTitle = $('#settings-title')
+const settingsTabs = $$('.settings-tab')
+const settingsPanes = $$('.settings-pane')
 const goalInput = $('#goal-input')
 const goalSaveBtn = $('#goal-save')
 const goalStatus = $('#goal-status')
+const currentGoalLabel = $('#current-goal-label')
+const generalNameEl = $('#general-name')
+const generalGradeEl = $('#general-grade')
 const removeChildBtn = $('#remove-child-btn')
 const removeStatus = $('#remove-status')
+
+const SETTINGS_TAB_TITLES = { goals: 'Goals', general: 'General', billing: 'Billing', danger: 'Danger Zone' }
 
 settingsBtn?.addEventListener('click', openSettings)
 settingsClose?.addEventListener('click', closeSettings)
 settingsOverlay?.addEventListener('click', (e) => { if (e.target === settingsOverlay) closeSettings() })
+settingsTabs.forEach((tab) => tab.addEventListener('click', () => switchSettingsTab(tab.dataset.settingsTab)))
 goalSaveBtn?.addEventListener('click', saveGoal)
 removeChildBtn?.addEventListener('click', removeChild)
 
+function switchSettingsTab(name) {
+  settingsTabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.settingsTab === name)))
+  settingsPanes.forEach((p) => p.classList.toggle('hidden', p.dataset.settingsPane !== name))
+  settingsTitle.textContent = SETTINGS_TAB_TITLES[name] || 'Settings'
+}
+
 function openSettings() {
   if (!dataset) return
-  settingsChildName.textContent = dataset.child.name
-  goalInput.value = dataset.child.daily_goal_minutes ?? 30
+  const goal = dataset.child.daily_goal_minutes ?? 30
+  goalInput.value = goal
+  currentGoalLabel.textContent = `Current goal: ${goal} min/day`
+  generalNameEl.textContent = dataset.child.name
+  generalGradeEl.textContent = dataset.child.grade ? `Grade ${dataset.child.grade}` : '—'
   removeChildBtn.textContent = `Remove ${dataset.child.name}`
   setStatus(goalStatus, '')
   setStatus(removeStatus, '')
+  switchSettingsTab('goals')
   settingsOverlay.hidden = false
 }
 
@@ -58,10 +76,11 @@ async function saveGoal() {
     return
   }
   setStatus(goalStatus, '')
-  const restore = loading(goalSaveBtn, 'Saving…')
+  const restore = loading(goalSaveBtn, 'Setting…')
   try {
     await updateChildGoal(dataset.child.id, minutes)
     dataset.child.daily_goal_minutes = minutes
+    currentGoalLabel.textContent = `Current goal: ${minutes} min/day`
     restore()
     setStatus(goalStatus, 'Saved!', 'success')
   } catch (err) {

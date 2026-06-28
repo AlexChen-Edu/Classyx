@@ -427,11 +427,24 @@ body.app {
   border: 1px solid var(--line);
 }
 .streak-badge__emoji { font-size: 1.15rem; line-height: 1; }
-.streak-badge--cool { color: #6b7689; }
-.streak-badge--cool .streak-badge__emoji { filter: grayscale(0.75) brightness(1.05); }
+
+/* 1-3 days: orange (the 🔥's native color, just boosted). */
 .streak-badge--orange { color: #c2660c; background: #fdf0e2; border-color: #f5dcb8; }
+.streak-badge--orange .streak-badge__emoji { filter: saturate(1.4) brightness(1.05); }
+
+/* 4-6 days: red — hue-rotated off orange toward red. */
 .streak-badge--red { color: #c2281f; background: #fdeceb; border-color: #f7c9c5; }
 .streak-badge--red .streak-badge__emoji { filter: saturate(1.6) hue-rotate(-12deg); }
+
+/* 7-13 days: blue. */
+.streak-badge--blue { color: #1d5fc2; background: #e8f0fd; border-color: #c7dbf7; }
+.streak-badge--blue .streak-badge__emoji { filter: hue-rotate(190deg) saturate(2.4) brightness(1.05); }
+
+/* 14-20 days: purple. */
+.streak-badge--purple { color: #7c3aed; background: #f1e8fd; border-color: #ddc7f7; }
+.streak-badge--purple .streak-badge__emoji { filter: hue-rotate(250deg) saturate(2) brightness(1.05); }
+
+/* 21+ days: gold, with a pulsing glow. */
 .streak-badge--gold {
   color: var(--brand-ink);
   background: var(--accent-tint);
@@ -625,31 +638,108 @@ body.app {
 .page-head__actions { display: flex; align-items: center; gap: 10px; }
 .icon-btn {
   flex: none;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--line);
   border-radius: 50%;
-  background: var(--surface);
-  font-size: 1.05rem;
+  background: var(--surface-2);
+  font-size: 1.3rem;
   line-height: 1;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
-.icon-btn:hover { border-color: var(--brand); background: var(--brand-tint); transform: rotate(20deg); }
+.icon-btn:hover {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  transform: rotate(20deg) scale(1.06);
+  box-shadow: var(--shadow-sm);
+}
 
-/* ---------- Settings panel (analytics.html) ---------- */
-.settings-modal { position: relative; max-width: 420px; text-align: left; }
-.settings-modal h2 { text-align: center; }
-.settings-modal__sub { text-align: center; margin-bottom: 20px; }
-.settings-section { margin-bottom: 4px; }
+/* ---------- Settings panel (analytics.html) — Claude/ChatGPT-style tabbed modal ---------- */
+/* .modal.settings-modal (two classes) deliberately outranks the plain
+   .modal / .modal h2 rules below in specificity, regardless of source
+   order, so this redesign's width/padding/text-align reliably win. */
+.modal.settings-modal {
+  position: relative;
+  max-width: 560px;
+  width: 100%;
+  text-align: left;
+  padding: 0;
+  overflow: hidden;
+}
+.settings-layout {
+  display: flex;
+  min-height: 320px;
+}
+.settings-sidebar {
+  flex: none;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 18px 10px;
+  background: var(--surface-2);
+  border-right: 1px solid var(--line);
+}
+.settings-tab {
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.settings-tab:hover { background: var(--line-2); color: var(--ink); }
+.settings-tab[aria-selected='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.settings-tab--danger { color: #c0492f; }
+.settings-tab--danger:hover { background: #fdeceb; color: #c0492f; }
+.settings-tab--danger[aria-selected='true'] { background: var(--surface); color: #c0492f; }
+.settings-panel-body { flex: 1; padding: 28px 30px; }
+.settings-modal .settings-panel-title { font-size: 1.1rem; margin-bottom: 18px; }
 .settings-label { display: block; font-size: 0.88rem; font-weight: 600; color: var(--ink-2); margin-bottom: 7px; }
 .settings-goal-row { display: flex; gap: 8px; }
 .settings-goal-row .input { flex: 1; }
+.settings-current-goal { margin-top: 10px; font-size: 0.85rem; color: var(--ink-3); }
+.settings-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-field:last-child { border-bottom: 0; }
+.settings-field__label { font-size: 0.88rem; color: var(--ink-3); }
+.settings-field__value { font-weight: 600; color: var(--ink); }
+.settings-plan-label {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--brand-ink);
+  background: var(--brand-tint);
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
 .btn-danger { background: #c0492f; color: #fff; }
 .btn-danger:hover { background: #a23c25; }
+@media (max-width: 30rem) {
+  .settings-layout { flex-direction: column; min-height: 0; }
+  .settings-sidebar {
+    width: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .settings-panel-body { padding: 20px; }
+}
 
 /* ---------- Modal ---------- */
 .overlay {
