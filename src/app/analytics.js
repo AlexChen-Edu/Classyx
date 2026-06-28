@@ -10,7 +10,7 @@
 // actually in the data.
 import { requireSession, signOut } from './auth.js'
 import { getChildAnalytics } from './api.js'
-import { $, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge } from './ui.js'
+import { $, $$, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge } from './ui.js'
 
 $('[data-signout]')?.addEventListener('click', signOut)
 
@@ -136,13 +136,13 @@ function buildDailySeries(sessions, start, end, subject) {
   return days.map((d) => ({ date: d, minutes: minutesByDay.get(d.toDateString()) || 0 }))
 }
 
-/** "45 min studied" / "2h 14m studied" — used in the per-point hover tooltip. */
-function formatStudiedTooltip(minutes) {
+/** "45 min" / "2h 14m" — the bold green line in the custom hover tooltip. */
+function formatTooltipMinutes(minutes) {
   const m = Math.max(0, Math.round(minutes || 0))
-  if (m < 60) return `${m} min studied`
+  if (m < 60) return `${m} min`
   const h = Math.floor(m / 60)
   const rem = m % 60
-  return rem ? `${h}h ${rem}m studied` : `${h}h studied`
+  return rem ? `${h}h ${rem}m` : `${h}h`
 }
 
 function renderChart(series, period) {
@@ -178,8 +178,11 @@ function renderChart(series, period) {
   }).join('')
 
   const dots = points.map(([px, py], i) => {
-    const tooltip = formatStudiedTooltip(series[i].minutes)
-    return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.5"><title>${escapeHtml(tooltip)}</title></circle>`
+    const dayLabel = period === 'week'
+      ? series[i].date.toLocaleDateString(undefined, { weekday: 'long' })
+      : series[i].date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+    const minutesLabel = formatTooltipMinutes(series[i].minutes)
+    return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.5" data-day="${escapeHtml(dayLabel)}" data-minutes="${escapeHtml(minutesLabel)}"></circle>`
   }).join('')
 
   // Thin out x-axis labels for longer (month) series so they don't overlap.
@@ -207,6 +210,29 @@ function renderChart(series, period) {
       <g class="trend__y-labels">${yLabels}</g>
       <g class="trend__labels">${labels}</g>
     </svg>`
+}
+
+// --- Custom chart tooltip (instant show/hide, no native title delay) -------
+const chartTooltip = $('#chart-tooltip')
+const chartTooltipDay = chartTooltip?.querySelector('.chart-tooltip__day')
+const chartTooltipMinutes = chartTooltip?.querySelector('.chart-tooltip__minutes')
+
+function attachChartTooltip() {
+  if (!chartTooltip) return
+  $$('.trend__dots circle', contentEl).forEach((circle) => {
+    circle.addEventListener('mouseenter', () => {
+      chartTooltipDay.textContent = circle.dataset.day
+      chartTooltipMinutes.textContent = circle.dataset.minutes
+      chartTooltip.hidden = false
+      const dotRect = circle.getBoundingClientRect()
+      const tipRect = chartTooltip.getBoundingClientRect()
+      chartTooltip.style.left = `${dotRect.left + dotRect.width / 2 - tipRect.width / 2 + window.scrollX}px`
+      chartTooltip.style.top = `${dotRect.top - tipRect.height - 10 + window.scrollY}px`
+    })
+    circle.addEventListener('mouseleave', () => {
+      chartTooltip.hidden = true
+    })
+  })
 }
 
 // --- Recommendations (generated from real data) -----------------------------
@@ -266,6 +292,7 @@ function renderRecommendations(recs) {
 
 // --- Render -------------------------------------------------------------------
 function render() {
+  if (chartTooltip) chartTooltip.hidden = true // the chart markup is about to be torn down and rebuilt
   const { start, end } = periodBounds(period)
   const stats = computeStats(dataset, start, end)
   const streak = computeStreak(dataset.sessions)
@@ -344,6 +371,8 @@ function render() {
     subjectFilter = e.target.value
     render()
   })
+
+  attachChartTooltip()
 }
 
 main()

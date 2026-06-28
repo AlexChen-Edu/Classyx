@@ -498,6 +498,35 @@ body.app {
   r: 5;
 }
 
+.chart-tooltip {
+  position: fixed;
+  z-index: 50;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.chart-tooltip[hidden] {
+  display: none;
+}
+
+.chart-tooltip__day {
+  display: block;
+  color: var(--ink);
+}
+
+.chart-tooltip__minutes {
+  display: block;
+  color: var(--brand);
+  font-weight: 700;
+}
+
 .recommend-list { display: flex; flex-direction: column; gap: 0.7rem; }
 .recommend-card {
   display: flex;
