@@ -62,6 +62,12 @@ export async function updateChildName(childId, name) {
   if (error) throw error
 }
 
+/** Update a child's grade level. Column grant for `grade` already exists (see classyx_pin_column_grants). */
+export async function updateChildGrade(childId, grade) {
+  const { error } = await supabase.from('children').update({ grade: grade || null }).eq('id', childId)
+  if (error) throw error
+}
+
 /**
  * Avatar storage piggybacks on the existing private "uploads" bucket/policies
  * (family-folder scoped, same as uploadNote) rather than a new bucket or DB

@@ -718,23 +718,42 @@ body.app {
 .btn-danger { background: #c0492f; color: #fff; }
 .btn-danger:hover { background: #a23c25; }
 
-/* Billing tab gets a wider modal so its 3-up pricing table has room. */
-.modal.settings-modal.settings-modal--wide { max-width: 760px; }
+/* Billing tab gets a bigger modal (wider AND taller) so its 3-up pricing
+   table has real room to breathe. */
+.modal.settings-modal.settings-modal--wide { max-width: 920px; }
+.settings-modal--wide .settings-layout { min-height: 540px; }
 .billing-plans {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 14px;
+  gap: 18px;
 }
 @media (min-width: 36rem) {
   .billing-plans { grid-template-columns: repeat(3, 1fr); }
 }
-.billing-plans .plan { padding: 20px; }
-.billing-plans .plan__name { font-size: 1.1rem; }
-.billing-plans .plan__amount { font-size: 1.8rem; }
+.billing-plans .plan { padding: clamp(24px, 3vw, 32px); gap: 20px; }
+.billing-plans .plan__name { font-size: 1.3rem; }
+.billing-plans .plan__price { padding-bottom: 20px; }
+.billing-plans .plan__amount { font-size: clamp(2rem, 3vw, 2.4rem); }
+.billing-plans .plan__features { gap: 13px; }
+.billing-plans .plan__features li { font-size: 0.98rem; line-height: 1.5; }
+/* A section break inside the Family card: its first list mirrors Single
+   Child's features, this divider introduces the second list of what's
+   actually different — so the card reads as "everything, plus more" rather
+   than a short, easy-to-undersell extras list. */
+.plan__divider {
+  margin-top: 2px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line-2);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--brand-ink);
+}
 /* A distinct "your actual plan" highlight, separate from .plan--featured's
-   "most popular" marketing badge — the two can land on different cards. */
+   "most popular" marketing badge — the two can land on different cards.
+   Green border + a subtle green tint so it reads as obviously "yours". */
 .billing-plans .plan.is-current {
   border-color: var(--brand);
+  background: var(--brand-tint);
   box-shadow: 0 0 0 3px var(--brand-tint);
 }
 .billing-plans .plan.is-current::after {
@@ -743,7 +762,7 @@ body.app {
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--brand-ink);
-  background: var(--brand-tint);
+  background: var(--surface);
   padding: 4px 10px;
   border-radius: 999px;
 }
@@ -764,16 +783,60 @@ body.app {
 }
 .account-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-@media (max-width: 30rem) {
-  .settings-layout { flex-direction: column; min-height: 0; }
+/* Settings modal on phones: near-fullscreen, sidebar becomes a horizontal
+   scrollable tab strip, plan cards stack, inputs/buttons go full width.
+   max-width must be 37.5rem (600px) to match the .billing-plans 3-column
+   breakpoint above (36rem) with no overlap gap where both could apply at
+   once — and this rule must stay BELOW that one in the file so it wins on
+   the sliver of overlap between 576px and 600px. */
+@media (max-width: 37.5rem) {
+  #settings-overlay { padding: 10px; }
+  .modal.settings-modal,
+  .modal.settings-modal.settings-modal--wide {
+    width: 95vw;
+    max-width: 95vw;
+    height: 90vh;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .settings-modal--wide .settings-layout { min-height: 0; }
+  .settings-layout {
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
   .settings-sidebar {
+    flex: none;
     width: auto;
     flex-direction: row;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
-  .settings-panel-body { padding: 20px; }
+  .settings-tab {
+    flex: none;
+    white-space: nowrap;
+    font-size: 0.95rem;
+  }
+  .settings-panel-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .settings-panel-title { font-size: 1.05rem; }
+  .settings-label { font-size: 0.92rem; }
+  .billing-plans { grid-template-columns: 1fr; }
+  .billing-plans .plan { padding: 20px; }
+  .settings-goal-row { flex-direction: column; align-items: stretch; }
+  .settings-goal-row .input,
+  .settings-goal-row button { width: 100%; }
+  .account-avatar-row { flex-direction: column; align-items: flex-start; }
+  .account-avatar-row > div:last-child { width: 100%; }
+  .account-avatar-row label.btn { width: 100%; text-align: center; }
 }
 
 /* ---------- Modal ---------- */

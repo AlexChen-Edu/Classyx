@@ -9,7 +9,7 @@
 // overall accuracy, rather than fabricating a per-subject number that isn't
 // actually in the data.
 import { requireSession, signOut, getFamily } from './auth.js'
-import { getChildAnalytics, updateChildGoal, updateChildName, deleteChild, uploadChildAvatar, getChildAvatarUrl } from './api.js'
+import { getChildAnalytics, updateChildGoal, updateChildName, updateChildGrade, deleteChild, uploadChildAvatar, getChildAvatarUrl } from './api.js'
 import {
   $, $$, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge,
   setStatus, loading, initials, tintFor,
@@ -43,6 +43,9 @@ const avatarStatus = $('#avatar-status')
 const accountNameInput = $('#account-name-input')
 const accountNameSaveBtn = $('#account-name-save')
 const accountNameStatus = $('#account-name-status')
+const accountGradeInput = $('#account-grade-input')
+const accountGradeSaveBtn = $('#account-grade-save')
+const accountGradeStatus = $('#account-grade-status')
 const removeChildBtn = $('#remove-child-btn')
 const removeStatus = $('#remove-status')
 
@@ -55,6 +58,7 @@ settingsOverlay?.addEventListener('click', (e) => { if (e.target === settingsOve
 settingsTabs.forEach((tab) => tab.addEventListener('click', () => switchSettingsTab(tab.dataset.settingsTab)))
 goalSaveBtn?.addEventListener('click', saveGoal)
 accountNameSaveBtn?.addEventListener('click', saveAccountName)
+accountGradeSaveBtn?.addEventListener('click', saveAccountGrade)
 avatarInput?.addEventListener('change', uploadAvatar)
 removeChildBtn?.addEventListener('click', removeChild)
 
@@ -74,10 +78,12 @@ function openSettings() {
   generalNameEl.textContent = dataset.child.name
   generalGradeEl.textContent = dataset.child.grade ? `Grade ${dataset.child.grade}` : '—'
   accountNameInput.value = dataset.child.name
+  accountGradeInput.value = dataset.child.grade || ''
   removeChildBtn.textContent = `Remove ${dataset.child.name}`
   setStatus(goalStatus, '')
   setStatus(removeStatus, '')
   setStatus(accountNameStatus, '')
+  setStatus(accountGradeStatus, '')
   setStatus(avatarStatus, '')
   renderAccountAvatar()
   renderBillingPlans()
@@ -129,6 +135,23 @@ async function saveAccountName() {
   } catch (err) {
     restore()
     setStatus(accountNameStatus, err.message || 'Could not save. Try again.', 'error')
+  }
+}
+
+async function saveAccountGrade() {
+  const grade = accountGradeInput.value
+  setStatus(accountGradeStatus, '')
+  const restore = loading(accountGradeSaveBtn, 'Saving…')
+  try {
+    await updateChildGrade(dataset.child.id, grade)
+    dataset.child.grade = grade || null
+    gradeEl.textContent = grade ? `Grade ${grade}` : 'Learner'
+    generalGradeEl.textContent = grade ? `Grade ${grade}` : '—'
+    restore()
+    setStatus(accountGradeStatus, 'Saved!', 'success')
+  } catch (err) {
+    restore()
+    setStatus(accountGradeStatus, err.message || 'Could not save. Try again.', 'error')
   }
 }
 

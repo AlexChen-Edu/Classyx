@@ -134,9 +134,17 @@
                   </div>
                   <p class="plan__price"><span class="plan__amount">$19.99</span><span class="plan__per">/month</span></p>
                   <ul class="plan__features">
+                    <li>300 AI study packs / month per child</li>
+                    <li>Advanced dashboard</li>
+                    <li>AI parent insights</li>
+                    <li>Smart alerts</li>
+                  </ul>
+                  <p class="plan__divider">Everything in Single Child, plus:</p>
+                  <ul class="plan__features">
                     <li>Up to 3 child accounts</li>
-                    <li>900 AI study packs / month</li>
-                    <li>Everything in Single Child</li>
+                    <li>Individual dashboard for every child</li>
+                    <li>900 AI study packs / month total</li>
+                    <li>Priority support</li>
                   </ul>
                   <button class="btn btn-ghost btn-block billing-upgrade-btn" type="button">Upgrade</button>
                 </article>
@@ -160,6 +168,21 @@
                   <button class="btn btn-primary btn-sm" id="account-name-save" type="button">Save</button>
                 </div>
                 <p class="form-status" id="account-name-status" role="status" aria-live="polite"></p>
+              </div>
+
+              <div class="settings-field-edit">
+                <label for="account-grade-input" class="settings-label">Grade level</label>
+                <div class="settings-goal-row">
+                  <select class="input" id="account-grade-input">
+                    <option value="">Select grade…</option>
+                    <option>K</option><option>1</option><option>2</option><option>3</option>
+                    <option>4</option><option>5</option><option>6</option><option>7</option>
+                    <option>8</option><option>9</option><option>10</option><option>11</option>
+                    <option>12</option><option value="College">College</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" id="account-grade-save" type="button">Save</button>
+                </div>
+                <p class="form-status" id="account-grade-status" role="status" aria-live="polite"></p>
               </div>
 
               <div class="divider"></div>
