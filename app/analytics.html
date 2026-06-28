@@ -66,7 +66,7 @@
             <button class="settings-tab" data-settings-tab="goals" type="button" aria-selected="true">Goals</button>
             <button class="settings-tab" data-settings-tab="general" type="button" aria-selected="false">General</button>
             <button class="settings-tab" data-settings-tab="billing" type="button" aria-selected="false">Billing</button>
-            <button class="settings-tab settings-tab--danger" data-settings-tab="danger" type="button" aria-selected="false">Danger Zone</button>
+            <button class="settings-tab" data-settings-tab="account" type="button" aria-selected="false">Account</button>
           </nav>
 
           <div class="settings-panel-body">
@@ -94,12 +94,76 @@
             </div>
 
             <div class="settings-pane hidden" data-settings-pane="billing">
-              <p class="settings-plan-label">Free plan</p>
-              <p class="muted" style="margin-bottom:14px">Upgrade for more children, deeper analytics, and priority support.</p>
-              <button class="btn btn-primary" id="upgrade-btn" type="button">Upgrade</button>
+              <div class="billing-plans">
+                <article class="card plan" data-plan="free">
+                  <div class="plan__head">
+                    <h3 class="plan__name">Free</h3>
+                    <p class="plan__for">Try Classyx with one learner</p>
+                  </div>
+                  <p class="plan__price"><span class="plan__amount">$0</span><span class="plan__per">/month</span></p>
+                  <ul class="plan__features">
+                    <li>1 child account</li>
+                    <li>10 AI study packs / month</li>
+                    <li>Basic parent dashboard</li>
+                    <li class="plan__features-no">No advanced features</li>
+                  </ul>
+                  <button class="btn btn-ghost btn-block billing-upgrade-btn" type="button">Upgrade</button>
+                </article>
+
+                <article class="card plan plan--featured" data-plan="single_child">
+                  <span class="plan__badge">Most popular</span>
+                  <div class="plan__head">
+                    <h3 class="plan__name">Single Child</h3>
+                    <p class="plan__for">For one focused learner</p>
+                  </div>
+                  <p class="plan__price"><span class="plan__amount">$7.99</span><span class="plan__per">/month</span></p>
+                  <ul class="plan__features">
+                    <li>1 child account</li>
+                    <li>300 AI study packs / month</li>
+                    <li>Advanced dashboard</li>
+                    <li>AI parent insights</li>
+                    <li>Smart alerts</li>
+                  </ul>
+                  <button class="btn btn-primary btn-block billing-upgrade-btn" type="button">Upgrade</button>
+                </article>
+
+                <article class="card plan" data-plan="family">
+                  <div class="plan__head">
+                    <h3 class="plan__name">Family</h3>
+                    <p class="plan__for">For households with more than one student</p>
+                  </div>
+                  <p class="plan__price"><span class="plan__amount">$19.99</span><span class="plan__per">/month</span></p>
+                  <ul class="plan__features">
+                    <li>Up to 3 child accounts</li>
+                    <li>900 AI study packs / month</li>
+                    <li>Everything in Single Child</li>
+                  </ul>
+                  <button class="btn btn-ghost btn-block billing-upgrade-btn" type="button">Upgrade</button>
+                </article>
+              </div>
             </div>
 
-            <div class="settings-pane hidden" data-settings-pane="danger">
+            <div class="settings-pane hidden" data-settings-pane="account">
+              <div class="account-avatar-row">
+                <div class="account-avatar" id="account-avatar"></div>
+                <div>
+                  <label class="btn btn-ghost btn-sm" for="avatar-input">Upload photo</label>
+                  <input type="file" id="avatar-input" accept="image/*" class="hidden" />
+                  <p class="form-status" id="avatar-status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <div class="settings-field-edit">
+                <label for="account-name-input" class="settings-label">Child's name</label>
+                <div class="settings-goal-row">
+                  <input type="text" class="input" id="account-name-input" maxlength="80" />
+                  <button class="btn btn-primary btn-sm" id="account-name-save" type="button">Save</button>
+                </div>
+                <p class="form-status" id="account-name-status" role="status" aria-live="polite"></p>
+              </div>
+
+              <div class="divider"></div>
+
               <p class="muted" style="margin-bottom:14px">Removing a profile permanently deletes their data. This can't be undone.</p>
               <button class="btn btn-danger btn-block" id="remove-child-btn" type="button">Remove child</button>
               <p class="form-status" id="remove-status" role="status" aria-live="polite"></p>

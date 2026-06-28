@@ -698,9 +698,6 @@ body.app {
 }
 .settings-tab:hover { background: var(--line-2); color: var(--ink); }
 .settings-tab[aria-selected='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
-.settings-tab--danger { color: #c0492f; }
-.settings-tab--danger:hover { background: #fdeceb; color: #c0492f; }
-.settings-tab--danger[aria-selected='true'] { background: var(--surface); color: #c0492f; }
 .settings-panel-body { flex: 1; padding: 28px 30px; }
 .settings-modal .settings-panel-title { font-size: 1.1rem; margin-bottom: 18px; }
 .settings-label { display: block; font-size: 0.88rem; font-weight: 600; color: var(--ink-2); margin-bottom: 7px; }
@@ -717,18 +714,56 @@ body.app {
 .settings-field:last-child { border-bottom: 0; }
 .settings-field__label { font-size: 0.88rem; color: var(--ink-3); }
 .settings-field__value { font-weight: 600; color: var(--ink); }
-.settings-plan-label {
-  display: inline-block;
-  font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--brand-ink);
-  background: var(--brand-tint);
-  padding: 5px 12px;
-  border-radius: 999px;
-  margin-bottom: 10px;
-}
+.settings-field-edit { margin-bottom: 18px; }
 .btn-danger { background: #c0492f; color: #fff; }
 .btn-danger:hover { background: #a23c25; }
+
+/* Billing tab gets a wider modal so its 3-up pricing table has room. */
+.modal.settings-modal.settings-modal--wide { max-width: 760px; }
+.billing-plans {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 36rem) {
+  .billing-plans { grid-template-columns: repeat(3, 1fr); }
+}
+.billing-plans .plan { padding: 20px; }
+.billing-plans .plan__name { font-size: 1.1rem; }
+.billing-plans .plan__amount { font-size: 1.8rem; }
+/* A distinct "your actual plan" highlight, separate from .plan--featured's
+   "most popular" marketing badge — the two can land on different cards. */
+.billing-plans .plan.is-current {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-tint);
+}
+.billing-plans .plan.is-current::after {
+  content: 'Current plan';
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--brand-ink);
+  background: var(--brand-tint);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+/* Account tab: avatar + name edit */
+.account-avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; }
+.account-avatar {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+.account-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
 @media (max-width: 30rem) {
   .settings-layout { flex-direction: column; min-height: 0; }
   .settings-sidebar {

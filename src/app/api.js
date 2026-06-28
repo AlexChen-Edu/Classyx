@@ -56,6 +56,38 @@ export async function deleteChild(childId) {
   if (error) throw error
 }
 
+/** Rename a child. Column grant for `name` already exists (see classyx_pin_column_grants). */
+export async function updateChildName(childId, name) {
+  const { error } = await supabase.from('children').update({ name: name.trim() }).eq('id', childId)
+  if (error) throw error
+}
+
+/**
+ * Avatar storage piggybacks on the existing private "uploads" bucket/policies
+ * (family-folder scoped, same as uploadNote) rather than a new bucket or DB
+ * column: every re-upload overwrites the same fixed path
+ * `<family_id>/<child_id>/avatar.png`, so there's nothing to persist beyond
+ * the file itself — the path is always derivable from family_id + child_id.
+ */
+export async function uploadChildAvatar({ child, blob }) {
+  const family = await getFamily()
+  const path = `${family.id}/${child.id}/avatar.png`
+  const { error } = await supabase.storage
+    .from('uploads')
+    .upload(path, blob, { contentType: 'image/png', upsert: true })
+  if (error) throw error
+  return path
+}
+
+/** Signed URL for a child's avatar — the bucket is private. Null if none has been uploaded yet. */
+export async function getChildAvatarUrl(child) {
+  const family = await getFamily()
+  const path = `${family.id}/${child.id}/avatar.png`
+  const { data, error } = await supabase.storage.from('uploads').createSignedUrl(path, 3600)
+  if (error) return null
+  return data?.signedUrl ?? null
+}
+
 const CODE_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
 
 /**
