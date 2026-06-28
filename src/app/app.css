@@ -482,6 +482,22 @@ body.app {
   font-size: 0.9rem;
 }
 
+.trend__y-labels text {
+  fill: var(--ink-3);
+  font-family: var(--font);
+  font-size: 11px;
+  text-anchor: end;
+}
+
+.trend__dots circle {
+  cursor: pointer;
+  transition: r 0.15s var(--ease);
+}
+
+.trend__dots circle:hover {
+  r: 5;
+}
+
 .recommend-list { display: flex; flex-direction: column; gap: 0.7rem; }
 .recommend-card {
   display: flex;

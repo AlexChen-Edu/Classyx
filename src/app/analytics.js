@@ -10,7 +10,7 @@
 // actually in the data.
 import { requireSession, signOut } from './auth.js'
 import { getChildAnalytics } from './api.js'
-import { $, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge, tintFor } from './ui.js'
+import { $, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge } from './ui.js'
 
 $('[data-signout]')?.addEventListener('click', signOut)
 
@@ -117,67 +117,94 @@ function lastActive(sessions) {
   return sessions.length ? sessions[sessions.length - 1].started_at : null
 }
 
-// --- Bar chart, one bar per session (pure SVG, no chart library) -----------
-const MAX_SESSION_BARS = 14
-
-function buildSessionBars(sessions, start, end, subject) {
-  const filtered = sessions.filter((s) => {
+// --- Line graph, daily totals (pure SVG, no chart library) -----------------
+function buildDailySeries(sessions, start, end, subject) {
+  const days = []
+  const cursor = new Date(start)
+  while (cursor <= end) {
+    days.push(new Date(cursor))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+  const minutesByDay = new Map(days.map((d) => [d.toDateString(), 0]))
+  for (const s of sessions) {
     const d = new Date(s.started_at)
-    if (d < start || d > end) return false
-    if (subject !== 'all' && (s.subject || 'General') !== subject) return false
-    return true
-  })
-  filtered.sort((a, b) => new Date(a.started_at) - new Date(b.started_at))
-  const recent = filtered.length > MAX_SESSION_BARS ? filtered.slice(-MAX_SESSION_BARS) : filtered
-  return recent.map((s) => ({
-    date: new Date(s.started_at),
-    minutes: s.duration_minutes || 0,
-    subject: s.subject || 'General',
-  }))
+    if (d < start || d > end) continue
+    if (subject !== 'all' && (s.subject || 'General') !== subject) continue
+    const key = d.toDateString()
+    if (minutesByDay.has(key)) minutesByDay.set(key, minutesByDay.get(key) + (s.duration_minutes || 0))
+  }
+  return days.map((d) => ({ date: d, minutes: minutesByDay.get(d.toDateString()) || 0 }))
 }
 
-function renderChart(bars) {
+/** "45 min studied" / "2h 14m studied" — used in the per-point hover tooltip. */
+function formatStudiedTooltip(minutes) {
+  const m = Math.max(0, Math.round(minutes || 0))
+  if (m < 60) return `${m} min studied`
+  const h = Math.floor(m / 60)
+  const rem = m % 60
+  return rem ? `${h}h ${rem}m studied` : `${h}h studied`
+}
+
+function renderChart(series, period) {
   const W = 600
   const H = 220
-  const padL = 28
+  const padL = 36
   const padR = 12
   const padT = 14
-  const padB = 36 // two-line date/time labels need extra room
+  const padB = 28
   const plotW = W - padL - padR
   const plotH = H - padT - padB
 
-  const maxMinutes = Math.max(30, ...bars.map((b) => b.minutes)) // floor of 30 keeps a few short sessions from looking like a flatline at the very top
-  const slot = plotW / bars.length
-  const barW = Math.min(36, slot * 0.6)
-  const cx = (i) => padL + slot * (i + 0.5)
-  const barHeight = (m) => (m / maxMinutes) * plotH
+  const maxMinutes = Math.max(30, ...series.map((p) => p.minutes)) // floor of 30 keeps a flat week from looking like a flatline at the very top
+  const stepX = series.length > 1 ? plotW / (series.length - 1) : 0
+  const x = (i) => padL + i * stepX
+  const y = (m) => padT + plotH - (m / maxMinutes) * plotH
 
-  const gridLines = [0.25, 0.5, 0.75, 1].map((f) => {
+  const points = series.map((p, i) => [x(i), y(p.minutes)])
+  const linePath = points.map(([px, py], i) => `${i === 0 ? 'M' : 'L'}${px.toFixed(1)},${py.toFixed(1)}`).join(' ')
+  const areaPath = `${linePath} L${x(series.length - 1).toFixed(1)},${(padT + plotH).toFixed(1)} L${x(0).toFixed(1)},${(padT + plotH).toFixed(1)} Z`
+
+  const gridFractions = [0, 0.25, 0.5, 0.75, 1]
+  const gridLines = gridFractions.filter((f) => f > 0).map((f) => {
     const gy = padT + plotH * f
     return `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W - padR}" y2="${gy.toFixed(1)}" />`
   }).join('')
 
-  const barEls = bars.map((b, i) => {
-    const h = Math.max(barHeight(b.minutes), b.minutes > 0 ? 2 : 0)
-    const by = padT + plotH - h
-    const color = tintFor(b.subject)
-    const tooltip = `${b.subject} · ${b.minutes} min · ${formatDateTime(b.date.toISOString())}`
-    return `<rect class="bar-rect" x="${(cx(i) - barW / 2).toFixed(1)}" y="${by.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"><title>${escapeHtml(tooltip)}</title></rect>`
+  // Y-axis minute labels, rounded to the nearest 5 — matches the same gridlines.
+  const yLabels = gridFractions.map((f) => {
+    const value = Math.round((maxMinutes * (1 - f)) / 5) * 5
+    const gy = padT + plotH * f
+    return `<text x="${(padL - 8).toFixed(1)}" y="${(gy + 3).toFixed(1)}">${value}</text>`
   }).join('')
 
-  // Thin out x-axis labels once there are more bars than fit legibly.
-  const labelEvery = bars.length > 8 ? 2 : 1
-  const labels = bars.map((b, i) => {
-    if (i % labelEvery !== 0 && i !== bars.length - 1) return ''
-    const dateStr = b.date.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' })
-    const timeStr = b.date.toLocaleTimeString(undefined, { hour: 'numeric' }).replace(/\s/g, '').toLowerCase()
-    return `<text x="${cx(i).toFixed(1)}" y="${H - 22}">${dateStr}</text><text x="${cx(i).toFixed(1)}" y="${H - 8}">${timeStr}</text>`
+  const dots = points.map(([px, py], i) => {
+    const tooltip = formatStudiedTooltip(series[i].minutes)
+    return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="3.5"><title>${escapeHtml(tooltip)}</title></circle>`
+  }).join('')
+
+  // Thin out x-axis labels for longer (month) series so they don't overlap.
+  const labelEvery = period === 'month' ? Math.ceil(series.length / 7) : 1
+  const labels = series.map((p, i) => {
+    if (i % labelEvery !== 0 && i !== series.length - 1) return ''
+    const text = period === 'week'
+      ? p.date.toLocaleDateString(undefined, { weekday: 'short' })
+      : p.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    return `<text x="${x(i).toFixed(1)}" y="${H - 8}">${text}</text>`
   }).join('')
 
   return `
-    <svg class="trend" viewBox="0 0 ${W} ${H}" role="img" aria-label="Study session durations for the selected period">
+    <svg class="trend" viewBox="0 0 ${W} ${H}" role="img" aria-label="Study minutes per day for the selected period">
+      <defs>
+        <linearGradient id="analyticsAreaFill" x1="0" y1="0" x2="0" y2="1">
+          <stop class="trend__stop-top" offset="0%" />
+          <stop class="trend__stop-bottom" offset="100%" />
+        </linearGradient>
+      </defs>
       <g class="trend__grid">${gridLines}</g>
-      <g class="trend__bars">${barEls}</g>
+      <path class="trend__area" style="fill:url(#analyticsAreaFill)" d="${areaPath}" />
+      <path class="trend__line" d="${linePath}" />
+      <g class="trend__dots">${dots}</g>
+      <g class="trend__y-labels">${yLabels}</g>
       <g class="trend__labels">${labels}</g>
     </svg>`
 }
@@ -263,9 +290,9 @@ function render() {
     .concat(stats.subjects.map(([s]) => `<option value="${escapeHtml(s)}"${s === subjectFilter ? ' selected' : ''}>${escapeHtml(s)}</option>`))
     .join('')
 
-  const bars = buildSessionBars(dataset.sessions, start, end, subjectFilter)
-  const chartHtml = bars.length
-    ? renderChart(bars)
+  const series = buildDailySeries(dataset.sessions, start, end, subjectFilter)
+  const chartHtml = stats.subjects.length
+    ? renderChart(series, period)
     : `<div class="chart-empty">No study sessions ${periodLabel} yet.</div>`
 
   const recs = buildRecommendations({ stats, streak, sessions: dataset.sessions, periodLabel })
