@@ -7,7 +7,6 @@ import {
   recordQuizResult, startSession, touchSession,
   startPresence, pingPresence, endPresenceBeacon, getChildStreak,
   saveChildSession, saveChildSessionBeacon,
-  getOwnActiveSession, getOwnActiveSessionAnon,
 } from './api.js'
 import { $, $$, setStatus, loading, escapeHtml, computeStreak, renderStreakBadge } from './ui.js'
 
@@ -123,32 +122,40 @@ function wireEndSession() {
 }
 
 // ============================ Timer / session ==============================
-const INACTIVITY_MS = 5 * 60 * 1000
-const DISPLAY_POLL_MS = 5000
-
 let sessionRow = null
 let startedAtMs = Date.now()
-let displayInterval = null
+let seconds = 0
+let tickInterval = null
 let saveInterval = null
-let presenceInterval = null
+let pingInterval = null
 let presenceEnded = false
-let isPaused = false
-let pausedAtMs = null
 let totalPausedMs = 0
-
-// Two independent reasons the timer can be paused — tab hidden, and no
-// mouse/keyboard/scroll activity for 5 minutes. The timer only resumes once
-// BOTH clear, so e.g. switching back to an already-inactive tab doesn't
-// resume it.
-let hiddenFlag = false
-let inactiveFlag = false
-let inactivityTimeout = null
+let pausedAtMs = null
 let anonSessionSaved = false
+
+function updateDisplay() {
+  els.timer.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}
+
+function startTick() {
+  if (tickInterval) return
+  tickInterval = setInterval(() => {
+    seconds++
+    updateDisplay()
+  }, 1000)
+}
+
+function stopTick() {
+  clearInterval(tickInterval)
+  tickInterval = null
+}
 
 async function startTimer() {
   startedAtMs = Date.now()
+  seconds = 0
   totalPausedMs = 0
-  els.timer.textContent = '0:00'
+  updateDisplay()
+  startTick()
   if (viaParentSession) {
     try {
       sessionRow = await startSession({ childId: child.id, subject: els.subject.value || null })
@@ -168,118 +175,32 @@ async function startTimer() {
     window.addEventListener('pagehide', saveAnonSessionBeacon)
     window.addEventListener('beforeunload', saveAnonSessionBeacon)
   }
-  document.addEventListener('visibilitychange', () => {
-    hiddenFlag = document.hidden
-    evalPause()
-  })
-  wireInactivityTracking()
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 
-  // Live presence for the parent dashboard's "Active now" indicator. Start
-  // polling the timer display only after this succeeds, so the very first
-  // poll has a row to read.
+  // Live presence for the parent dashboard's "Active now" indicator.
   try { await startPresence(child.id) } catch { /* best effort */ }
   startPresencePing()
-  startDisplayPolling()
   // pagehide fires both on real tab close and on normal in-app navigation
   // (e.g. clicking "Switch"), so this also ends presence on the latter.
   window.addEventListener('pagehide', endPresence)
   window.addEventListener('beforeunload', endPresence)
 }
 
-/** Tracks mouse/keyboard/scroll activity; auto-pauses after 5 minutes of none. */
-function wireInactivityTracking() {
-  const resetInactivity = () => {
-    clearTimeout(inactivityTimeout)
-    inactivityTimeout = setTimeout(() => {
-      inactiveFlag = true
-      evalPause()
-    }, INACTIVITY_MS)
-    if (inactiveFlag) {
-      inactiveFlag = false
-      evalPause()
-    }
+/** Tab hidden: stop ticking seconds so the display freezes; tab visible: resume from where it left off. */
+function handleVisibilityChange() {
+  if (document.hidden) {
+    stopTick()
+    pausedAtMs = Date.now()
+  } else {
+    if (pausedAtMs) totalPausedMs += Date.now() - pausedAtMs
+    pausedAtMs = null
+    startTick()
   }
-  ;['mousemove', 'keydown', 'scroll', 'touchstart'].forEach((evt) =>
-    window.addEventListener(evt, resetInactivity, { passive: true }))
-  resetInactivity()
 }
 
-/** Pauses when either reason is active, resumes only once both have cleared. */
-function evalPause() {
-  const shouldPause = hiddenFlag || inactiveFlag
-  if (shouldPause && !isPaused) pauseTimer()
-  else if (!shouldPause && isPaused) resumeTimer()
-}
-
-/**
- * The displayed timer has no independent client-side clock at all — every
- * tick re-fetches this child's own active_sessions row (started_at,
- * paused_ms) and renders (now - started_at - paused_ms), the exact same
- * formula the parent dashboard uses on the exact same row. This guarantees
- * the two pages can never drift apart; the cost is 5s-coarse updates
- * instead of a smooth per-second local tick.
- */
-function startDisplayPolling() {
-  pollAndDisplay()
-  displayInterval = setInterval(pollAndDisplay, DISPLAY_POLL_MS)
-}
-
-/** Skipped entirely while paused, so the display freezes instead of drifting up between polls. */
-async function pollAndDisplay() {
-  if (isPaused) return
-  try {
-    const row = viaParentSession
-      ? await getOwnActiveSession(child.id)
-      : await getOwnActiveSessionAnon(child.id)
-    if (!row) return
-    const s = Math.max(0, Math.floor((Date.now() - new Date(row.started_at).getTime() - (row.paused_ms || 0)) / 1000))
-    els.timer.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-  } catch { /* keep showing the last successfully polled value */ }
-}
-
+/** Separate from the display timer — just keeps active_sessions fresh for the parent dashboard. */
 function startPresencePing() {
-  presenceInterval = setInterval(() => pingPresence(child.id, totalPausedMs).catch(() => {}), 30000)
-}
-
-/**
- * Tab switched away: freeze the displayed timer (pollAndDisplay skips its
- * own update while isPaused) and stop pinging active_sessions so the parent
- * dashboard's "Active now" dot goes stale (and disappears after 2 minutes
- * per the staleness check) instead of staying lit while the child isn't
- * actually studying. One last ping fires immediately (instead of waiting
- * for the next 30s tick) so the dashboard's timer reflects the pause within
- * seconds rather than up to 30s late.
- */
-function pauseTimer() {
-  if (isPaused) return
-  isPaused = true
-  pausedAtMs = Date.now()
-  clearInterval(presenceInterval)
-  pingPresence(child.id, totalPausedMs).catch(() => {})
-  saveSession()
-}
-
-/**
- * Tab back in view: add the time spent paused to totalPausedMs — the single
- * source of truth for "how much of this session was inactive". startedAtMs
- * itself is never shifted; every elapsed-time calc (touchSession's
- * duration, elapsedMinutes(), and the displayed timer's own
- * now-started_at-paused_ms formula) instead subtracts paused_ms explicitly,
- * so they all agree on the same active time. totalPausedMs is sent as
- * active_sessions.paused_ms so the parent dashboard and this page's own
- * pollAndDisplay() read the identical value from the identical row.
- */
-async function resumeTimer() {
-  if (!isPaused) return
-  isPaused = false
-  totalPausedMs += Date.now() - pausedAtMs
-  pausedAtMs = null
-  // Awaited so the updated paused_ms has actually landed before the
-  // immediate re-poll below reads the row back — otherwise that poll could
-  // briefly read the stale (smaller) paused_ms and show a wrong number.
-  await pingPresence(child.id, totalPausedMs).catch(() => {})
-  startPresencePing()
-  pollAndDisplay() // unfreeze immediately rather than waiting for the next 5s poll
+  pingInterval = setInterval(() => pingPresence(child.id, totalPausedMs).catch(() => {}), 5000)
 }
 
 function saveSession() {
@@ -314,10 +235,9 @@ async function saveAnonSessionAwaited() {
 function endPresence() {
   if (presenceEnded || !child) return
   presenceEnded = true
-  clearInterval(presenceInterval)
-  clearInterval(displayInterval)
+  stopTick()
+  clearInterval(pingInterval)
   clearInterval(saveInterval)
-  clearTimeout(inactivityTimeout)
   endPresenceBeacon(child.id)
 }
 
