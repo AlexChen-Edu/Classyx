@@ -1231,6 +1231,15 @@ section[id] {
   fill: var(--brand) !important;
 }
 
+.trend__bars .bar-rect {
+  cursor: pointer;
+  transition: opacity 0.15s var(--ease);
+}
+
+.trend__bars .bar-rect:hover {
+  opacity: 0.8;
+}
+
 .trend__callout rect {
   fill: var(--ink);
 }
