@@ -110,7 +110,7 @@ function wireEndSession() {
     const restore = loading(btn, 'Saving…')
     try {
       if (viaParentSession) {
-        if (sessionRow) await touchSession({ sessionId: sessionRow.id, startedAtMs })
+        if (sessionRow) await touchSession({ sessionId: sessionRow.id, startedAtMs, pausedMs: totalPausedMs })
       } else {
         await saveAnonSessionAwaited()
       }
@@ -209,7 +209,7 @@ function evalPause() {
 
 function startTick() {
   tickInterval = setInterval(() => {
-    const s = Math.floor((Date.now() - startedAtMs) / 1000)
+    const s = Math.floor((Date.now() - startedAtMs - totalPausedMs) / 1000)
     els.timer.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
   }, 1000)
 }
@@ -237,20 +237,19 @@ function pauseTimer() {
 }
 
 /**
- * Tab back in view: shift startedAtMs forward by the time spent paused, so
- * that elapsed-time math (the on-screen timer and touchSession's duration
- * calc) never counts the paused gap, then resume the timer and presence
- * pings. The same paused duration is added to totalPausedMs, which is sent
- * as active_sessions.paused_ms so the parent dashboard — which only ever
- * sees the original started_at — can compute true active time as
- * (now - started_at) - paused_ms instead of raw wall-clock elapsed.
+ * Tab back in view: add the time spent paused to totalPausedMs — the single
+ * source of truth for "how much of this session was inactive". startedAtMs
+ * itself is never shifted; every elapsed-time calc (the on-screen timer,
+ * touchSession's duration, elapsedMinutes()) instead subtracts totalPausedMs
+ * explicitly, so they all agree on the same active time. totalPausedMs is
+ * also sent as active_sessions.paused_ms so the parent dashboard — which
+ * only ever sees the original started_at — can compute the same true active
+ * time as (now - started_at) - paused_ms.
  */
 function resumeTimer() {
   if (!isPaused) return
   isPaused = false
-  const pauseDurationMs = Date.now() - pausedAtMs
-  startedAtMs += pauseDurationMs
-  totalPausedMs += pauseDurationMs
+  totalPausedMs += Date.now() - pausedAtMs
   pausedAtMs = null
   startTick()
   pingPresence(child.id, totalPausedMs).catch(() => {})
@@ -258,12 +257,12 @@ function resumeTimer() {
 }
 
 function saveSession() {
-  if (sessionRow) touchSession({ sessionId: sessionRow.id, startedAtMs })
+  if (sessionRow) touchSession({ sessionId: sessionRow.id, startedAtMs, pausedMs: totalPausedMs })
 }
 
 /** Same calc touchSession uses internally, exposed here so the anon path can pass it explicitly. */
 function elapsedMinutes() {
-  return Math.max(0, Math.round((Date.now() - startedAtMs) / 60000))
+  return Math.max(0, Math.round((Date.now() - startedAtMs - totalPausedMs) / 60000))
 }
 
 /** Fire-and-forget; for pagehide/beforeunload, where an awaited call can't be trusted to finish. */

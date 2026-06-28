@@ -165,8 +165,8 @@ export async function startSession({ childId, subject }) {
 }
 
 /** Update an open session's end time + duration. Best-effort (errors ignored). */
-export async function touchSession({ sessionId, startedAtMs }) {
-  const minutes = Math.max(0, Math.round((Date.now() - startedAtMs) / 60000))
+export async function touchSession({ sessionId, startedAtMs, pausedMs = 0 }) {
+  const minutes = Math.max(0, Math.round((Date.now() - startedAtMs - pausedMs) / 60000))
   await supabase
     .from('study_sessions')
     .update({ ended_at: new Date().toISOString(), duration_minutes: minutes })
