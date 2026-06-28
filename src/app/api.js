@@ -287,6 +287,35 @@ export async function getActiveSessions() {
 }
 
 /**
+ * A single child's own active_sessions row — polled by study.js so its timer
+ * reads the exact same data the parent dashboard reads, instead of keeping
+ * an independent client-side clock that can drift out of sync. Via the
+ * authenticated client (parent-picked profile path); owns_child(child_id)
+ * is satisfied since this is always the caller's own child.
+ */
+export async function getOwnActiveSession(childId) {
+  const { data, error } = await supabase
+    .from('active_sessions')
+    .select('started_at, paused_ms')
+    .eq('child_id', childId)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+/** Same, via the anon client — the account-less child path. */
+export async function getOwnActiveSessionAnon(childId) {
+  if (!supabaseAnon) return null
+  const { data, error } = await supabaseAnon
+    .from('active_sessions')
+    .select('started_at, paused_ms')
+    .eq('child_id', childId)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}
+
+/**
  * Just the session dates needed for a streak calc — used by study.js, which
  * may be running as an account-less child (no parent JWT). Under RLS that
  * has no SELECT access to study_sessions at all, so this throws for that
