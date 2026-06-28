@@ -5,7 +5,7 @@ import { getDashboardData, getActiveSessions, refreshChildCode } from './api.js'
 import { $, escapeHtml, relativeDay, initials, tintFor, setStatus, loading } from './ui.js'
 
 const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
-const FREEZE_MS = 35 * 1000 // pings are sent every 30s; > 35s means the child paused or went inactive
+const FREEZE_MS = 10 * 1000 // study page pings every 5s while active and stops while paused; > 10s means paused
 
 const content = $('#content')
 $('[data-signout]')?.addEventListener('click', signOut)
