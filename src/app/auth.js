@@ -61,7 +61,10 @@ export async function signOut() {
 const ACTIVE_KEY = 'classyx.activeChild'
 
 export function setActiveChild(child) {
-  sessionStorage.setItem(ACTIVE_KEY, JSON.stringify({ id: child.id, name: child.name, grade: child.grade }))
+  sessionStorage.setItem(ACTIVE_KEY, JSON.stringify({
+    id: child.id, name: child.name, grade: child.grade,
+    daily_goal_minutes: child.daily_goal_minutes ?? 30,
+  }))
 }
 
 export function getActiveChild() {
@@ -84,8 +87,10 @@ export function clearActiveChild() {
 // directly once it's been set by a successful redeem_child_code call.
 const CHILD_SESSION_KEY = 'classyx.childSession'
 
-export function setChildSession({ child_id, child_name, family_id }) {
-  sessionStorage.setItem(CHILD_SESSION_KEY, JSON.stringify({ child_id, child_name, family_id }))
+export function setChildSession({ child_id, child_name, family_id, daily_goal_minutes }) {
+  sessionStorage.setItem(CHILD_SESSION_KEY, JSON.stringify({
+    child_id, child_name, family_id, daily_goal_minutes: daily_goal_minutes ?? 30,
+  }))
 }
 
 export function getChildSession() {
@@ -110,9 +115,10 @@ export function clearChildSession() {
 // "Forget this device" / "Switch profile" actions clear it.
 const REMEMBERED_DEVICE_KEY = 'classyx_child_profile'
 
-export function setRememberedDevice({ child_id, child_name, family_id }) {
+export function setRememberedDevice({ child_id, child_name, family_id, daily_goal_minutes }) {
   localStorage.setItem(REMEMBERED_DEVICE_KEY, JSON.stringify({
-    child_id, child_name, family_id, saved_at: new Date().toISOString(),
+    child_id, child_name, family_id, daily_goal_minutes: daily_goal_minutes ?? 30,
+    saved_at: new Date().toISOString(),
   }))
 }
 

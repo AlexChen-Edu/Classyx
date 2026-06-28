@@ -5,7 +5,7 @@
 import { supabase, supabaseAnon } from '../supabaseClient.js'
 import { getFamily } from './auth.js'
 
-const CHILD_COLS = 'id, name, grade, created_at'
+const CHILD_COLS = 'id, name, grade, daily_goal_minutes, created_at'
 
 // --- Children ---------------------------------------------------------------
 
@@ -34,6 +34,26 @@ export async function createChild({ name, grade }) {
     .single()
   if (error) throw error
   return data
+}
+
+/** Update a child's daily study goal (minutes). Column grant added alongside the migration that introduced it. */
+export async function updateChildGoal(childId, minutes) {
+  const { error } = await supabase
+    .from('children')
+    .update({ daily_goal_minutes: minutes })
+    .eq('id', childId)
+  if (error) throw error
+}
+
+/**
+ * Permanently removes a child profile. RLS-scoped (owns_family), and every
+ * dependent table (study_sessions, uploads, flashcards, study_guides,
+ * quiz_results, active_sessions) has child_id on delete cascade, so this one
+ * delete removes all of that child's study data too.
+ */
+export async function deleteChild(childId) {
+  const { error } = await supabase.from('children').delete().eq('id', childId)
+  if (error) throw error
 }
 
 const CODE_ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -339,7 +359,7 @@ export async function getChildStreak(childId) {
 export async function getChildAnalytics(childId) {
   const [{ data: child, error: childErr }, { data: sessions, error: sessErr }, { data: quizzes, error: quizErr }] =
     await Promise.all([
-      supabase.from('children').select('id, name, grade').eq('id', childId).maybeSingle(),
+      supabase.from('children').select('id, name, grade, daily_goal_minutes').eq('id', childId).maybeSingle(),
       supabase
         .from('study_sessions')
         .select('started_at, duration_minutes, subject')
@@ -367,10 +387,11 @@ export async function getDashboardData() {
     supabase.from('quiz_results').select('child_id, correct, answered_at'),
   ])
 
-  // Start of the current week (Monday 00:00 local).
+  // Start of the current week (Monday 00:00 local) and of today.
   const now = new Date()
   const day = (now.getDay() + 6) % 7
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day)
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
   return children.map((child) => {
     const cSessions = (sessions ?? []).filter((s) => s.child_id === child.id)
@@ -378,6 +399,11 @@ export async function getDashboardData() {
 
     const weekMinutes = cSessions
       .filter((s) => new Date(s.started_at) >= weekStart)
+      .reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
+
+    // Powers the dashboard's daily-goal progress ring (today_minutes / daily_goal_minutes).
+    const todayMinutes = cSessions
+      .filter((s) => new Date(s.started_at) >= todayStart)
       .reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
 
     const lastStudied = cSessions
@@ -389,6 +415,6 @@ export async function getDashboardData() {
     const correct = cQuizzes.filter((q) => q.correct).length
     const accuracy = total ? Math.round((correct / total) * 100) : null
 
-    return { ...child, weekMinutes, lastStudied, quizCount: total, accuracy }
+    return { ...child, weekMinutes, todayMinutes, lastStudied, quizCount: total, accuracy }
   })
 }

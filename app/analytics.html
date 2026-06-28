@@ -35,7 +35,10 @@
             <h1 id="child-name">Loading…</h1>
             <p id="child-grade" class="muted"></p>
           </div>
-          <div id="streak-badge-slot"></div>
+          <div class="page-head__actions">
+            <div id="streak-badge-slot"></div>
+            <button class="icon-btn" id="settings-btn" type="button" aria-label="Child settings" title="Settings">⚙️</button>
+          </div>
         </div>
 
         <div class="seg" role="tablist" aria-label="Time period" style="margin-bottom:22px">
@@ -52,6 +55,31 @@
     <div id="chart-tooltip" class="chart-tooltip" role="tooltip" hidden>
       <span class="chart-tooltip__day"></span>
       <span class="chart-tooltip__minutes"></span>
+    </div>
+
+    <!-- Settings panel -->
+    <div class="overlay" id="settings-overlay" hidden>
+      <div class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+        <button class="modal-close" id="settings-close" type="button" aria-label="Close">&times;</button>
+        <h2 id="settings-title">Settings</h2>
+        <p class="muted settings-modal__sub">Manage <span id="settings-child-name">this profile</span></p>
+
+        <div class="settings-section">
+          <label for="goal-input" class="settings-label">Daily study goal (minutes)</label>
+          <div class="settings-goal-row">
+            <input type="number" class="input" id="goal-input" min="5" max="600" step="5" />
+            <button class="btn btn-primary btn-sm" id="goal-save" type="button">Save</button>
+          </div>
+          <p class="form-status" id="goal-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="settings-section">
+          <button class="btn btn-danger btn-block" id="remove-child-btn" type="button">Remove child</button>
+          <p class="form-status" id="remove-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="/src/app/analytics.js"></script>

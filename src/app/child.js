@@ -119,7 +119,10 @@ function showWelcomeBack(remembered) {
 function startFromRememberedDevice() {
   const remembered = getRememberedDevice()
   if (!remembered) { switchProfile(); return }
-  setChildSession({ child_id: remembered.child_id, child_name: remembered.child_name, family_id: remembered.family_id })
+  setChildSession({
+    child_id: remembered.child_id, child_name: remembered.child_name, family_id: remembered.family_id,
+    daily_goal_minutes: remembered.daily_goal_minutes,
+  })
   location.href = STUDY
 }
 
@@ -153,9 +156,9 @@ async function redeemCode() {
     if (!row) throw new Error('Invalid or expired code')
     // Clear immediately so the code is no longer visible on screen.
     anonBoxes.forEach((b) => (b.value = ''))
-    const { child_id, child_name, family_id } = row
-    setChildSession({ child_id, child_name, family_id })
-    setRememberedDevice({ child_id, child_name, family_id })
+    const { child_id, child_name, family_id, daily_goal_minutes } = row
+    setChildSession({ child_id, child_name, family_id, daily_goal_minutes })
+    setRememberedDevice({ child_id, child_name, family_id, daily_goal_minutes })
     showConfirmStart({ id: child_id, name: child_name, family_id })
   } catch (err) {
     setStatus(anonStatus, friendlyCodeError(err), 'error')

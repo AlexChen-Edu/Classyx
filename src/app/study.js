@@ -29,6 +29,8 @@ const els = {
   uploadSection: $('#upload-section'),
   generating: $('#generating'),
   results: $('#results'),
+  goalBarFill: $('#goal-bar-fill'),
+  goalLabel: $('#goal-label'),
 }
 
 let chosenFile = null
@@ -48,18 +50,27 @@ async function resolveActiveChild() {
       const picked = getActiveChild()
       if (picked) {
         viaParentSession = true
-        return picked
+        return { ...picked, daily_goal_minutes: picked.daily_goal_minutes ?? 30 }
       }
     }
   }
   const childSession = getChildSession()
   if (childSession) {
-    return { id: childSession.child_id, name: childSession.child_name, family_id: childSession.family_id }
+    return {
+      id: childSession.child_id, name: childSession.child_name, family_id: childSession.family_id,
+      daily_goal_minutes: childSession.daily_goal_minutes ?? 30,
+    }
   }
   const remembered = getRememberedDevice()
   if (remembered) {
-    setChildSession({ child_id: remembered.child_id, child_name: remembered.child_name, family_id: remembered.family_id })
-    return { id: remembered.child_id, name: remembered.child_name, family_id: remembered.family_id }
+    setChildSession({
+      child_id: remembered.child_id, child_name: remembered.child_name, family_id: remembered.family_id,
+      daily_goal_minutes: remembered.daily_goal_minutes,
+    })
+    return {
+      id: remembered.child_id, name: remembered.child_name, family_id: remembered.family_id,
+      daily_goal_minutes: remembered.daily_goal_minutes ?? 30,
+    }
   }
   return null
 }
@@ -135,6 +146,26 @@ let anonSessionSaved = false
 
 function updateDisplay() {
   els.timer.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+  updateGoalBar()
+}
+
+/** XP-bar-style fill: seconds studied / daily goal (in seconds), capped at 100%. */
+let goalReached = false
+function updateGoalBar() {
+  if (!els.goalBarFill) return
+  const goalSeconds = (child?.daily_goal_minutes || 30) * 60
+  const pct = Math.min(100, Math.round((seconds / goalSeconds) * 100))
+  els.goalBarFill.style.width = `${pct}%`
+  if (pct >= 100) {
+    if (!goalReached) {
+      goalReached = true
+      els.goalBarFill.classList.add('is-complete')
+      els.goalLabel.classList.add('is-complete')
+    }
+    els.goalLabel.textContent = '🎉 Daily goal reached!'
+  } else {
+    els.goalLabel.textContent = `${pct}% of today's goal`
+  }
 }
 
 function startTick() {

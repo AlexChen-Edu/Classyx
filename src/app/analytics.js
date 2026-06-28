@@ -9,8 +9,8 @@
 // overall accuracy, rather than fabricating a per-subject number that isn't
 // actually in the data.
 import { requireSession, signOut } from './auth.js'
-import { getChildAnalytics } from './api.js'
-import { $, $$, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge } from './ui.js'
+import { getChildAnalytics, updateChildGoal, deleteChild } from './api.js'
+import { $, $$, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge, setStatus, loading } from './ui.js'
 
 $('[data-signout]')?.addEventListener('click', signOut)
 
@@ -19,6 +19,70 @@ const gradeEl = $('#child-grade')
 const streakSlot = $('#streak-badge-slot')
 const contentEl = $('#analytics-content')
 const tabs = document.querySelectorAll('[data-period]')
+
+// --- Settings panel (daily goal + remove child) -----------------------------
+const settingsBtn = $('#settings-btn')
+const settingsOverlay = $('#settings-overlay')
+const settingsClose = $('#settings-close')
+const settingsChildName = $('#settings-child-name')
+const goalInput = $('#goal-input')
+const goalSaveBtn = $('#goal-save')
+const goalStatus = $('#goal-status')
+const removeChildBtn = $('#remove-child-btn')
+const removeStatus = $('#remove-status')
+
+settingsBtn?.addEventListener('click', openSettings)
+settingsClose?.addEventListener('click', closeSettings)
+settingsOverlay?.addEventListener('click', (e) => { if (e.target === settingsOverlay) closeSettings() })
+goalSaveBtn?.addEventListener('click', saveGoal)
+removeChildBtn?.addEventListener('click', removeChild)
+
+function openSettings() {
+  if (!dataset) return
+  settingsChildName.textContent = dataset.child.name
+  goalInput.value = dataset.child.daily_goal_minutes ?? 30
+  removeChildBtn.textContent = `Remove ${dataset.child.name}`
+  setStatus(goalStatus, '')
+  setStatus(removeStatus, '')
+  settingsOverlay.hidden = false
+}
+
+function closeSettings() {
+  settingsOverlay.hidden = true
+}
+
+async function saveGoal() {
+  const minutes = parseInt(goalInput.value, 10)
+  if (!Number.isFinite(minutes) || minutes < 1) {
+    setStatus(goalStatus, 'Enter a number of minutes greater than 0.', 'error')
+    return
+  }
+  setStatus(goalStatus, '')
+  const restore = loading(goalSaveBtn, 'Saving…')
+  try {
+    await updateChildGoal(dataset.child.id, minutes)
+    dataset.child.daily_goal_minutes = minutes
+    restore()
+    setStatus(goalStatus, 'Saved!', 'success')
+  } catch (err) {
+    restore()
+    setStatus(goalStatus, err.message || 'Could not save. Try again.', 'error')
+  }
+}
+
+async function removeChild() {
+  const name = dataset.child.name
+  if (!confirm(`This will permanently delete ${name}'s profile and all their study data. Are you sure?`)) return
+  setStatus(removeStatus, '')
+  removeChildBtn.disabled = true
+  try {
+    await deleteChild(dataset.child.id)
+    location.href = '/app/dashboard.html'
+  } catch (err) {
+    removeChildBtn.disabled = false
+    setStatus(removeStatus, err.message || 'Could not remove this profile. Try again.', 'error')
+  }
+}
 
 let dataset = null // { child, sessions, quizzes } — the full, unfiltered fetch
 let period = 'week'

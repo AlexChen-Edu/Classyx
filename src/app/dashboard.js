@@ -76,6 +76,27 @@ function render(children, presence) {
   })
 }
 
+/** Apple-Activity-style ring: today_minutes / daily_goal_minutes, capped at 100%. */
+function renderGoalRing(todayMinutes, goalMinutes) {
+  const r = 30
+  const circumference = 2 * Math.PI * r
+  const pct = goalMinutes > 0 ? Math.min(100, Math.round((todayMinutes / goalMinutes) * 100)) : 0
+  const offset = circumference * (1 - pct / 100)
+  const met = pct >= 100
+  return `
+    <div class="goal-ring-block">
+      <div class="goal-ring-wrap">
+        <svg class="goal-ring" viewBox="0 0 72 72" width="72" height="72" role="img" aria-label="${pct}% of today's study goal">
+          <circle class="goal-ring__track" cx="36" cy="36" r="${r}" />
+          <circle class="goal-ring__fill" cx="36" cy="36" r="${r}"
+            stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" />
+        </svg>
+        <span class="goal-ring__center">${pct}%</span>
+      </div>
+      <span class="goal-ring__caption${met ? ' is-complete' : ''}">${met ? '✓ Goal met!' : "Today's goal"}</span>
+    </div>`
+}
+
 function renderCard(c, isActive) {
   const tint = tintFor(c.name)
   const week = c.weekMinutes ? `${c.weekMinutes}m` : '0m'
@@ -109,6 +130,8 @@ function renderCard(c, isActive) {
           <div class="stat-mini"><div class="stat-mini__label">Quiz accuracy</div><div class="stat-mini__value">${acc}</div></div>
           <div class="stat-mini"><div class="stat-mini__label">Last studied</div><div class="stat-mini__value" style="font-size:.95rem">${escapeHtml(relativeDay(c.lastStudied))}</div></div>
         </div>
+
+        ${renderGoalRing(c.todayMinutes || 0, c.daily_goal_minutes || 30)}
 
         <a class="child-card__analytics-link" href="/app/analytics.html?child=${c.id}">Analytics →</a>
       </article>`
