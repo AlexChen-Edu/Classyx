@@ -8,6 +8,7 @@ import { supabase, supabaseAnon } from '../supabaseClient.js'
 import {
   signOut, setActiveChild, setChildSession,
   getRememberedDevice, setRememberedDevice, clearRememberedDevice, clearChildSession, clearActiveChild,
+  getStudyRecency,
 } from './auth.js'
 import { listChildren, verifyChildPin, setChildPin, generateChildCode } from './api.js'
 import { $, $$, setStatus, escapeHtml, initials, tintFor } from './ui.js'
@@ -112,8 +113,22 @@ function showWelcomeBack(remembered) {
   welcomeAvatar.textContent = initials(remembered.child_name)
   welcomeAvatar.style.background = tintFor(remembered.child_name)
   welcomeName.textContent = `Welcome back, ${remembered.child_name} 👋`
+  renderStreakRiskBadge(remembered.child_id)
   codeGate.classList.add('hidden')
   welcomeBack.classList.remove('hidden')
+}
+
+/** Loss-aversion nudge: warn if yesterday was skipped, or confirm today's already in progress. */
+function renderStreakRiskBadge(childId) {
+  $('#welcome-streak-risk')?.remove()
+  const { today, yesterday } = getStudyRecency(childId)
+  let html = ''
+  if (today) {
+    html = `<p id="welcome-streak-risk" class="streak-risk-badge streak-risk-badge--ok">✓ Goal in progress</p>`
+  } else if (!yesterday) {
+    html = `<p id="welcome-streak-risk" class="streak-risk-badge streak-risk-badge--warn">⚠️ Streak at risk — study today to keep it alive!</p>`
+  }
+  if (html) welcomeAvatar.insertAdjacentHTML('afterend', html)
 }
 
 function startFromRememberedDevice() {

@@ -75,24 +75,31 @@ function render(children, presence) {
   })
 }
 
-/** Apple-Activity-style ring: today_minutes / daily_goal_minutes, capped at 100%. */
+/**
+ * Apple-Activity-style ring: today_minutes / daily_goal_minutes, capped at 100%.
+ * While the goal isn't met yet, the ring pulses and the caption shows minutes
+ * remaining instead of a static label — an open loop (Zeigarnik effect) that
+ * keeps the parent watching this card until it closes. Once met, the pulse
+ * stops and the fill gets a one-shot green flash instead.
+ */
 function renderGoalRing(todayMinutes, goalMinutes) {
   const r = 30
   const circumference = 2 * Math.PI * r
   const pct = goalMinutes > 0 ? Math.min(100, Math.round((todayMinutes / goalMinutes) * 100)) : 0
   const offset = circumference * (1 - pct / 100)
   const met = pct >= 100
+  const minutesToGo = Math.max(0, Math.ceil(goalMinutes - todayMinutes))
   return `
     <div class="goal-ring-block">
       <div class="goal-ring-wrap">
-        <svg class="goal-ring" viewBox="0 0 72 72" width="72" height="72" role="img" aria-label="${pct}% of today's study goal">
+        <svg class="goal-ring${met ? '' : ' goal-ring--pulsing'}" viewBox="0 0 72 72" width="72" height="72" role="img" aria-label="${pct}% of today's study goal">
           <circle class="goal-ring__track" cx="36" cy="36" r="${r}" />
-          <circle class="goal-ring__fill" cx="36" cy="36" r="${r}"
+          <circle class="goal-ring__fill${met ? ' goal-ring__fill--flash' : ''}" cx="36" cy="36" r="${r}"
             stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" />
         </svg>
         <span class="goal-ring__center">${pct}%</span>
       </div>
-      <span class="goal-ring__caption${met ? ' is-complete' : ''}">${met ? '✓ Goal met!' : "Today's goal"}</span>
+      <span class="goal-ring__caption${met ? ' is-complete' : ''}">${met ? '✓ Goal met!' : `${minutesToGo} min to go`}</span>
     </div>`
 }
 

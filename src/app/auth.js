@@ -133,3 +133,35 @@ export function getRememberedDevice() {
 export function clearRememberedDevice() {
   localStorage.removeItem(REMEMBERED_DEVICE_KEY)
 }
+
+// --- Last-studied tracking (device-local, for the streak-at-risk nudge) ----
+// A lightweight on-device record of which calendar day each child last
+// finished a study session, keyed by child_id. This exists because the
+// welcome-back screen runs for account-less children, who have no RLS
+// access to study_sessions at all (see getChildStreak's comment in api.js)
+// — so the "studied today / studied yesterday" check has to come from
+// something other than a DB query.
+const LAST_STUDIED_KEY = 'classyx_last_studied'
+
+function readLastStudiedMap() {
+  try {
+    return JSON.parse(localStorage.getItem(LAST_STUDIED_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+export function markStudiedToday(childId) {
+  const map = readLastStudiedMap()
+  map[childId] = new Date().toDateString()
+  localStorage.setItem(LAST_STUDIED_KEY, JSON.stringify(map))
+}
+
+/** Returns whether childId's most recent recorded session was today / yesterday. */
+export function getStudyRecency(childId) {
+  const last = readLastStudiedMap()[childId]
+  if (!last) return { today: false, yesterday: false }
+  const yesterday = new Date()
+  yesterday.setDate(yesterday.getDate() - 1)
+  return { today: last === new Date().toDateString(), yesterday: last === yesterday.toDateString() }
+}

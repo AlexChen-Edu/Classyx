@@ -1,14 +1,14 @@
 // Study interface: upload -> AI generate -> flashcards / guide / self-test,
 // with a study timer that auto-saves to study_sessions.
 import { supabase } from '../supabaseClient.js'
-import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, clearRememberedDevice } from './auth.js'
+import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, clearRememberedDevice, markStudiedToday } from './auth.js'
 import {
   uploadNote, generateContent, getFlashcards, getStudyGuide,
   recordQuizResult, startSession, touchSession,
   startPresence, pingPresence, endPresenceBeacon, getChildStreak,
   saveChildSession, saveChildSessionBeacon,
 } from './api.js'
-import { $, $$, setStatus, loading, escapeHtml, computeStreak, renderStreakBadge } from './ui.js'
+import { $, $$, setStatus, loading, escapeHtml, computeStreak, renderStreakBadge, initials, tintFor } from './ui.js'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const CHILD_URL = '/app/child.html'
@@ -88,6 +88,24 @@ async function main() {
   wireForgetDevice()
   wireEndSession()
   renderStreak()
+  showMascot("Let's go! 📚")
+}
+
+// ============================ Mascot (Tamagotchi effect) ===================
+let mascotTimer = null
+let mascotHitTenMin = false
+
+function showMascot(text, ms = 4000) {
+  const bubble = $('#mascot-bubble')
+  if (!bubble) return
+  clearTimeout(mascotTimer)
+  bubble.textContent = text
+  bubble.hidden = false
+  requestAnimationFrame(() => bubble.classList.add('is-visible'))
+  mascotTimer = setTimeout(() => {
+    bubble.classList.remove('is-visible')
+    setTimeout(() => { bubble.hidden = true }, 250)
+  }, ms)
 }
 
 /**
@@ -96,12 +114,14 @@ async function main() {
  * so this throws for them; treated the same as "no streak yet" (0 days =
  * nothing shown), which is the correct UI anyway.
  */
+let currentStreak = 0
 async function renderStreak() {
   const slot = $('#streak-slot')
   if (!slot) return
   try {
     const sessions = await getChildStreak(child.id)
-    slot.innerHTML = renderStreakBadge(computeStreak(sessions))
+    currentStreak = computeStreak(sessions)
+    slot.innerHTML = renderStreakBadge(currentStreak)
   } catch {
     slot.innerHTML = ''
   }
@@ -127,9 +147,42 @@ function wireEndSession() {
       }
     } catch { /* best effort */ }
     endPresence()
-    location.href = CHILD_URL
+    markStudiedToday(child.id)
     restore()
+    showCelebration()
   })
+}
+
+// ============================ Session celebration (Optimism & Identity) ====
+const IDENTITY_LINES = [
+  "That's what serious students do.",
+  'Another day, another step ahead.',
+  'You showed up today. That matters.',
+  "Future you is already proud of this.",
+  'Small sessions like this add up fast.',
+]
+
+function showCelebration() {
+  const overlay = $('#session-celebration')
+  if (!overlay) { location.href = CHILD_URL; return }
+
+  $('#celebration-avatar').textContent = initials(child.name)
+  $('#celebration-avatar').style.background = tintFor(child.name)
+  $('#celebration-name').textContent = `Nice work, ${child.name}!`
+  $('#celebration-streak').textContent = currentStreak > 0
+    ? `🔥 ${currentStreak}-day streak`
+    : 'First session logged — keep it going.'
+  $('#celebration-line').textContent = IDENTITY_LINES[Math.floor(Math.random() * IDENTITY_LINES.length)]
+
+  overlay.hidden = false
+
+  const finish = () => {
+    clearTimeout(timer)
+    overlay.removeEventListener('click', finish)
+    location.href = CHILD_URL
+  }
+  const timer = setTimeout(finish, 3000)
+  overlay.addEventListener('click', finish)
 }
 
 // ============================ Timer / session ==============================
@@ -161,6 +214,7 @@ function updateGoalBar() {
       goalReached = true
       els.goalBarFill.classList.add('is-complete')
       els.goalLabel.classList.add('is-complete')
+      showMascot('Goal crushed. 🔥')
     }
     els.goalLabel.textContent = '🎉 Daily goal reached!'
   } else {
@@ -173,6 +227,10 @@ function startTick() {
   tickInterval = setInterval(() => {
     seconds++
     updateDisplay()
+    if (!mascotHitTenMin && seconds >= 600) {
+      mascotHitTenMin = true
+      showMascot("You're on a roll.")
+    }
   }, 1000)
 }
 
@@ -226,6 +284,7 @@ function handleVisibilityChange() {
     if (pausedAtMs) totalPausedMs += Date.now() - pausedAtMs
     pausedAtMs = null
     startTick()
+    showMascot('Welcome back — let\'s finish strong.')
   }
 }
 

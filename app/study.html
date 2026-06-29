@@ -122,6 +122,19 @@
       </div>
     </main>
 
+    <!-- Mascot speech bubble: tiny, corner-anchored, contextual one-liners. -->
+    <div class="mascot-bubble" id="mascot-bubble" hidden></div>
+
+    <!-- Session-end celebration: shown briefly before redirecting to child.html. -->
+    <div class="overlay" id="session-celebration" hidden>
+      <div class="modal celebration-modal" id="celebration-modal">
+        <span class="avatar-lg" id="celebration-avatar" style="margin-inline:auto"></span>
+        <h2 id="celebration-name" style="margin-top:12px"></h2>
+        <p id="celebration-streak" class="muted"></p>
+        <p id="celebration-line" style="font-weight:700;margin-top:10px"></p>
+      </div>
+    </div>
+
     <script type="module" src="/src/app/study.js"></script>
   </body>
 </html>

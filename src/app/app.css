@@ -1126,6 +1126,64 @@ body.app {
 }
 .goal-ring__caption.is-complete { color: var(--goal-green); }
 
+/* Open-loop pulse while the goal isn't met yet (Zeigarnik effect). */
+.goal-ring--pulsing .goal-ring__fill { animation: goal-ring-pulse 1.6s ease-in-out infinite; }
+@keyframes goal-ring-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+/* One-shot flash the moment the goal is met. */
+.goal-ring__fill--flash { animation: goal-ring-flash 0.9s ease-out; }
+@keyframes goal-ring-flash {
+  0% { filter: drop-shadow(0 0 0 rgba(48, 209, 88, 0)); }
+  35% { filter: drop-shadow(0 0 10px rgba(48, 209, 88, 0.9)); }
+  100% { filter: drop-shadow(0 0 0 rgba(48, 209, 88, 0)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .goal-ring--pulsing .goal-ring__fill,
+  .goal-ring__fill--flash { animation: none; }
+}
+
+/* ---------- Streak-at-risk badge (child.html welcome-back) ---------- */
+.streak-risk-badge {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 5px 13px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.streak-risk-badge--warn { color: #b5530c; background: #fdf0e2; border: 1px solid #f5dcb8; }
+.streak-risk-badge--ok { color: #1f9d52; background: #e6f7ec; border: 1px solid #b9e8c9; }
+
+/* ---------- Mascot speech bubble (study.html) ---------- */
+.mascot-bubble {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  max-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-md);
+  padding: 8px 13px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  z-index: 40;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+.mascot-bubble.is-visible { opacity: 1; transform: translateY(0); }
+@media (max-width: 560px) {
+  .mascot-bubble { bottom: 12px; right: 12px; max-width: 170px; font-size: 0.78rem; }
+}
+
+/* ---------- Session celebration (study.html) ---------- */
+.celebration-modal { cursor: pointer; }
+
 /* ---------- Timer ---------- */
 .timer-pill {
   display: inline-flex;
