@@ -9,6 +9,9 @@ export default defineConfig({
         privacy: 'privacy-policy.html',
         blogIndex: 'blog/index.html',
         blogMyBrotherSaysHeStudied: 'blog/my-brother-says-he-studied.html',
+        blogStudyTimeMyth: 'blog/study-time-myth.html',
+        blogSignsFallingBehind: 'blog/signs-falling-behind.html',
+        blogLazyVsStruggling: 'blog/lazy-vs-struggling.html',
       }
     }
   }
