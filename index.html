@@ -95,6 +95,18 @@
               <span class="hero__trust-dot" aria-hidden="true"></span>
               Built by a student who lived the struggle. Join the waitlist — no cost, no commitment. Be first to celebrate when Classyx opens.
             </p>
+
+            <!--
+              Social-proof badge — intentionally hidden for now. The waitlist is
+              still small; a low number here would hurt credibility more than it
+              helps. Once the count is one you're comfortable showing publicly:
+              1) remove the `hidden` attribute below
+              2) replace "XX" with the current count (check the Supabase
+                 `waitlist` table — there's no live counter wired up by design)
+            -->
+            <p class="hero__social-proof" hidden>
+              <span aria-hidden="true">🎉</span> <strong>XX parents</strong> already on the waitlist
+            </p>
           </div>
 
           <!-- Product preview: student study view + a parent snapshot -->
@@ -540,7 +552,7 @@
         <input type="checkbox" id="modal-consent-checkbox" />
         <span>I agree to Classyx's <a href="/privacy-policy.html" target="_blank">Privacy Policy</a> and consent to receiving launch updates.</span>
       </label>
-      <div class="cf-turnstile" data-sitekey="0x4AAAAAADpSfVDp1j7V2mzn" data-theme="light"></div>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAADpSfVDp1j7V2mzn" data-theme="light" data-size="flexible"></div>
       <button type="submit" id="modal-submit" class="btn btn-primary" disabled>
         <span data-btn-label>Join the waitlist</span>
       </button>
