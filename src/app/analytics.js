@@ -3,15 +3,15 @@
 // and never re-queries. Reached from the dashboard's "Analytics →" link as
 // /app/analytics.html?child=CHILD_ID.
 //
-// quiz_results has no `subject` column (only flashcard_id/correct/answered_at),
-// so there is no real per-subject quiz accuracy to report — the "low accuracy"
-// recommendation below names the most-studied subject alongside the real
-// overall accuracy, rather than fabricating a per-subject number that isn't
-// actually in the data.
+// quiz_results has no `subject` column directly, but each result links to a
+// flashcard -> upload -> subject, so api.js embeds that chain to get a real
+// per-subject mastery %. A quiz result whose flashcard/upload was deleted (or
+// never had a subject) has no resolvable subject and is excluded from the
+// per-subject mastery map, falling back to "—" for that subject below.
 import { requireSession, signOut, getFamily } from './auth.js'
 import { getChildAnalytics, updateChildGoal, updateChildName, updateChildGrade, deleteChild, uploadChildAvatar, getChildAvatarUrl } from './api.js'
 import {
-  $, $$, escapeHtml, formatMinutes, formatDateTime, computeStreak, renderStreakBadge,
+  $, $$, escapeHtml, formatMinutes, computeStreak, renderStreakBadge,
   setStatus, loading, initials, tintFor,
 } from './ui.js'
 
@@ -19,7 +19,6 @@ $('[data-signout]')?.addEventListener('click', signOut)
 
 const nameEl = $('#child-name')
 const gradeEl = $('#child-grade')
-const streakSlot = $('#streak-badge-slot')
 const contentEl = $('#analytics-content')
 const tabs = document.querySelectorAll('[data-period]')
 
@@ -269,7 +268,6 @@ async function main() {
 
   nameEl.textContent = dataset.child.name
   gradeEl.textContent = dataset.child.grade ? `Grade ${dataset.child.grade}` : 'Learner'
-  streakSlot.innerHTML = renderStreakBadge(computeStreak(dataset.sessions))
 
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
@@ -303,6 +301,20 @@ function periodBounds(p) {
   return { start, end }
 }
 
+/** The immediately preceding period of the same length — powers "vs last week/month". */
+function previousPeriodBounds(p, start) {
+  if (p === 'month') {
+    const prevStart = new Date(start.getFullYear(), start.getMonth() - 1, 1)
+    const prevEnd = new Date(start.getFullYear(), start.getMonth(), 0)
+    return { start: prevStart, end: prevEnd }
+  }
+  const prevStart = new Date(start)
+  prevStart.setDate(prevStart.getDate() - 7)
+  const prevEnd = new Date(start)
+  prevEnd.setDate(prevEnd.getDate() - 1)
+  return { start: prevStart, end: prevEnd }
+}
+
 // --- Stats (pure functions over the already-fetched dataset) ----------------
 function computeStats({ sessions, quizzes }, start, end) {
   const periodSessions = sessions.filter((s) => {
@@ -330,7 +342,38 @@ function computeStats({ sessions, quizzes }, start, end) {
     .filter(([, minutes]) => minutes > 0)
     .sort((a, b) => b[1] - a[1])
 
-  return { totalMinutes, activeDays, flashcardsReviewed, accuracy, subjects, periodSessions }
+  return { totalMinutes, activeDays, flashcardsReviewed, accuracy, subjects, periodSessions, subjectAccuracy: computeSubjectAccuracy(periodQuizzes) }
+}
+
+/** subject -> mastery % (null if no quiz results resolve to that subject). */
+function computeSubjectAccuracy(quizzes) {
+  const bySubject = new Map()
+  for (const q of quizzes) {
+    const subject = q.flashcard?.upload?.subject
+    if (!subject) continue
+    if (!bySubject.has(subject)) bySubject.set(subject, { correct: 0, total: 0 })
+    const entry = bySubject.get(subject)
+    entry.total += 1
+    if (q.correct) entry.correct += 1
+  }
+  const result = new Map()
+  for (const [subject, { correct, total }] of bySubject) {
+    result.set(subject, total ? Math.round((correct / total) * 100) : null)
+  }
+  return result
+}
+
+/** Relative % change for "vs last week" deltas. null when there's no prior data to compare against. */
+function pctChange(current, previous) {
+  if (!previous) return current > 0 ? null : 0
+  return Math.round(((current - previous) / previous) * 100)
+}
+
+function renderDelta(pct, compareLabel) {
+  if (pct === null) return `<span class="stat-card__delta is-new">New this period</span>`
+  const sign = pct >= 0 ? '▲' : '▼'
+  const cls = pct >= 0 ? 'is-up' : 'is-down'
+  return `<span class="stat-card__delta ${cls}">${sign} ${Math.abs(pct)}% vs ${compareLabel}</span>`
 }
 
 /** Most recent session overall, not period-scoped — "last active" should be true regardless of which tab is open. */
@@ -456,59 +499,93 @@ function attachChartTooltip() {
   })
 }
 
-// --- Recommendations (generated from real data) -----------------------------
-function buildRecommendations({ stats, streak, sessions, periodLabel }) {
-  const recs = []
-  const topSubject = stats.subjects[0]?.[0]
+// --- Insights ("What [name] might need" — generated from real data) --------
+const INSIGHT_ICONS = {
+  practice: '📚',
+  inactive: '📅',
+  streak: '🔥',
+  goal: '⏱️',
+  steady: '🌱',
+}
 
-  if (stats.accuracy != null && stats.accuracy < 70) {
-    recs.push({
-      text: `Consider reviewing${topSubject ? ` ${topSubject}` : ''} flashcards — accuracy is ${stats.accuracy}%, below the 70% mark.`,
+function buildInsights({ name, stats, streak, sessions, periodLabel, goalMinutes, periodDays }) {
+  const insights = []
+
+  const lowSubject = [...stats.subjectAccuracy.entries()].find(([, pct]) => pct != null && pct < 75)
+  if (lowSubject) {
+    insights.push({
+      icon: INSIGHT_ICONS.practice,
+      headline: `Needs more practice in ${lowSubject[0]}`,
+      text: `Quiz accuracy in ${lowSubject[0]} is ${lowSubject[1]}% ${periodLabel} — a little extra review could help.`,
       priority: 1,
     })
   }
 
   const last = lastActive(sessions)
   const daysSince = last ? Math.floor((Date.now() - new Date(last).getTime()) / 86400000) : null
-  if (daysSince != null && daysSince >= 3) {
-    recs.push({ text: `No sessions in ${daysSince} days — try a short 10 minute review to keep things fresh.`, priority: 2 })
+  if (daysSince != null && daysSince >= 2) {
+    insights.push({
+      icon: INSIGHT_ICONS.inactive,
+      headline: `Hasn't studied in ${daysSince} days`,
+      text: `A short, low-pressure session can help ${name} get back into the rhythm.`,
+      priority: 2,
+    })
   }
 
-  if (stats.subjects.length >= 1) {
-    const totalSubjectMinutes = stats.subjects.reduce((sum, [, m]) => sum + m, 0)
-    const share = totalSubjectMinutes ? stats.subjects[0][1] / totalSubjectMinutes : 0
-    if (stats.subjects.length >= 2 && share >= 0.6) {
-      recs.push({ text: `You've focused mostly on ${topSubject} ${periodLabel} — don't forget other subjects.`, priority: 3 })
-    }
+  if (streak >= 3) {
+    insights.push({
+      icon: INSIGHT_ICONS.streak,
+      headline: `On a roll — ${streak} day streak!`,
+      text: `${name} has studied ${streak} days in a row. Keep the momentum going.`,
+      priority: 0,
+    })
   }
 
-  if (streak >= 7) {
-    recs.push({ text: `Great streak — ${streak} days! Keep it going tomorrow.`, priority: 0 })
+  const avgDaily = periodDays ? stats.totalMinutes / periodDays : 0
+  if (goalMinutes > 0 && avgDaily < goalMinutes * 0.9) {
+    insights.push({
+      icon: INSIGHT_ICONS.goal,
+      headline: `Averaging ${Math.round(avgDaily)} min/day vs ${goalMinutes} min goal`,
+      text: `A few more minutes a day would close the gap to ${name}'s daily goal.`,
+      priority: 3,
+    })
   }
 
-  if (!recs.length) {
-    recs.push({ text: "Nice, steady progress — keep up the consistent practice.", priority: 4 })
-  } else if (recs.length === 1) {
-    recs.push({ text: `${formatMinutes(stats.totalMinutes)} studied ${periodLabel} across ${stats.activeDays} active day${stats.activeDays === 1 ? '' : 's'} — solid effort.`, priority: 5 })
+  if (!insights.length) {
+    insights.push({
+      icon: INSIGHT_ICONS.steady,
+      headline: 'Steady, consistent progress',
+      text: `${name} is on track ${periodLabel} — keep up the routine.`,
+      priority: 4,
+    })
   }
 
-  return recs.sort((a, b) => a.priority - b.priority).slice(0, 3)
+  return insights.sort((a, b) => a.priority - b.priority).slice(0, 3)
 }
 
-const LIGHTBULB_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .9 1.7l.1.5h5.2l.1-.5c.1-.7.4-1.3.9-1.7A6 6 0 0 0 12 3Z"/></svg>`
-
-function renderRecommendations(recs) {
+function renderInsights(insights, name) {
   return `
-    <div class="card">
-      <h3 style="font-size:1rem;margin-bottom:0.75rem">Recommendations</h3>
-      <div class="recommend-list">
-        ${recs.map((r) => `
-          <div class="recommend-card card">
-            <span class="recommend-card__icon" aria-hidden="true">${LIGHTBULB_SVG}</span>
-            <p class="recommend-card__text">${escapeHtml(r.text)}</p>
+    <div class="card insights-card">
+      <h3 class="insights-card__title">What ${escapeHtml(name)} might need</h3>
+      <div class="insight-list">
+        ${insights.map((i) => `
+          <div class="insight-card">
+            <span class="insight-card__icon" aria-hidden="true">${i.icon}</span>
+            <div>
+              <p class="insight-card__headline">${escapeHtml(i.headline)}</p>
+              <p class="insight-card__text">${escapeHtml(i.text)}</p>
+            </div>
           </div>`).join('')}
       </div>
     </div>`
+}
+
+/** Fire-tier driven status line under the Focus streak stat. */
+function streakStatus(streak) {
+  if (streak <= 0) return 'Just getting started'
+  if (streak <= 3) return 'Keep it up!'
+  if (streak <= 6) return 'On track'
+  return 'Great work!'
 }
 
 // --- Render -------------------------------------------------------------------
@@ -516,21 +593,22 @@ function render() {
   if (chartTooltip) chartTooltip.hidden = true // the chart markup is about to be torn down and rebuilt
   const { start, end } = periodBounds(period)
   const stats = computeStats(dataset, start, end)
+  const { start: prevStart, end: prevEnd } = previousPeriodBounds(period, start)
+  const prevStats = computeStats(dataset, prevStart, prevEnd)
   const streak = computeStreak(dataset.sessions)
   const last = lastActive(dataset.sessions)
-  const maxSubjectMinutes = stats.subjects.length ? stats.subjects[0][1] : 0
   const periodLabel = period === 'week' ? 'this week' : 'this month'
+  const compareLabel = period === 'week' ? 'last week' : 'last month'
+  const periodDays = Math.round((end - start) / 86400000) + 1
+  const goalMinutes = dataset.child.daily_goal_minutes ?? 30
+  const name = dataset.child.name
 
-  const subjectRows = stats.subjects.length
-    ? stats.subjects.map(([subject, minutes]) => {
-        const pct = maxSubjectMinutes ? Math.round((minutes / maxSubjectMinutes) * 100) : 0
-        return `
-          <div class="subject-row">
-            <div class="subject-row__top"><span>${escapeHtml(subject)}</span><span>${formatMinutes(minutes)}</span></div>
-            <div class="bar"><span style="width:${pct}%"></span></div>
-          </div>`
-      }).join('')
-    : `<p class="muted">No subjects studied in this period yet.</p>`
+  const rangeLabel = `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+
+  const minutesDelta = renderDelta(pctChange(stats.totalMinutes, prevStats.totalMinutes), compareLabel)
+  const accuracyDelta = stats.accuracy == null || prevStats.accuracy == null
+    ? `<span class="stat-card__delta is-new">${prevStats.accuracy == null ? 'New this period' : '—'}</span>`
+    : renderDelta(stats.accuracy - prevStats.accuracy, compareLabel)
 
   // Subject filter is scoped to whichever subjects appear in this period.
   if (!stats.subjects.some(([s]) => s === subjectFilter)) subjectFilter = 'all'
@@ -543,50 +621,66 @@ function render() {
     ? renderChart(series, period)
     : `<div class="chart-empty">No study sessions ${periodLabel} yet.</div>`
 
-  const recs = buildRecommendations({ stats, streak, sessions: dataset.sessions, periodLabel })
+  const subjectRows = stats.subjects.length
+    ? stats.subjects.map(([subject]) => {
+        const mastery = stats.subjectAccuracy.get(subject)
+        const pct = mastery ?? 0
+        return `
+          <div class="subject-row">
+            <div class="subject-row__top"><span>${escapeHtml(subject)}</span><span>${mastery == null ? '—' : `${mastery}%`}</span></div>
+            <div class="bar mastery-bar"><span style="width:${pct}%"></span></div>
+          </div>`
+      }).join('')
+    : `<p class="muted">No subjects studied in this period yet.</p>`
+
+  const insights = buildInsights({ name, stats, streak, sessions: dataset.sessions, periodLabel, goalMinutes, periodDays })
 
   contentEl.innerHTML = `
-    <div class="analytics-top-row">
-      <div class="card">
+    <div class="analytics-week-head">
+      <h2>${escapeHtml(name)}’s ${period === 'week' ? 'week' : 'month'}</h2>
+      <span class="analytics-week-range">${rangeLabel}</span>
+    </div>
+
+    <div class="analytics-stats-row">
+      <article class="card stat-card">
+        <span class="stat-card__label">Study time</span>
+        <span class="stat-card__value">${formatMinutes(stats.totalMinutes)}</span>
+        ${minutesDelta}
+      </article>
+      <article class="card stat-card">
+        <span class="stat-card__label">Quiz accuracy</span>
+        <span class="stat-card__value">${stats.accuracy == null ? '—' : `${stats.accuracy}%`}</span>
+        ${accuracyDelta}
+      </article>
+      <article class="card stat-card">
+        <span class="stat-card__label">Focus streak</span>
+        <span class="stat-card__value">${streak > 0 ? renderStreakBadge(streak) : `<span class="stat-card__value-plain">0 days</span>`}</span>
+        <span class="stat-card__delta is-plain">${streakStatus(streak)}</span>
+      </article>
+    </div>
+
+    <div class="analytics-bottom-row">
+      <div class="card chart-card">
         <div class="chart-card__head">
-          <h3>Study time ${period === 'week' ? 'this week' : 'this month'}</h3>
-          ${stats.subjects.length > 1 ? `<select class="subject-filter" id="subject-filter">${filterOptions}</select>` : ''}
+          <h3>Daily study time</h3>
+          <div class="chart-card__head-right">
+            ${stats.subjects.length > 1 ? `<select class="subject-filter" id="subject-filter">${filterOptions}</select>` : ''}
+            <span class="chart-card__axis-label">MINUTES</span>
+          </div>
         </div>
         ${chartHtml}
       </div>
-      ${renderRecommendations(recs)}
+
+      <div class="card subjects-card">
+        <div class="chart-card__head">
+          <h3>Subject breakdown</h3>
+          <span class="chart-card__axis-label">MASTERY</span>
+        </div>
+        <div class="subject-list">${subjectRows}</div>
+      </div>
     </div>
 
-    <div class="analytics-grid">
-      <article class="card analytics-card">
-        <span class="analytics-card__label">Study time</span>
-        <span class="analytics-card__value">${formatMinutes(stats.totalMinutes)}</span>
-      </article>
-      <article class="card analytics-card">
-        <span class="analytics-card__label">Days active</span>
-        <span class="analytics-card__value">${stats.activeDays}</span>
-      </article>
-      <article class="card analytics-card">
-        <span class="analytics-card__label">Study streak</span>
-        <span class="analytics-card__value">${streak} ${streak === 1 ? 'day' : 'days'}</span>
-      </article>
-      <article class="card analytics-card">
-        <span class="analytics-card__label">Flashcards reviewed</span>
-        <span class="analytics-card__value">${stats.flashcardsReviewed}</span>
-      </article>
-      <article class="card analytics-card">
-        <span class="analytics-card__label">Quiz accuracy</span>
-        <span class="analytics-card__value">${stats.accuracy == null ? '—' : `${stats.accuracy}%`}</span>
-      </article>
-      <article class="card analytics-card">
-        <span class="analytics-card__label">Last active</span>
-        <span class="analytics-card__value" style="font-size:1.1rem">${escapeHtml(formatDateTime(last))}</span>
-      </article>
-      <article class="card analytics-card analytics-card--wide">
-        <span class="analytics-card__label">Subjects studied</span>
-        <div class="subject-list">${subjectRows}</div>
-      </article>
-    </div>`
+    ${renderInsights(insights, name)}`
 
   $('#subject-filter')?.addEventListener('change', (e) => {
     subjectFilter = e.target.value

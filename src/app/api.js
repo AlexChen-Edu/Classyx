@@ -403,9 +403,11 @@ export async function getChildAnalytics(childId) {
         .select('started_at, duration_minutes, subject')
         .eq('child_id', childId)
         .order('started_at', { ascending: true }),
+      // flashcard_id -> flashcards.upload_id -> uploads.subject: the only path to a
+      // real per-subject accuracy, since quiz_results itself has no subject column.
       supabase
         .from('quiz_results')
-        .select('correct, answered_at')
+        .select('correct, answered_at, flashcard:flashcards(upload:uploads(subject))')
         .eq('child_id', childId)
         .order('answered_at', { ascending: true }),
     ])

@@ -372,29 +372,83 @@ body.app {
 /* ---------- Analytics page (app/analytics.html) ---------- */
 /* Mobile-first: 1 column by default, 2 on wider screens. rem/% sizing only —
    no fixed pixel widths — so this also works unmodified in a WebView. */
-.analytics-grid {
+
+/* Child name/grade chip in the page head, replacing the old plain h1/p. */
+.child-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: var(--brand-tint);
+  color: var(--brand-ink);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.child-chip__sep { color: var(--brand); opacity: 0.6; }
+
+.analytics-week-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.analytics-week-head h2 {
+  font-size: clamp(1.3rem, 3vw, 1.6rem);
+  letter-spacing: -0.01em;
+}
+.analytics-week-range { color: var(--ink-3); font-size: 0.9rem; font-weight: 500; }
+
+.analytics-stats-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 @media (min-width: 44rem) {
-  .analytics-grid { grid-template-columns: 1fr 1fr; }
+  .analytics-stats-row { grid-template-columns: 1fr 1fr 1fr; }
 }
-.analytics-card { display: flex; flex-direction: column; gap: 0.25rem; }
-.analytics-card--wide { grid-column: 1 / -1; }
-.analytics-card__label {
+.stat-card { display: flex; flex-direction: column; gap: 0.4rem; }
+.stat-card__label {
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--ink-3);
 }
-.analytics-card__value {
+.stat-card__value {
   font-family: var(--font-display);
   font-weight: 600;
   font-size: clamp(1.5rem, 4vw, 1.9rem);
   color: var(--ink);
+  line-height: 1.1;
 }
-.analytics-card__sub {
-  font-size: 0.8rem;
+.stat-card__value-plain { font-family: var(--font-display); font-weight: 600; }
+.stat-card__delta {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.stat-card__delta.is-up { color: var(--success); }
+.stat-card__delta.is-down { color: var(--ink-3); }
+.stat-card__delta.is-new,
+.stat-card__delta.is-plain { color: var(--ink-3); font-weight: 500; }
+
+.analytics-bottom-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+@media (min-width: 56rem) {
+  .analytics-bottom-row { grid-template-columns: 3fr 2fr; align-items: start; }
+}
+
+.chart-card__head-right { display: flex; align-items: center; gap: 0.65rem; }
+.chart-card__axis-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--ink-3);
 }
 
@@ -413,6 +467,40 @@ body.app {
   color: var(--ink-2);
   margin-bottom: 0.4rem;
 }
+.mastery-bar span { background: linear-gradient(90deg, var(--brand) 0%, var(--accent) 100%); }
+
+.insights-card { margin-top: 0; }
+.insights-card__title { font-size: 1rem; margin-bottom: 0.9rem; }
+.insight-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.8rem;
+}
+@media (min-width: 44rem) {
+  .insight-list { grid-template-columns: repeat(3, 1fr); }
+}
+.insight-card {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface-2);
+}
+.insight-card__icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 0.6rem;
+  background: var(--accent-tint);
+  font-size: 1.1rem;
+}
+.insight-card__headline { font-size: 0.9rem; font-weight: 600; color: var(--ink); margin-bottom: 0.2rem; }
+.insight-card__text { font-size: 0.82rem; color: var(--ink-3); line-height: 1.4; }
 
 /* ---------- Streak badge (top of analytics page) ---------- */
 .streak-badge {
@@ -462,17 +550,7 @@ body.app {
   .streak-badge--gold { animation: none; }
 }
 
-/* ---------- Chart + recommendations row ---------- */
-.analytics-top-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-@media (min-width: 56rem) {
-  .analytics-top-row { grid-template-columns: 2fr 1fr; align-items: start; }
-}
-
+/* ---------- Chart card ---------- */
 .chart-card__head {
   display: flex;
   flex-wrap: wrap;
@@ -546,26 +624,6 @@ body.app {
   font-weight: 700;
 }
 
-.recommend-list { display: flex; flex-direction: column; gap: 0.7rem; }
-.recommend-card {
-  display: flex;
-  gap: 0.65rem;
-  align-items: flex-start;
-  padding: 0.85rem;
-}
-.recommend-card__icon {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.6rem;
-  background: var(--accent-tint);
-  color: var(--accent);
-}
-.recommend-card__icon svg { width: 1.05rem; height: 1.05rem; }
-.recommend-card__text { font-size: 0.88rem; color: var(--ink-2); line-height: 1.45; }
 
 .stat-mini-row {
   display: grid;

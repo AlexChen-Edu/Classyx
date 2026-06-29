@@ -31,19 +31,14 @@
         <a class="btn btn-ghost btn-sm" href="/app/dashboard.html" style="margin-bottom:18px">← Back to dashboard</a>
 
         <div class="page-head" id="child-header">
-          <div>
-            <h1 id="child-name">Loading…</h1>
-            <p id="child-grade" class="muted"></p>
+          <div class="seg" role="tablist" aria-label="Time period">
+            <button role="tab" aria-selected="true" data-period="week" type="button">This Week</button>
+            <button role="tab" aria-selected="false" data-period="month" type="button">This Month</button>
           </div>
           <div class="page-head__actions">
-            <div id="streak-badge-slot"></div>
+            <span class="child-chip"><span id="child-name">Loading…</span><span class="child-chip__sep">·</span><span id="child-grade"></span></span>
             <button class="icon-btn" id="settings-btn" type="button" aria-label="Child settings" title="Settings">⚙️</button>
           </div>
-        </div>
-
-        <div class="seg" role="tablist" aria-label="Time period" style="margin-bottom:22px">
-          <button role="tab" aria-selected="true" data-period="week" type="button">This Week</button>
-          <button role="tab" aria-selected="false" data-period="month" type="button">This Month</button>
         </div>
 
         <div id="analytics-content" aria-live="polite">
