@@ -13,7 +13,6 @@ async function main() {
   const session = await requireSession()
   if (!session) return
   const role = session.user.user_metadata?.role
-  console.log('session.user.user_metadata:', session.user.user_metadata)
   if (role && role !== 'parent' && role !== 'self') {
     location.replace('/app/child.html')
     return
@@ -101,14 +100,16 @@ function renderCard(c, isActive) {
   const tint = tintFor(c.name)
   const week = c.weekMinutes ? `${c.weekMinutes}m` : '0m'
   const acc = c.accuracy == null ? '—' : `${c.accuracy}%`
+  const neverStudied = !c.lastStudied // true the moment a child profile is created, until their first session lands
+
   return `
-      <article class="card child-card" data-child-id="${c.id}">
+      <article class="card child-card${neverStudied ? ' child-card--waiting' : ''}" data-child-id="${c.id}">
         <div class="child-card__top">
           <span class="avatar" style="background:${tint}">${escapeHtml(initials(c.name))}</span>
           <div class="child-card__identity">
             <div class="child-card__name-row">
               <span class="child-card__name">${escapeHtml(c.name)}</span>
-              <button class="btn btn-ghost btn-sm" data-show-code type="button">Show code</button>
+              <button class="btn ${neverStudied ? 'btn-primary' : 'btn-ghost'} btn-sm" data-show-code type="button">Show code</button>
             </div>
             <div class="child-card__grade">${c.grade ? 'Grade ' + escapeHtml(c.grade) : 'Learner'}</div>
           </div>
@@ -125,6 +126,15 @@ function renderCard(c, isActive) {
           <span class="presence__dot" aria-hidden="true"></span>
           <span>Active now</span>
         </div>
+
+        ${neverStudied ? `
+        <div class="waiting-banner">
+          <span class="waiting-banner__icon" aria-hidden="true">👋</span>
+          <div>
+            <p class="waiting-banner__title">Ready when ${escapeHtml(c.name)} is</p>
+            <p class="waiting-banner__text">Tap "Show code" above, then have ${escapeHtml(c.name)} enter it at the student sign-in screen to start their first session.</p>
+          </div>
+        </div>` : `
         <div class="stat-mini-row">
           <div class="stat-mini"><div class="stat-mini__label">This week</div><div class="stat-mini__value">${week}</div></div>
           <div class="stat-mini"><div class="stat-mini__label">Quiz accuracy</div><div class="stat-mini__value">${acc}</div></div>
@@ -133,7 +143,7 @@ function renderCard(c, isActive) {
 
         ${renderGoalRing(c.todayMinutes || 0, c.daily_goal_minutes || 30)}
 
-        <a class="child-card__analytics-link" href="/app/analytics.html?child=${c.id}">Analytics →</a>
+        <a class="child-card__analytics-link" href="/app/analytics.html?child=${c.id}">Analytics →</a>`}
       </article>`
 }
 
