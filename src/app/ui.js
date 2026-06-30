@@ -70,15 +70,6 @@ export function formatMinutes(totalMinutes) {
   return `${h}h ${rem}m`
 }
 
-/** ISO string -> "Jun 24, 3:45 PM"; null -> "Never". */
-export function formatDateTime(iso) {
-  if (!iso) return 'Never'
-  const d = new Date(iso)
-  const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
-  return `${date}, ${time}`
-}
-
 export function initials(name) {
   return String(name || '?')
     .trim()

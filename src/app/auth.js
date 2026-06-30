@@ -4,7 +4,7 @@
 
 import { supabase } from '../supabaseClient.js'
 
-export const LOGIN_URL = '/app/login.html'
+const LOGIN_URL = '/app/login.html'
 
 /** Redirect to login if there's no client or no session. Returns the session. */
 export async function requireSession() {

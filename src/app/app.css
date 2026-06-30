@@ -754,18 +754,7 @@ body.app {
   box-shadow: var(--shadow-sm);
 }
 
-/* ---------- Settings panel (analytics.html) — Claude/ChatGPT-style tabbed modal ---------- */
-/* .modal.settings-modal (two classes) deliberately outranks the plain
-   .modal / .modal h2 rules below in specificity, regardless of source
-   order, so this redesign's width/padding/text-align reliably win. */
-.modal.settings-modal {
-  position: relative;
-  max-width: 560px;
-  width: 100%;
-  text-align: left;
-  padding: 0;
-  overflow: hidden;
-}
+/* ---------- Settings page (app/settings.html) tab panel ---------- */
 .settings-layout {
   display: flex;
   min-height: 320px;
@@ -795,7 +784,7 @@ body.app {
 .settings-tab:hover { background: var(--line-2); color: var(--ink); }
 .settings-tab[aria-selected='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
 .settings-panel-body { flex: 1; padding: 28px 30px; }
-.settings-modal .settings-panel-title { font-size: 1.1rem; margin-bottom: 18px; }
+.settings-panel-title { font-size: 1.1rem; margin-bottom: 18px; }
 .settings-label { display: block; font-size: 0.88rem; font-weight: 600; color: var(--ink-2); margin-bottom: 7px; }
 .settings-goal-row { display: flex; gap: 8px; }
 .settings-goal-row .input { flex: 1; }
@@ -814,10 +803,6 @@ body.app {
 .btn-danger { background: #c0492f; color: #fff; }
 .btn-danger:hover { background: #a23c25; }
 
-/* Billing tab gets a bigger modal (wider AND taller) so its 3-up pricing
-   table has real room to breathe. */
-.modal.settings-modal.settings-modal--wide { max-width: 920px; }
-.settings-modal--wide .settings-layout { min-height: 540px; }
 .billing-plans {
   display: grid;
   grid-template-columns: 1fr;
@@ -879,24 +864,13 @@ body.app {
 }
 .account-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
-/* Settings modal on phones: near-fullscreen, sidebar becomes a horizontal
-   scrollable tab strip, plan cards stack, inputs/buttons go full width.
-   max-width must be 37.5rem (600px) to match the .billing-plans 3-column
-   breakpoint above (36rem) with no overlap gap where both could apply at
-   once — and this rule must stay BELOW that one in the file so it wins on
-   the sliver of overlap between 576px and 600px. */
+/* Settings page on phones: sidebar becomes a horizontal scrollable tab
+   strip, plan cards stack, inputs/buttons go full width. max-width must be
+   37.5rem (600px) to match the .billing-plans 3-column breakpoint above
+   (36rem) with no overlap gap where both could apply at once — and this
+   rule must stay BELOW that one in the file so it wins on the sliver of
+   overlap between 576px and 600px. */
 @media (max-width: 37.5rem) {
-  #settings-overlay { padding: 10px; }
-  .modal.settings-modal,
-  .modal.settings-modal.settings-modal--wide {
-    width: 95vw;
-    max-width: 95vw;
-    height: 90vh;
-    max-height: 90vh;
-    display: flex;
-    flex-direction: column;
-  }
-  .settings-modal--wide .settings-layout { min-height: 0; }
   .settings-layout {
     flex: 1;
     flex-direction: column;

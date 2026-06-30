@@ -11,7 +11,7 @@ const CHILD_COLS = 'id, name, grade, daily_goal_minutes, created_at'
 // --- Children ---------------------------------------------------------------
 
 /** Max child profiles per plan. Missing/unrecognized plan -> treated as free. */
-export const PLAN_CHILD_LIMITS = { free: 1, single_child: 1, family: 3 }
+const PLAN_CHILD_LIMITS = { free: 1, single_child: 1, family: 3 }
 
 export function childLimitFor(plan) {
   return PLAN_CHILD_LIMITS[plan] ?? PLAN_CHILD_LIMITS.free
@@ -351,35 +351,6 @@ export async function getActiveSessions() {
     .select('child_id, started_at, last_ping, paused_ms')
   if (error) throw error
   return data ?? []
-}
-
-/**
- * A single child's own active_sessions row — polled by study.js so its timer
- * reads the exact same data the parent dashboard reads, instead of keeping
- * an independent client-side clock that can drift out of sync. Via the
- * authenticated client (parent-picked profile path); owns_child(child_id)
- * is satisfied since this is always the caller's own child.
- */
-export async function getOwnActiveSession(childId) {
-  const { data, error } = await supabase
-    .from('active_sessions')
-    .select('started_at, paused_ms')
-    .eq('child_id', childId)
-    .maybeSingle()
-  if (error) throw error
-  return data
-}
-
-/** Same, via the anon client — the account-less child path. */
-export async function getOwnActiveSessionAnon(childId) {
-  if (!supabaseAnon) return null
-  const { data, error } = await supabaseAnon
-    .from('active_sessions')
-    .select('started_at, paused_ms')
-    .eq('child_id', childId)
-    .maybeSingle()
-  if (error) throw error
-  return data
 }
 
 /**
