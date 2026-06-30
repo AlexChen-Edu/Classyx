@@ -1,7 +1,7 @@
 // Study interface: upload -> AI generate -> flashcards / guide / self-test,
 // with a study timer that auto-saves to study_sessions.
 import { supabase } from '../supabaseClient.js'
-import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, clearRememberedDevice, markStudiedToday } from './auth.js'
+import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, clearRememberedDevice, clearChildSession, clearActiveChild, markStudiedToday } from './auth.js'
 import {
   uploadNote, generateContent, getFlashcards, getStudyGuide,
   recordQuizResult, startSession, touchSession,
@@ -267,7 +267,22 @@ async function startTimer() {
   document.addEventListener('visibilitychange', handleVisibilityChange)
 
   // Live presence for the parent dashboard's "Active now" indicator.
-  try { await startPresence(child.id) } catch { /* best effort */ }
+  try {
+    const presence = await startPresence(child.id)
+    if (presence?.childMissing) {
+      // This profile was deleted (most likely from a stale "remembered
+      // device" pointing at a child the parent has since removed) — bail
+      // out before wiring up more intervals/listeners for a session that
+      // can never be saved.
+      stopTick()
+      clearInterval(saveInterval)
+      clearRememberedDevice()
+      clearChildSession()
+      clearActiveChild()
+      location.replace(CHILD_URL)
+      return
+    }
+  } catch { /* best effort */ }
   startPresencePing()
   // pagehide fires both on real tab close and on normal in-app navigation
   // (e.g. clicking "Switch"), so this also ends presence on the latter.
@@ -385,11 +400,11 @@ async function generate() {
   const subject = els.subject.value || 'General'
   show('generating')
   try {
-    const upload = await uploadNote({ child, file: chosenFile, subject })
-    const result = await generateContent({ uploadId: upload.id, childId: child.id, subject })
+    const upload = await uploadNote({ child, file: chosenFile, subject, viaParentSession })
+    const result = await generateContent({ uploadId: upload.id, childId: child.id, subject, viaParentSession })
     const [cards, guide] = await Promise.all([
-      getFlashcards(upload.id),
-      getStudyGuide(upload.id),
+      getFlashcards(upload.id, viaParentSession),
+      getStudyGuide(upload.id, viaParentSession),
     ])
     if (!cards.length) throw new Error('No flashcards were generated. Try a clearer photo.')
     loadDeck(cards)
@@ -516,7 +531,7 @@ function renderTest() {
 async function mark(correct, card) {
   test.total += 1
   if (correct) test.correct += 1
-  try { await recordQuizResult({ childId: child.id, flashcardId: card.id, correct }) } catch { /* best effort */ }
+  try { await recordQuizResult({ childId: child.id, flashcardId: card.id, correct, viaParentSession }) } catch { /* best effort */ }
   test.i += 1
   test.revealed = false
   renderTest()

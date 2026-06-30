@@ -134,18 +134,31 @@ export async function refreshChildCode(childId) {
 
 // --- Uploads + AI generation ------------------------------------------------
 
-/** Upload a file to the private bucket and create an uploads row. */
-export async function uploadNote({ child, file, subject }) {
-  const family = await getFamily()
+/**
+ * Upload a file to the private bucket and create an uploads row.
+ *
+ * `viaParentSession` picks which client/identity this runs as: the
+ * authenticated parent (`supabase`, family resolved via getFamily()) or an
+ * account-less child (`supabaseAnon`, family resolved from child.family_id
+ * since there's no auth.uid() to look it up with). Always using `supabase`
+ * here would be wrong for the anon path even when it "happens to work" —
+ * if this browser also has a signed-in parent session (e.g. a parent
+ * previewing the child flow), `supabase` would silently upload under THAT
+ * parent's family instead of the active child's, and the uploads-table
+ * insert would then fail RLS because the child doesn't belong to that family.
+ */
+export async function uploadNote({ child, file, subject, viaParentSession }) {
+  const client = viaParentSession ? supabase : supabaseAnon
+  const familyId = viaParentSession ? (await getFamily()).id : child.family_id
   const ext = (file.name.split('.').pop() || 'dat').toLowerCase()
-  const path = `${family.id}/${child.id}/${crypto.randomUUID()}.${ext}`
+  const path = `${familyId}/${child.id}/${crypto.randomUUID()}.${ext}`
 
-  const { error: upErr } = await supabase.storage
+  const { error: upErr } = await client.storage
     .from('uploads')
     .upload(path, file, { contentType: file.type || undefined, upsert: false })
   if (upErr) throw upErr
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('uploads')
     .insert({ child_id: child.id, file_path: path, subject: subject || null })
     .select('id, subject')
@@ -157,9 +170,11 @@ export async function uploadNote({ child, file, subject }) {
 /**
  * Invoke the generate-content Edge Function. Surfaces a friendly message,
  * including the "AI not configured yet" (503) state before the key is set.
+ * Same client choice as uploadNote — see its comment.
  */
-export async function generateContent({ uploadId, childId, subject }) {
-  const { data, error } = await supabase.functions.invoke('generate-content', {
+export async function generateContent({ uploadId, childId, subject, viaParentSession }) {
+  const client = viaParentSession ? supabase : supabaseAnon
+  const { data, error } = await client.functions.invoke('generate-content', {
     body: { upload_id: uploadId, child_id: childId, subject },
   })
   if (error) {
@@ -177,8 +192,9 @@ export async function generateContent({ uploadId, childId, subject }) {
   return data
 }
 
-export async function getFlashcards(uploadId) {
-  const { data, error } = await supabase
+export async function getFlashcards(uploadId, viaParentSession) {
+  const client = viaParentSession ? supabase : supabaseAnon
+  const { data, error } = await client
     .from('flashcards')
     .select('id, question, answer')
     .eq('upload_id', uploadId)
@@ -187,8 +203,9 @@ export async function getFlashcards(uploadId) {
   return data ?? []
 }
 
-export async function getStudyGuide(uploadId) {
-  const { data, error } = await supabase
+export async function getStudyGuide(uploadId, viaParentSession) {
+  const client = viaParentSession ? supabase : supabaseAnon
+  const { data, error } = await client
     .from('study_guides')
     .select('id, content, subject')
     .eq('upload_id', uploadId)
@@ -204,8 +221,9 @@ export async function getStudyGuide(uploadId) {
 
 // --- Self-test --------------------------------------------------------------
 
-export async function recordQuizResult({ childId, flashcardId, correct }) {
-  const { error } = await supabase
+export async function recordQuizResult({ childId, flashcardId, correct, viaParentSession }) {
+  const client = viaParentSession ? supabase : supabaseAnon
+  const { error } = await client
     .from('quiz_results')
     .insert({ child_id: childId, flashcard_id: flashcardId, correct })
   if (error) throw error
@@ -291,9 +309,17 @@ export function saveChildSessionBeacon({ childId, subject, durationMinutes, dura
  * UPDATE policies simultaneously for the conflict branch, which fails here
  * even though each policy independently allows the plain operation — this
  * two-step approach avoids that interaction entirely (verified live).
+ *
+ * Returns `{ childMissing: true }` on a foreign-key violation (23503): the
+ * child_id no longer exists in `children` at all, which happens when a
+ * parent deletes a child profile while that child's browser still has a
+ * "remembered device" entry for it (children cascade-delete their
+ * active_sessions row, so the next visit's INSERT here has nothing to
+ * reference). The caller should treat this as "this profile is gone" rather
+ * than silently retrying forever.
  */
 export async function startPresence(childId) {
-  if (!supabaseAnon) return
+  if (!supabaseAnon) return {}
   const now = new Date().toISOString()
   const { error } = await supabaseAnon
     .from('active_sessions')
@@ -303,7 +329,10 @@ export async function startPresence(childId) {
       .from('active_sessions')
       .update({ started_at: now, last_ping: now, paused_ms: 0 })
       .eq('child_id', childId)
+  } else if (error?.code === '23503') {
+    return { childMissing: true }
   }
+  return {}
 }
 
 /** pausedMs is the session's cumulative paused time so far, in milliseconds. */

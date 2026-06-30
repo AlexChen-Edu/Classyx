@@ -131,23 +131,54 @@ Deno.serve(async (req: Request) => {
     return json({ error: "upload_id and child_id are required" }, 400);
   }
 
-  // --- Authn/authz: prove the caller owns this upload (RLS-scoped client) ---
+  // --- Authn/authz: prove the caller owns this upload -----------------------
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader) return json({ error: "Not authenticated" }, 401);
 
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
+  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  const { data: upload, error: ownErr } = await userClient
+  type UploadRow = { id: string; child_id: string; file_path: string; subject: string | null };
+  let upload: UploadRow | null = null;
+
+  // Path 1: an authenticated parent — the RLS-scoped client proves ownership
+  // directly (owns_child() on the uploads table).
+  const { data: ownedUpload, error: ownErr } = await userClient
     .from("uploads")
     .select("id, child_id, file_path, subject")
     .eq("id", upload_id)
     .maybeSingle();
-
   if (ownErr) return json({ error: "Authorization check failed" }, 500);
-  if (!upload || upload.child_id !== child_id) {
-    // Either it doesn't exist or RLS hid it because they don't own it.
+
+  if (ownedUpload && ownedUpload.child_id === child_id) {
+    upload = ownedUpload;
+  } else {
+    // Path 2: an account-less child has no auth.uid() for RLS to scope to
+    // (and intentionally no anon SELECT policy on uploads). Re-derive
+    // authorization the same way active_sessions/save_child_session already
+    // do: a live active_sessions row for child_id proves the caller just
+    // redeemed that child's code. Look the upload up with the service-role
+    // client and confirm it actually belongs to that child before trusting it.
+    const { data: liveSession } = await admin
+      .from("active_sessions")
+      .select("child_id")
+      .eq("child_id", child_id)
+      .maybeSingle();
+    if (liveSession) {
+      const { data: anonUpload } = await admin
+        .from("uploads")
+        .select("id, child_id, file_path, subject")
+        .eq("id", upload_id)
+        .maybeSingle();
+      if (anonUpload && anonUpload.child_id === child_id) upload = anonUpload;
+    }
+  }
+
+  if (!upload) {
+    // Either it doesn't exist, they don't own it, or (anon path) there's no
+    // live session proving they redeemed this child's code.
     return json({ error: "Upload not found" }, 404);
   }
 
@@ -166,8 +197,6 @@ Deno.serve(async (req: Request) => {
   }
 
   // From here on we use the service-role client (ownership already proven).
-  const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-
   try {
     // --- Download the note from private storage ----------------------------
     const { data: blob, error: dlErr } = await admin.storage
