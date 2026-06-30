@@ -182,7 +182,7 @@
           <p class="form-status" id="configure-goal-status" role="status" aria-live="polite"></p>
         </div>
 
-        <div class="settings-field-edit">
+        <div class="settings-field-edit" id="configure-code-field">
           <span class="settings-label">Access code</span>
           <button class="btn btn-ghost btn-sm" id="configure-show-code" type="button">Show code</button>
           <div class="code-reveal-inline hidden" id="configure-code-area">
@@ -195,11 +195,13 @@
           <p class="form-status" id="configure-code-status" role="status" aria-live="polite"></p>
         </div>
 
-        <div class="divider"></div>
+        <div id="configure-remove-section">
+          <div class="divider"></div>
 
-        <p class="muted" style="margin-bottom:14px">Removing a profile permanently deletes their data. This can't be undone.</p>
-        <button class="btn btn-danger btn-block" id="configure-remove-btn" type="button">Remove child</button>
-        <p class="form-status" id="configure-remove-status" role="status" aria-live="polite"></p>
+          <p class="muted" style="margin-bottom:14px">Removing a profile permanently deletes their data. This can't be undone.</p>
+          <button class="btn btn-danger btn-block" id="configure-remove-btn" type="button">Remove child</button>
+          <p class="form-status" id="configure-remove-status" role="status" aria-live="polite"></p>
+        </div>
       </div>
     </div>
 

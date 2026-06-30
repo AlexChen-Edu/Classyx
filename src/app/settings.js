@@ -19,6 +19,7 @@ const childrenListEl = $('#children-list')
 let children = []
 let family = null
 let activeChild = null // the child currently open in the Configure modal
+let isSelf = false // role === 'self': Children tab is scoped to just their own profile
 
 settingsTabs.forEach((tab) => tab.addEventListener('click', () => switchTab(tab.dataset.settingsTab)))
 
@@ -35,6 +36,11 @@ async function main() {
   if (role && role !== 'parent' && role !== 'self') {
     location.replace('/app/child.html')
     return
+  }
+  isSelf = role === 'self'
+  if (isSelf) {
+    TAB_TITLES.children = 'Profile'
+    $('[data-settings-tab="children"]').textContent = 'Profile'
   }
 
   try {
@@ -117,6 +123,8 @@ const configureRefreshCodeBtn = $('#configure-refresh-code')
 const configureCodeStatus = $('#configure-code-status')
 const configureRemoveBtn = $('#configure-remove-btn')
 const configureRemoveStatus = $('#configure-remove-status')
+const configureCodeField = $('#configure-code-field')
+const configureRemoveSection = $('#configure-remove-section')
 
 configureClose.addEventListener('click', closeConfigure)
 configureOverlay.addEventListener('click', (e) => { if (e.target === configureOverlay) closeConfigure() })
@@ -131,7 +139,7 @@ configureRemoveBtn.addEventListener('click', removeChild)
 function openConfigure(childId) {
   activeChild = children.find((c) => c.id === childId)
   if (!activeChild) return
-  configureTitle.textContent = `Configure ${activeChild.name}`
+  configureTitle.textContent = isSelf ? 'Edit your profile' : `Configure ${activeChild.name}`
   configureNameInput.value = activeChild.name
   configureGradeInput.value = activeChild.grade || ''
   const goal = activeChild.daily_goal_minutes ?? 30
@@ -140,6 +148,11 @@ function openConfigure(childId) {
   configureRemoveBtn.textContent = `Remove ${activeChild.name}`
   configureCodeArea.classList.add('hidden')
   configureShowCodeBtn.textContent = 'Show code'
+  // Self learners have no separate device to redeem a code on (their own
+  // parent-authenticated session IS the access), and can't remove themselves
+  // — that's what account deactivation is for — so both are parent-only UI.
+  configureCodeField.classList.toggle('hidden', isSelf)
+  configureRemoveSection.classList.toggle('hidden', isSelf)
   ;[configureAvatarStatus, configureNameStatus, configureGradeStatus, configureGoalStatus, configureCodeStatus, configureRemoveStatus]
     .forEach((el) => setStatus(el, ''))
   renderConfigureAvatar()

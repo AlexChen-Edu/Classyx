@@ -20,12 +20,17 @@ let plan = 'free'
 
 // Redirect to login if there's no session, or to child.html if the signed-in
 // user isn't a parent (no top-level await — keeps the production build
-// target happy).
+// target happy). Self learners are single-profile by design (their own
+// account IS the child), so they're bounced to their dashboard instead.
 ;(async () => {
   const session = await requireSession()
   if (!session) return
   const role = session.user.user_metadata?.role
-  if (role && role !== 'parent' && role !== 'self') {
+  if (role === 'self') {
+    location.replace('/app/dashboard.html')
+    return
+  }
+  if (role && role !== 'parent') {
     location.replace('/app/child.html')
     return
   }

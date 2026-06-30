@@ -8,7 +8,6 @@ import { requireSession, getFamily } from './auth.js'
 import { $, $$, setStatus, loading } from './ui.js'
 
 const DASHBOARD = '/app/dashboard.html'
-const STUDY = '/app/study.html'
 
 const roleCards = $$('.role-card')
 const statusEl = $('#select-role-status')
@@ -18,7 +17,7 @@ async function main() {
   if (!session) return
   const role = session.user.user_metadata?.role
   if (role) {
-    location.replace(role === 'self' ? STUDY : DASHBOARD)
+    location.replace(DASHBOARD)
     return
   }
   roleCards.forEach((card) => card.addEventListener('click', () => chooseRole(card)))
@@ -47,7 +46,7 @@ async function chooseRole(card) {
         throw famErr
       }
     }
-    location.replace(role === 'self' ? STUDY : DASHBOARD)
+    location.replace(DASHBOARD)
   } catch (err) {
     setStatus(statusEl, err?.message || 'Could not save your choice. Try again.', 'error')
     restore()
