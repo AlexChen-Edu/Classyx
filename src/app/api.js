@@ -224,10 +224,12 @@ export async function startSession({ childId, subject }) {
 
 /** Update an open session's end time + duration. Best-effort (errors ignored). */
 export async function touchSession({ sessionId, startedAtMs, pausedMs = 0 }) {
-  const minutes = Math.max(0, Math.round((Date.now() - startedAtMs - pausedMs) / 60000))
+  const elapsedMs = Math.max(0, Date.now() - startedAtMs - pausedMs)
+  const minutes = Math.round(elapsedMs / 60000)
+  const seconds = Math.round(elapsedMs / 1000)
   await supabase
     .from('study_sessions')
-    .update({ ended_at: new Date().toISOString(), duration_minutes: minutes })
+    .update({ ended_at: new Date().toISOString(), duration_minutes: minutes, duration_seconds: seconds })
     .eq('id', sessionId)
 }
 
@@ -237,12 +239,13 @@ export async function touchSession({ sessionId, startedAtMs, pausedMs = 0 }) {
  * DEFINER RPC instead. Requires a live active_sessions row for childId —
  * call this before endPresence()/endPresenceBeacon() tears that row down.
  */
-export async function saveChildSession({ childId, subject, durationMinutes }) {
+export async function saveChildSession({ childId, subject, durationMinutes, durationSeconds }) {
   if (!supabaseAnon) return
   const { error } = await supabaseAnon.rpc('save_child_session', {
     p_child_id: childId,
     p_subject: subject || null,
     p_duration_minutes: durationMinutes,
+    p_duration_seconds: durationSeconds,
   })
   if (error) throw error
 }
@@ -252,7 +255,7 @@ export async function saveChildSession({ childId, subject, durationMinutes }) {
  * endPresenceBeacon — a normal awaited call can't be trusted to complete
  * before the page is torn down.
  */
-export function saveChildSessionBeacon({ childId, subject, durationMinutes }) {
+export function saveChildSessionBeacon({ childId, subject, durationMinutes, durationSeconds }) {
   try {
     const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/save_child_session`
     fetch(url, {
@@ -262,7 +265,12 @@ export function saveChildSessionBeacon({ childId, subject, durationMinutes }) {
         'Content-Type': 'application/json',
         apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ p_child_id: childId, p_subject: subject || null, p_duration_minutes: durationMinutes }),
+      body: JSON.stringify({
+        p_child_id: childId,
+        p_subject: subject || null,
+        p_duration_minutes: durationMinutes,
+        p_duration_seconds: durationSeconds,
+      }),
     }).catch(() => {})
   } catch { /* best effort */ }
 }
@@ -432,7 +440,7 @@ export async function deactivateAccount() {
 export async function getDashboardData() {
   const children = await listChildren()
   const [{ data: sessions }, { data: quizzes }] = await Promise.all([
-    supabase.from('study_sessions').select('child_id, started_at, duration_minutes'),
+    supabase.from('study_sessions').select('child_id, started_at, duration_minutes, duration_seconds'),
     supabase.from('quiz_results').select('child_id, correct, answered_at'),
   ])
 
@@ -451,9 +459,13 @@ export async function getDashboardData() {
       .reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
 
     // Powers the dashboard's daily-goal progress ring (today_minutes / daily_goal_minutes).
+    // Uses duration_seconds (exact, unfloored) rather than duration_minutes, which is
+    // floored to a minimum of 1 minute for short sessions and would overcount here —
+    // see save_child_session migration. Falls back to duration_minutes*60 for older
+    // rows saved before duration_seconds existed.
     const todayMinutes = cSessions
       .filter((s) => new Date(s.started_at) >= todayStart)
-      .reduce((sum, s) => sum + (s.duration_minutes || 0), 0)
+      .reduce((sum, s) => sum + (s.duration_seconds ?? (s.duration_minutes || 0) * 60), 0) / 60
 
     const lastStudied = cSessions
       .map((s) => s.started_at)

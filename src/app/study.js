@@ -308,18 +308,33 @@ function elapsedMinutes() {
   return Math.max(1, Math.round((Date.now() - startedAtMs - totalPausedMs) / 60000))
 }
 
+/** Exact elapsed seconds, unrounded/unfloored — for the dashboard's daily-goal ring. */
+function elapsedSeconds() {
+  return Math.max(0, Math.round((Date.now() - startedAtMs - totalPausedMs) / 1000))
+}
+
 /** Fire-and-forget; for pagehide/beforeunload, where an awaited call can't be trusted to finish. */
 function saveAnonSessionBeacon() {
   if (anonSessionSaved || viaParentSession) return
   anonSessionSaved = true
-  saveChildSessionBeacon({ childId: child.id, subject: els.subject.value || null, durationMinutes: elapsedMinutes() })
+  saveChildSessionBeacon({
+    childId: child.id,
+    subject: els.subject.value || null,
+    durationMinutes: elapsedMinutes(),
+    durationSeconds: elapsedSeconds(),
+  })
 }
 
 /** Awaited variant for the "End session" button, where we can show a loading state and wait. */
 async function saveAnonSessionAwaited() {
   if (anonSessionSaved || viaParentSession) return
   anonSessionSaved = true
-  await saveChildSession({ childId: child.id, subject: els.subject.value || null, durationMinutes: elapsedMinutes() })
+  await saveChildSession({
+    childId: child.id,
+    subject: els.subject.value || null,
+    durationMinutes: elapsedMinutes(),
+    durationSeconds: elapsedSeconds(),
+  })
 }
 
 /**
