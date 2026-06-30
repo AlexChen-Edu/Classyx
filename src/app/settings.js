@@ -6,7 +6,7 @@ import {
   listChildren, updateChildGoal, updateChildName, updateChildGrade, deleteChild,
   uploadChildAvatar, getChildAvatarUrl, refreshChildCode, deactivateAccount,
 } from './api.js'
-import { $, $$, escapeHtml, setStatus, loading, initials, tintFor } from './ui.js'
+import { $, $$, escapeHtml, setStatus, loading, initials, tintFor, friendlyMessage } from './ui.js'
 
 const TAB_TITLES = { children: 'Children', billing: 'Billing', account: 'Account', legal: 'Legal' }
 const PLAN_TO_BILLING_KEY = { student: 'single_child', family: 'family' }
@@ -50,7 +50,7 @@ async function main() {
       await signOut()
       return
     }
-    childrenListEl.innerHTML = `<div class="banner banner--error">Couldn't load settings: ${escapeHtml(err.message)}</div>`
+    childrenListEl.innerHTML = `<div class="banner banner--error">Couldn't load settings. ${escapeHtml(friendlyMessage(err, 'Please try again.'))}</div>`
     return
   }
 
@@ -64,7 +64,7 @@ async function loadChildren() {
   try {
     children = await listChildren()
   } catch (err) {
-    childrenListEl.innerHTML = `<div class="banner banner--error">${escapeHtml(err.message || 'Could not load children.')}</div>`
+    childrenListEl.innerHTML = `<div class="banner banner--error">${escapeHtml(friendlyMessage(err, 'Could not load children.'))}</div>`
     return
   }
   renderChildren()
@@ -206,7 +206,7 @@ async function uploadAvatar() {
     renderChildren()
     setStatus(configureAvatarStatus, 'Updated!', 'success')
   } catch (err) {
-    setStatus(configureAvatarStatus, err.message || 'Could not upload that photo.', 'error')
+    setStatus(configureAvatarStatus, friendlyMessage(err, 'Could not upload that photo.'), 'error')
   } finally {
     configureAvatarInput.value = ''
   }
@@ -230,7 +230,7 @@ async function saveName() {
     renderChildren()
   } catch (err) {
     restore()
-    setStatus(configureNameStatus, err.message || 'Could not save. Try again.', 'error')
+    setStatus(configureNameStatus, friendlyMessage(err, 'Could not save. Try again.'), 'error')
   }
 }
 
@@ -246,7 +246,7 @@ async function saveGrade() {
     renderChildren()
   } catch (err) {
     restore()
-    setStatus(configureGradeStatus, err.message || 'Could not save. Try again.', 'error')
+    setStatus(configureGradeStatus, friendlyMessage(err, 'Could not save. Try again.'), 'error')
   }
 }
 
@@ -266,7 +266,7 @@ async function saveGoal() {
     setStatus(configureGoalStatus, 'Saved!', 'success')
   } catch (err) {
     restore()
-    setStatus(configureGoalStatus, err.message || 'Could not save. Try again.', 'error')
+    setStatus(configureGoalStatus, friendlyMessage(err, 'Could not save. Try again.'), 'error')
   }
 }
 
@@ -287,7 +287,7 @@ async function toggleCode() {
     configureShowCodeBtn.textContent = 'Hide'
   } catch (err) {
     restore()
-    setStatus(configureCodeStatus, err.message || 'Could not generate a code. Try again.', 'error')
+    setStatus(configureCodeStatus, friendlyMessage(err, 'Could not generate a code. Try again.'), 'error')
   }
 }
 
@@ -298,7 +298,7 @@ async function refreshCode() {
     const code = await refreshChildCode(activeChild.id)
     configureCodePill.textContent = code
   } catch (err) {
-    setStatus(configureCodeStatus, err.message || 'Could not generate a code. Try again.', 'error')
+    setStatus(configureCodeStatus, friendlyMessage(err, 'Could not generate a code. Try again.'), 'error')
   } finally {
     configureRefreshCodeBtn.disabled = false
   }
@@ -315,7 +315,7 @@ async function removeChild() {
     await loadChildren()
   } catch (err) {
     configureRemoveBtn.disabled = false
-    setStatus(configureRemoveStatus, err.message || 'Could not remove this profile. Try again.', 'error')
+    setStatus(configureRemoveStatus, friendlyMessage(err, 'Could not remove this profile. Try again.'), 'error')
   }
 }
 
@@ -354,7 +354,7 @@ deactivateConfirmBtn.addEventListener('click', async () => {
   } catch (err) {
     restore()
     deactivateOverlay.hidden = true
-    setStatus(deactivateStatus, err.message || 'Could not deactivate. Try again.', 'error')
+    setStatus(deactivateStatus, friendlyMessage(err, 'Could not deactivate. Try again.'), 'error')
   }
 })
 

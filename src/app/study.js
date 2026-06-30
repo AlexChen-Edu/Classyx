@@ -8,7 +8,7 @@ import {
   startPresence, pingPresence, endPresenceBeacon, getChildStreak,
   saveChildSession, saveChildSessionBeacon,
 } from './api.js'
-import { $, $$, setStatus, loading, escapeHtml, computeStreak, renderStreakBadge, initials, tintFor } from './ui.js'
+import { $, $$, setStatus, loading, escapeHtml, computeStreak, renderStreakBadge, initials, tintFor, friendlyMessage } from './ui.js'
 
 const MAX_BYTES = 10 * 1024 * 1024
 const CHILD_URL = '/app/child.html'
@@ -402,7 +402,7 @@ async function generate() {
       setStatus(els.status, '', '')
       banner(`<div class="banner banner--info">${escapeHtml(err.message)}</div>`)
     } else {
-      setStatus(els.status, err.message || 'Generation failed. Please try again.', 'error')
+      setStatus(els.status, friendlyMessage(err, 'Generation failed. Please try again.'), 'error')
     }
   }
 }

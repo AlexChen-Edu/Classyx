@@ -3,7 +3,7 @@
 // user_metadata before continuing to the dashboard. Never traps the user —
 // the skip/close links default to the free plan.
 import { supabase } from '../supabaseClient.js'
-import { $, $$, setStatus, loading } from './ui.js'
+import { $, $$, setStatus, loading, friendlyMessage } from './ui.js'
 
 const DASHBOARD = '/app/dashboard.html'
 const SCREENS = ['1', '2', '3', '4', 'recommend']
@@ -104,7 +104,7 @@ async function completeOnboarding(plan, btn) {
     if (error) throw error
     location.replace(DASHBOARD)
   } catch (err) {
-    setStatus(statusEl, err?.message || 'Could not save your plan. Try again.', 'error')
+    setStatus(statusEl, friendlyMessage(err, 'Could not save your plan. Try again.'), 'error')
     restore()
   }
 }

@@ -18,6 +18,21 @@ export function setStatus(el, message, state = '') {
   else el.removeAttribute('data-state')
 }
 
+/**
+ * Turns an error into UI-safe text: app-level errors we threw ourselves
+ * (e.g. "Invalid or expired code") are already written for a parent/student
+ * to read, so they pass through; anything that looks like a raw Postgres/
+ * PostgREST/network error (constraint names, error codes, stack-shaped text)
+ * is swapped for the given fallback instead of leaking internals.
+ */
+const TECHNICAL_ERROR_RE = /violates|constraint|permission denied|JWT|PGRST|row-level security|relation "|column "|fetch|network|22023|42501|23505|\[object|undefined|null$/i
+
+export function friendlyMessage(err, fallback) {
+  const m = (err?.message || '').trim()
+  if (!m || TECHNICAL_ERROR_RE.test(m)) return fallback
+  return m
+}
+
 /** Toggle a button into a loading state and back. Returns a restore fn. */
 export function loading(btn, label = 'Working…') {
   if (!btn) return () => {}

@@ -2,7 +2,7 @@
 // automatically and shown once, right after creation.
 import { requireSession, signOut } from './auth.js'
 import { createChild, setChildPin, generateChildCode, listChildren, childLimitFor } from './api.js'
-import { $, setStatus, loading } from './ui.js'
+import { $, setStatus, loading, friendlyMessage } from './ui.js'
 
 $('[data-signout]')?.addEventListener('click', signOut)
 
@@ -61,7 +61,7 @@ form.addEventListener('submit', async (e) => {
     formCard.classList.add('hidden')
     codeCard.classList.remove('hidden')
   } catch (err) {
-    setStatus(statusEl, err.message || 'Could not create the profile.', 'error')
+    setStatus(statusEl, friendlyMessage(err, 'Could not create the profile.'), 'error')
     restore()
   }
 })

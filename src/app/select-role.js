@@ -5,7 +5,7 @@
 // their own account, so that choice only exists in the email-signup flow.
 import { supabase } from '../supabaseClient.js'
 import { requireSession, getFamily } from './auth.js'
-import { $, $$, setStatus, loading } from './ui.js'
+import { $, $$, setStatus, loading, friendlyMessage } from './ui.js'
 
 const DASHBOARD = '/app/dashboard.html'
 
@@ -48,7 +48,7 @@ async function chooseRole(card) {
     }
     location.replace(DASHBOARD)
   } catch (err) {
-    setStatus(statusEl, err?.message || 'Could not save your choice. Try again.', 'error')
+    setStatus(statusEl, friendlyMessage(err, 'Could not save your choice. Try again.'), 'error')
     restore()
     roleCards.forEach((c) => (c.disabled = false))
     card.classList.remove('is-selected')

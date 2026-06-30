@@ -2,7 +2,7 @@
 // recovery token in the URL and establishes a session automatically — if
 // that didn't happen (expired/missing link), there's no session to update.
 import { supabase } from '../supabaseClient.js'
-import { $, setStatus, loading } from './ui.js'
+import { $, setStatus, loading, friendlyMessage } from './ui.js'
 
 const LOGIN = '/app/login.html'
 const MIN_SCORE = 3 // same bar as signup
@@ -104,7 +104,7 @@ form.addEventListener('submit', async (e) => {
     setStatus(statusEl, 'Password updated. Redirecting to sign in…', 'success')
     setTimeout(() => location.replace(LOGIN), 1500)
   } catch (err) {
-    setStatus(statusEl, err.message || 'Could not update your password. The link may have expired.', 'error')
+    setStatus(statusEl, friendlyMessage(err, 'Could not update your password. The link may have expired.'), 'error')
     restore()
   }
 })

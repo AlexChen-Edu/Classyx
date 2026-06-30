@@ -11,7 +11,7 @@ import {
   getStudyRecency,
 } from './auth.js'
 import { listChildren, verifyChildPin, setChildPin, generateChildCode } from './api.js'
-import { $, $$, setStatus, escapeHtml, initials, tintFor } from './ui.js'
+import { $, $$, setStatus, escapeHtml, initials, tintFor, friendlyMessage } from './ui.js'
 
 const STUDY = '/app/study.html'
 const LOGIN = '/app/login.html'
@@ -73,7 +73,7 @@ async function showCodeGate() {
     const children = await listChildren()
     renderProfiles(children)
   } catch (err) {
-    profilesEl.innerHTML = `<div class="banner banner--error">${escapeHtml(err.message)}</div>`
+    profilesEl.innerHTML = `<div class="banner banner--error">${escapeHtml(friendlyMessage(err, 'Could not load profiles. Try again.'))}</div>`
   }
 }
 
@@ -272,7 +272,7 @@ async function submitPin() {
       pinBoxes[0].focus()
     }
   } catch (err) {
-    setStatus(pinStatus, err.message || 'Could not verify code.', 'error')
+    setStatus(pinStatus, friendlyMessage(err, 'Could not verify code.'), 'error')
   }
 }
 

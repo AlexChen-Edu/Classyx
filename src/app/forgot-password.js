@@ -1,7 +1,7 @@
 // Sends a password reset email. The link in that email lands on
 // reset-password.html, which is where the actual password update happens.
 import { supabase } from '../supabaseClient.js'
-import { $, setStatus, loading } from './ui.js'
+import { $, setStatus, loading, friendlyMessage } from './ui.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -32,7 +32,7 @@ form.addEventListener('submit', async (e) => {
     setStatus(statusEl, 'Check your email for a password reset link.', 'success')
     form.querySelectorAll('input, button').forEach((el) => (el.disabled = true))
   } catch (err) {
-    setStatus(statusEl, err.message || 'Could not send the reset link. Try again.', 'error')
+    setStatus(statusEl, friendlyMessage(err, 'Could not send the reset link. Try again.'), 'error')
     restore()
   }
 })

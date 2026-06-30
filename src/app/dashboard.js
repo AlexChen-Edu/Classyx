@@ -2,7 +2,7 @@
 // and a live "Active now" presence indicator polled from active_sessions.
 import { requireSession, getFamily, signOut, setActiveChild, getSelfChild } from './auth.js'
 import { getDashboardData, getActiveSessions } from './api.js'
-import { $, escapeHtml, initials, tintFor, relativeDay, renderStreakBadge } from './ui.js'
+import { $, escapeHtml, initials, tintFor, relativeDay, renderStreakBadge, friendlyMessage } from './ui.js'
 
 const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
 
@@ -38,7 +38,7 @@ async function main() {
       await signOut()
       return
     }
-    content.innerHTML = `<div class="banner banner--error">Couldn't load your dashboard: ${escapeHtml(err.message)}</div>`
+    content.innerHTML = `<div class="banner banner--error">Couldn't load your dashboard. ${escapeHtml(friendlyMessage(err, 'Please try again.'))}</div>`
   }
 }
 

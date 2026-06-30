@@ -11,7 +11,7 @@
 import { requireSession, signOut } from './auth.js'
 import { getChildAnalytics } from './api.js'
 import {
-  $, escapeHtml, formatMinutes, computeStreak, renderStreakBadge,
+  $, escapeHtml, formatMinutes, computeStreak, renderStreakBadge, friendlyMessage,
 } from './ui.js'
 
 $('[data-signout]')?.addEventListener('click', signOut)
@@ -43,7 +43,7 @@ async function main() {
   try {
     dataset = await getChildAnalytics(childId)
   } catch (err) {
-    showError(err.message || 'Could not load analytics for this child.')
+    showError(friendlyMessage(err, 'Could not load analytics for this child.'))
     return
   }
 
