@@ -146,8 +146,13 @@ function accuracyHue(pct) {
   return stops.at(-1)[1]
 }
 
+/**
+ * Lightness 44% reads fine on a colored chip but fails WCAG AA (as low as
+ * 1.9:1) as plain text on a white card — especially in the yellow/green
+ * part of the hue range. 26% holds >=4.5:1 across the whole hue sweep.
+ */
 function accuracyColor(pct) {
-  return `hsl(${accuracyHue(pct).toFixed(0)}, 72%, 44%)`
+  return `hsl(${accuracyHue(pct).toFixed(0)}, 72%, 26%)`
 }
 
 function accuracyLabel(pct) {

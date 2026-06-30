@@ -35,10 +35,13 @@ $('#q1-next').addEventListener('click', () => {
 
 // --- Q2: challenges (multi-select) --------------------------------------
 $$('#challenge-chips .chip-option').forEach((chip) => {
+  chip.setAttribute('aria-pressed', 'false')
   chip.addEventListener('click', () => {
     const value = chip.dataset.value
     chip.classList.toggle('is-selected')
-    if (chip.classList.contains('is-selected')) {
+    const selected = chip.classList.contains('is-selected')
+    chip.setAttribute('aria-pressed', String(selected))
+    if (selected) {
       answers.challenges.push(value)
     } else {
       answers.challenges = answers.challenges.filter((v) => v !== value)
@@ -50,9 +53,13 @@ $('#q2-next').addEventListener('click', () => showScreen(2))
 
 // --- Q3: number of kids (single select) ---------------------------------
 $$('#kids-options .select-option').forEach((opt) => {
+  opt.setAttribute('aria-pressed', 'false')
   opt.addEventListener('click', () => {
     answers.kids = opt.dataset.value
-    $$('#kids-options .select-option').forEach((o) => o.classList.toggle('is-selected', o === opt))
+    $$('#kids-options .select-option').forEach((o) => {
+      o.classList.toggle('is-selected', o === opt)
+      o.setAttribute('aria-pressed', String(o === opt))
+    })
   })
 })
 $('#q3-back').addEventListener('click', () => showScreen(1))
@@ -60,9 +67,13 @@ $('#q3-next').addEventListener('click', () => showScreen(3))
 
 // --- Q4: involvement (single select) ------------------------------------
 $$('#involvement-options .select-option').forEach((opt) => {
+  opt.setAttribute('aria-pressed', 'false')
   opt.addEventListener('click', () => {
     answers.involvement = opt.dataset.value
-    $$('#involvement-options .select-option').forEach((o) => o.classList.toggle('is-selected', o === opt))
+    $$('#involvement-options .select-option').forEach((o) => {
+      o.classList.toggle('is-selected', o === opt)
+      o.setAttribute('aria-pressed', String(o === opt))
+    })
   })
 })
 $('#q4-back').addEventListener('click', () => showScreen(2))

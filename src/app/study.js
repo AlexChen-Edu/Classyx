@@ -452,6 +452,9 @@ function renderCard() {
 }
 
 flashcard.addEventListener('click', () => flashcard.classList.toggle('is-flipped'))
+flashcard.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flashcard.classList.toggle('is-flipped') }
+})
 $('#prev').addEventListener('click', () => { deckIndex = (deckIndex - 1 + deck.length) % deck.length; renderCard() })
 $('#next').addEventListener('click', () => { deckIndex = (deckIndex + 1) % deck.length; renderCard() })
 
