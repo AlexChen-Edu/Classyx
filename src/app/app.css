@@ -104,6 +104,7 @@ body.app {
 }
 .btn-google:active { transform: translateY(0); }
 .btn-google svg { flex: none; }
+.btn-google + #student-toggle-row { margin-top: 14px; }
 .auth-tabs {
   display: flex;
   gap: 4px;
@@ -400,6 +401,10 @@ body.app {
   color: var(--brand);
 }
 .child-card__analytics-link:hover { text-decoration: underline; }
+
+/* ---------- Self-learner dashboard (single-profile, no family grid) ---------- */
+.self-dashboard { max-width: 480px; margin-inline: auto; }
+.self-dashboard__links { display: flex; gap: 10px; }
 
 /* ---------- Analytics page (app/analytics.html) ---------- */
 /* Mobile-first: 1 column by default, 2 on wider screens. rem/% sizing only —

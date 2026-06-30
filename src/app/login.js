@@ -4,7 +4,6 @@
 //    selection (just me / student / parent); step 3 = password (with a live
 //    strength check) + confirm password. Picking "student" skips account
 //    creation entirely and redirects to the code-entry page.
-//  - Magic link: passwordless sign-in link.
 import { supabase, supabaseAnon } from '../supabaseClient.js'
 import { setChildSession, getFamily } from './auth.js'
 import { $, $$, setStatus, loading } from './ui.js'
@@ -35,7 +34,6 @@ const turnstileRow = $('#turnstile-row')
 const turnstileWidget = $('#turnstile-widget')
 const submitBtn = $('#submit')
 const statusEl = $('[data-status]')
-const magicBtn = $('#magic-link')
 const googleBtn = $('#google-signin')
 const signupConsent = $('#signup-consent')
 const forgotPasswordRow = $('#forgot-password-row')
@@ -75,7 +73,6 @@ wirePasswordToggle(confirmEl, $('#confirm-toggle'))
 if (!supabase) {
   setStatus(statusEl, 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.', 'error')
   form.querySelectorAll('input, button').forEach((el) => (el.disabled = true))
-  magicBtn.disabled = true
   googleBtn.disabled = true
 }
 
@@ -397,32 +394,6 @@ async function doSignUp(email, password, turnstileToken, role) {
   }
 }
 
-magicBtn.addEventListener('click', async () => {
-  const email = emailEl.value.trim()
-  if (!EMAIL_RE.test(email)) {
-    setStatus(statusEl, 'Enter your email first, then request a link.', 'error')
-    emailEl.focus()
-    return
-  }
-  const restore = loading(magicBtn, 'Sending…')
-  try {
-    // Land on the dashboard — its own role check (see dashboard.js) bounces
-    // non-parent/self accounts to /app/child.html once the session from this
-    // link is established, so the redirect target here can't itself inspect
-    // user_metadata.role yet.
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: `${location.origin}${DASHBOARD}` },
-    })
-    if (error) throw error
-    setStatus(statusEl, 'Check your email for a sign-in link.', 'success')
-  } catch (err) {
-    setStatus(statusEl, friendly(err), 'error')
-  } finally {
-    restore()
-  }
-})
-
 googleBtn.addEventListener('click', async () => {
   const restore = loading(googleBtn, 'Redirecting…')
   setStatus(statusEl, '')
@@ -451,11 +422,9 @@ function friendly(err) {
 
 // ============================================================================
 // Account-less student entry. Entirely separate from #auth-form/applyMode —
-// does not touch the sign in or create account flows at all. Only visible on
-// the Sign in screen (a second, independent tab listener below just toggles
-// this section's container; it never reads/writes any signin/signup state).
+// does not touch the sign in or create account flows at all. Visible on both
+// the Sign in and Create account screens.
 // ============================================================================
-const studentToggleRow = $('#student-toggle-row')
 const studentToggle = $('#student-toggle')
 const studentSection = $('#student-code-section')
 const studentCodeInput = $('#student-code')
@@ -507,19 +476,3 @@ async function startStudying() {
     restore()
   }
 }
-
-// A second, independent listener on the same tabs (registered after the
-// existing one, so `mode` has already been updated by the time this runs) —
-// keeps the student section Sign-in-only without modifying the original tab
-// handler or applyMode().
-document.querySelectorAll('.auth-tab').forEach((tab) => {
-  tab.addEventListener('click', () => {
-    if (mode === 'signin') {
-      showEl(studentToggleRow)
-    } else {
-      hide(studentToggleRow)
-      hide(studentSection)
-      studentToggle.setAttribute('aria-expanded', 'false')
-    }
-  })
-})
