@@ -1,8 +1,8 @@
 // Parent dashboard: per-child weekly study time, quiz accuracy, last studied,
 // and a live "Active now" presence indicator polled from active_sessions.
 import { requireSession, getFamily, signOut, setActiveChild } from './auth.js'
-import { getDashboardData, getActiveSessions, refreshChildCode } from './api.js'
-import { $, escapeHtml, relativeDay, initials, tintFor, setStatus, loading } from './ui.js'
+import { getDashboardData, getActiveSessions } from './api.js'
+import { $, escapeHtml, initials, tintFor, relativeDay, renderStreakBadge } from './ui.js'
 
 const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
 
@@ -70,12 +70,6 @@ function render(children, presence) {
   const cards = children.map((c) => renderCard(c, presence.has(c.id))).join('')
   content.innerHTML = `<div class="child-grid">${cards}</div>`
 
-  content.querySelectorAll('[data-show-code]').forEach((btn) => {
-    btn.addEventListener('click', () => handleToggleCode(btn))
-  })
-  content.querySelectorAll('[data-refresh-code]').forEach((btn) => {
-    btn.addEventListener('click', () => handleRefreshCode(btn))
-  })
 }
 
 /**
@@ -86,55 +80,90 @@ function render(children, presence) {
  * stops and the fill gets a one-shot green flash instead.
  */
 function renderGoalRing(todayMinutes, goalMinutes) {
-  const r = 30
+  const r = 19
   const circumference = 2 * Math.PI * r
   const pct = goalMinutes > 0 ? Math.min(100, Math.round((todayMinutes / goalMinutes) * 100)) : 0
   const offset = circumference * (1 - pct / 100)
   const met = pct >= 100
-  const minutesToGo = Math.max(0, Math.ceil(goalMinutes - todayMinutes))
   return `
-    <div class="goal-ring-block">
-      <div class="goal-ring-wrap">
-        <svg class="goal-ring${met ? '' : ' goal-ring--pulsing'}" viewBox="0 0 72 72" width="72" height="72" role="img" aria-label="${pct}% of today's study goal">
-          <circle class="goal-ring__track" cx="36" cy="36" r="${r}" />
-          <circle class="goal-ring__fill${met ? ' goal-ring__fill--flash' : ''}" cx="36" cy="36" r="${r}"
-            stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" />
-        </svg>
-        <span class="goal-ring__center">${pct}%</span>
+    <div class="goal-ring-wrap goal-ring-wrap--sm">
+      <svg class="goal-ring${met ? '' : ' goal-ring--pulsing'}" viewBox="0 0 48 48" width="48" height="48" role="img" aria-label="${pct}% of today's study goal">
+        <circle class="goal-ring__track" cx="24" cy="24" r="${r}" />
+        <circle class="goal-ring__fill${met ? ' goal-ring__fill--flash' : ''}" cx="24" cy="24" r="${r}"
+          stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" />
+      </svg>
+      <span class="goal-ring__center goal-ring__center--sm">${pct}%</span>
+    </div>`
+}
+
+/**
+ * Continuous green->amber->red hue for a quiz-accuracy percentage. Piecewise-linear
+ * across control points (not stepped buckets) so every percentage gets its own
+ * shade — 85% and 95% both read "good" but aren't identical.
+ */
+function accuracyHue(pct) {
+  const p = Math.max(0, Math.min(100, pct))
+  const stops = [[0, 4], [50, 4], [70, 45], [90, 141], [100, 141]]
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [p0, h0] = stops[i]
+    const [p1, h1] = stops[i + 1]
+    if (p <= p1) return h0 + (h1 - h0) * ((p - p0) / (p1 - p0))
+  }
+  return stops.at(-1)[1]
+}
+
+function accuracyColor(pct) {
+  return `hsl(${accuracyHue(pct).toFixed(0)}, 72%, 44%)`
+}
+
+function accuracyLabel(pct) {
+  if (pct >= 90) return 'Excellent'
+  if (pct >= 75) return 'Good'
+  if (pct >= 60) return 'Fair'
+  if (pct >= 50) return 'Needs practice'
+  return 'Struggling'
+}
+
+function renderStats(c) {
+  const accuracyHtml = c.accuracy == null
+    ? `<span class="child-card__stat-value">—</span>`
+    : `<span class="child-card__stat-value" style="color:${accuracyColor(c.accuracy)}">${c.accuracy}%</span>
+       <span class="child-card__stat-sub">${accuracyLabel(c.accuracy)}</span>`
+
+  return `
+    <div class="child-card__stats">
+      <div class="child-card__stat">
+        <span class="child-card__stat-label">Quiz accuracy</span>
+        ${accuracyHtml}
       </div>
-      <span class="goal-ring__caption${met ? ' is-complete' : ''}">${met ? '✓ Goal met!' : `${minutesToGo} min to go`}</span>
+      <div class="child-card__stat">
+        <span class="child-card__stat-label">Last studied</span>
+        <span class="child-card__stat-value">${relativeDay(c.lastStudied)}</span>
+      </div>
+      <div class="child-card__stat">
+        <span class="child-card__stat-label">Streak</span>
+        ${c.streak > 0 ? renderStreakBadge(c.streak) : `<span class="child-card__stat-value">0 days</span>`}
+      </div>
     </div>`
 }
 
 function renderCard(c, isActive) {
   const tint = tintFor(c.name)
-  const week = c.weekMinutes ? `${c.weekMinutes}m` : '0m'
-  const acc = c.accuracy == null ? '—' : `${c.accuracy}%`
   const neverStudied = !c.lastStudied // true the moment a child profile is created, until their first session lands
+  const goalMinutes = c.daily_goal_minutes || 30
+  const todayMinutes = c.todayMinutes || 0
+  const met = todayMinutes >= goalMinutes
+  const minutesToGo = Math.max(0, Math.ceil(goalMinutes - todayMinutes))
 
   return `
       <article class="card child-card${neverStudied ? ' child-card--waiting' : ''}" data-child-id="${c.id}">
         <div class="child-card__top">
           <span class="avatar" style="background:${tint}">${escapeHtml(initials(c.name))}</span>
           <div class="child-card__identity">
-            <div class="child-card__name-row">
-              <span class="child-card__name">${escapeHtml(c.name)}</span>
-              <button class="btn ${neverStudied ? 'btn-primary' : 'btn-ghost'} btn-sm" data-show-code type="button">Show code</button>
-            </div>
+            <span class="child-card__name">${escapeHtml(c.name)}</span>
             <div class="child-card__grade">${c.grade ? 'Grade ' + escapeHtml(c.grade) : 'Learner'}</div>
           </div>
-        </div>
-        <p class="form-status" data-code-status role="status" aria-live="polite"></p>
-        <div class="code-reveal-inline hidden" data-code-area>
-          <div class="code-pill-row">
-            <span class="code-pill" data-code-pill></span>
-            <button class="code-refresh-btn" data-refresh-code type="button" title="Code not working? Generate a new one" aria-label="Generate a new code">↻</button>
-          </div>
-          <p class="code-pill__note">Share this code with your child. It changes each time you view it.</p>
-        </div>
-        <div class="presence${isActive ? '' : ' hidden'}" data-presence>
-          <span class="presence__dot" aria-hidden="true"></span>
-          <span>Active now</span>
+          ${!neverStudied ? renderGoalRing(todayMinutes, goalMinutes) : ''}
         </div>
 
         ${neverStudied ? `
@@ -142,68 +171,21 @@ function renderCard(c, isActive) {
           <span class="waiting-banner__icon" aria-hidden="true">👋</span>
           <div>
             <p class="waiting-banner__title">Ready when ${escapeHtml(c.name)} is</p>
-            <p class="waiting-banner__text">Tap "Show code" above, then have ${escapeHtml(c.name)} enter it at the student sign-in screen to start their first session.</p>
+            <p class="waiting-banner__text">Get ${escapeHtml(c.name)}'s sign-in code from Settings, then have them enter it at the student sign-in screen to start their first session.</p>
           </div>
         </div>` : `
-        <div class="stat-mini-row">
-          <div class="stat-mini"><div class="stat-mini__label">This week</div><div class="stat-mini__value">${week}</div></div>
-          <div class="stat-mini"><div class="stat-mini__label">Quiz accuracy</div><div class="stat-mini__value">${acc}</div></div>
-          <div class="stat-mini"><div class="stat-mini__label">Last studied</div><div class="stat-mini__value" style="font-size:.95rem">${escapeHtml(relativeDay(c.lastStudied))}</div></div>
+        <div class="child-card__meta-row">
+          <span class="child-card__goal-text${met ? ' is-complete' : ''}">${met ? '✓ Goal met!' : `${minutesToGo} min to go`}</span>
+          <div class="presence${isActive ? '' : ' hidden'}" data-presence>
+            <span class="presence__dot" aria-hidden="true"></span>
+            <span>Active now</span>
+          </div>
         </div>
 
-        ${renderGoalRing(c.todayMinutes || 0, c.daily_goal_minutes || 30)}
+        ${renderStats(c)}
 
         <a class="child-card__analytics-link" href="/app/analytics.html?child=${c.id}">Analytics →</a>`}
       </article>`
-}
-
-/** "Show code" generates + reveals a fresh code and flips the button to "Hide";
- *  "Hide" just collapses the area again — no new code is generated. */
-async function handleToggleCode(btn) {
-  const card = btn.closest('[data-child-id]')
-  const areaEl = card.querySelector('[data-code-area]')
-
-  if (btn.textContent === 'Hide') {
-    areaEl.classList.add('hidden')
-    btn.textContent = 'Show code'
-    return
-  }
-
-  const childId = card.dataset.childId
-  const statusEl = card.querySelector('[data-code-status]')
-  const pillEl = card.querySelector('[data-code-pill]')
-
-  setStatus(statusEl, '')
-  const restore = loading(btn, 'Generating…')
-  try {
-    const code = await refreshChildCode(childId)
-    restore()
-    pillEl.textContent = code
-    areaEl.classList.remove('hidden')
-    btn.textContent = 'Hide'
-  } catch (err) {
-    restore()
-    setStatus(statusEl, err.message || 'Could not generate a code. Try again.', 'error')
-  }
-}
-
-/** Refresh icon next to the revealed code: rotates the code in place without touching the Show/Hide button state. */
-async function handleRefreshCode(btn) {
-  const card = btn.closest('[data-child-id]')
-  const childId = card.dataset.childId
-  const statusEl = card.querySelector('[data-code-status]')
-  const pillEl = card.querySelector('[data-code-pill]')
-
-  setStatus(statusEl, '')
-  btn.disabled = true
-  try {
-    const code = await refreshChildCode(childId)
-    pillEl.textContent = code
-  } catch (err) {
-    setStatus(statusEl, err.message || 'Could not generate a code. Try again.', 'error')
-  } finally {
-    btn.disabled = false
-  }
 }
 
 /** Updates each card's presence dot in place — never re-renders the grid. */

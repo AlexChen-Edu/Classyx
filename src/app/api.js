@@ -4,6 +4,7 @@
 
 import { supabase, supabaseAnon } from '../supabaseClient.js'
 import { getFamily } from './auth.js'
+import { computeStreak } from './ui.js'
 
 const CHILD_COLS = 'id, name, grade, daily_goal_minutes, created_at'
 
@@ -475,7 +476,8 @@ export async function getDashboardData() {
     const total = cQuizzes.length
     const correct = cQuizzes.filter((q) => q.correct).length
     const accuracy = total ? Math.round((correct / total) * 100) : null
+    const streak = computeStreak(cSessions)
 
-    return { ...child, weekMinutes, todayMinutes, lastStudied, quizCount: total, accuracy }
+    return { ...child, weekMinutes, todayMinutes, lastStudied, quizCount: total, accuracy, streak }
   })
 }

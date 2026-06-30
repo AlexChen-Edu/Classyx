@@ -278,7 +278,7 @@ body.app {
 @media (min-width: 680px) { .child-grid { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 1040px) { .child-grid { grid-template-columns: repeat(3, 1fr); } }
 
-.child-card { display: flex; flex-direction: column; gap: 16px; }
+.child-card { display: flex; flex-direction: column; gap: 14px; }
 .child-card__top { display: flex; align-items: center; gap: 12px; }
 .avatar {
   flex: none;
@@ -287,57 +287,22 @@ body.app {
   display: grid; place-items: center;
   color: #fff; font-weight: 700; font-size: 0.95rem;
 }
-.child-card__name { font-family: var(--font-display); font-weight: 600; color: var(--ink); }
+.child-card__name { font-family: var(--font-display); font-weight: 600; color: var(--ink); display: block; }
 .child-card__grade { font-size: 0.83rem; color: var(--ink-3); }
 
 .child-card__identity { flex: 1; min-width: 0; }
-.child-card__name-row {
+
+.child-card__meta-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
-.child-card__name-row .btn { flex: none; white-space: nowrap; }
+.child-card__goal-text { font-size: 0.85rem; font-weight: 600; color: var(--ink-2); }
+.child-card__goal-text.is-complete { color: var(--goal-green); }
 
-.code-reveal-inline { margin-top: -6px; }
-.code-pill-row { display: flex; align-items: center; gap: 8px; }
-.code-pill {
-  display: inline-block;
-  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: 0.16em;
-  color: var(--brand-ink);
-  background: var(--brand-tint);
-  border: 1px solid #cfe6d8;
-  border-radius: 8px;
-  padding: 4px 11px;
-}
-.code-refresh-btn {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--surface);
-  color: var(--brand);
-  font-size: 1rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
-}
-.code-refresh-btn:hover { border-color: var(--brand); background: var(--brand-tint); transform: rotate(45deg); }
-.code-refresh-btn:disabled { opacity: 0.6; cursor: progress; }
-.code-pill__note {
-  margin-top: 6px;
-  font-size: 0.78rem;
-  color: var(--ink-3);
-}
-
-/* Replaces the stat grid on a child card until their first study session lands. */
+/* Replaces the goal/presence row on a child card until their first study session lands. */
 .child-card--waiting { border-color: #cfe6d8; }
 .waiting-banner {
   display: flex;
@@ -372,6 +337,43 @@ body.app {
 .presence__timer {
   font-family: var(--font-display);
   margin-left: 2px;
+}
+
+.child-card__stats {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.child-card__stat {
+  flex: 1 1 0;
+  min-width: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.child-card__stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.child-card__stat-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.child-card__stat-sub {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.child-card__stat .streak-badge {
+  padding: 3px 9px;
+  font-size: 0.78rem;
 }
 
 .child-card__analytics-link {
@@ -638,26 +640,6 @@ body.app {
   font-weight: 700;
 }
 
-
-.stat-mini-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-.stat-mini {
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 11px 12px;
-}
-.stat-mini__label { font-size: 0.72rem; color: var(--ink-3); }
-.stat-mini__value {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 1.15rem;
-  color: var(--ink);
-  margin-top: 2px;
-}
 
 /* ---------- Profile selector (child.html) ---------- */
 .profiles {
@@ -1168,8 +1150,7 @@ body.app {
 .goal-bar-label.is-complete { color: #1ea34a; }
 
 /* ---------- Daily goal progress ring (dashboard child cards) ---------- */
-.goal-ring-block { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.goal-ring-wrap { position: relative; width: 72px; height: 72px; }
+.goal-ring-wrap { position: relative; flex: none; width: 72px; height: 72px; }
 .goal-ring { transform: rotate(-90deg); }
 .goal-ring__track { fill: none; stroke: var(--line); stroke-width: 7; }
 .goal-ring__fill {
@@ -1189,12 +1170,12 @@ body.app {
   font-size: 0.92rem;
   color: var(--ink);
 }
-.goal-ring__caption {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--ink-3);
-}
-.goal-ring__caption.is-complete { color: var(--goal-green); }
+
+/* Compact ring sitting next to the avatar/name on the dashboard child card. */
+.goal-ring-wrap--sm { width: 48px; height: 48px; margin-left: auto; }
+.goal-ring-wrap--sm .goal-ring__track,
+.goal-ring-wrap--sm .goal-ring__fill { stroke-width: 5; }
+.goal-ring__center--sm { font-size: 0.68rem; }
 
 /* Open-loop pulse while the goal isn't met yet (Zeigarnik effect). */
 .goal-ring--pulsing .goal-ring__fill { animation: goal-ring-pulse 1.6s ease-in-out infinite; }
