@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blog · Classyx</title>
+    <meta
+      name="description"
+      content="Stories and notes on helping kids build study habits that last, from the Classyx team."
+    />
+    <meta name="theme-color" content="#f7f9fc" />
+
+    <!-- Enable reveal animations only when JS is available; never leave content
+         hidden if the main module fails to load (e.g. a static preview). -->
+    <script>
+      document.documentElement.classList.add('js')
+      setTimeout(function () {
+        if (!window.__classyxReady) {
+          document.querySelectorAll('[data-reveal]').forEach(function (el) {
+            el.classList.add('is-visible')
+          })
+        }
+      }, 1500)
+    </script>
+
+    <!-- Favicon: inline SVG, no extra request -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23f5f1e6'/%3E%3Cpath d='M12 4.5 L21 8.5 L12 12.5 L3 8.5 Z' fill='%231b2a4a'/%3E%3Cpath d='M7 10.2 V14.5 C7 15.6 9.2 16.5 12 16.5 C14.8 16.5 17 15.6 17 14.5 V10.2 L12 12.5 Z' fill='%231b2a4a'/%3E%3Cline x1='19' y1='7.6' x2='19' y2='13' stroke='%23c9a13b' stroke-width='1' stroke-linecap='round'/%3E%3Ccircle cx='19' cy='13.8' r='1' fill='%23c9a13b'/%3E%3C/svg%3E"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="/src/style.css" />
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <!-- ===================== HEADER ===================== -->
+    <header class="site-header" data-header>
+      <div class="container site-header__inner">
+        <a class="logo" href="/#hero" aria-label="Classyx home">
+          <span class="logo__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+              <path d="M12 4.5 L21 8.5 L12 12.5 L3 8.5 Z" fill="currentColor"/>
+              <path d="M7 10.2 V14.5 C7 15.6 9.2 16.5 12 16.5 C14.8 16.5 17 15.6 17 14.5 V10.2 L12 12.5 Z" fill="currentColor"/>
+              <line x1="19" y1="7.6" x2="19" y2="13" stroke="#c9a13b" stroke-width="1" stroke-linecap="round"/>
+              <circle cx="19" cy="13.8" r="1" fill="#c9a13b"/>
+            </svg>
+          </span>
+          <span class="logo__word">Classyx</span>
+        </a>
+
+        <nav class="site-nav" aria-label="Primary">
+          <a href="/#how">How it works</a>
+          <a href="/#dashboard">Dashboard</a>
+          <a href="/#pricing">Pricing</a>
+          <a href="/#story">Our story</a>
+          <a href="/blog/index.html">Blog</a>
+        </nav>
+
+        <button class="btn btn-primary btn-sm site-header__cta" id="open-modal-btn">Join the waitlist</button>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ===================== BLOG INDEX ===================== -->
+      <section class="section blog-index">
+        <div class="container">
+          <div class="section-head" data-reveal>
+            <span class="eyebrow">Classyx blog</span>
+            <h1 class="section-title">Notes on helping kids actually study.</h1>
+            <p class="section-lead">
+              Real stories from parents and students figuring out what works — and what doesn't.
+            </p>
+          </div>
+
+          <div class="grid grid-2 blog-grid">
+            <article class="card blog-card" data-reveal>
+              <span class="blog-card__date">July 1, 2026</span>
+              <h2 class="blog-card__title">If You Think Your Kid Is Just Lazy, You Might Be Looking at the Wrong Problem</h2>
+              <p class="blog-card__excerpt">There's usually something else going on</p>
+              <a class="blog-card__link" href="/blog/lazy-vs-struggling.html">Read more →</a>
+            </article>
+
+            <article class="card blog-card" data-reveal>
+              <span class="blog-card__date">June 30, 2026</span>
+              <h2 class="blog-card__title">If Your Kid Seems Fine But Something Feels Off at School, Trust That Feeling</h2>
+              <p class="blog-card__excerpt">The signs show up way before the grades do</p>
+              <a class="blog-card__link" href="/blog/signs-falling-behind.html">Read more →</a>
+            </article>
+
+            <article class="card blog-card" data-reveal>
+              <span class="blog-card__date">June 29, 2026</span>
+              <h2 class="blog-card__title">If Your Kid Sits at That Desk for an Hour and Still Gets C's, Read This</h2>
+              <p class="blog-card__excerpt">The study time myth nobody talks about</p>
+              <a class="blog-card__link" href="/blog/study-time-myth.html">Read more →</a>
+            </article>
+
+            <article class="card blog-card" data-reveal>
+              <span class="blog-card__date">June 28, 2026</span>
+              <h2 class="blog-card__title">My Brother Says He Studied But I Don't Buy It Anymore</h2>
+              <p class="blog-card__excerpt">Figured out what was actually going on after a while</p>
+              <a class="blog-card__link" href="/blog/my-brother-says-he-studied.html">Read more →</a>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__brand">
+          <a class="logo" href="/#hero" aria-label="Classyx home">
+            <span class="logo__mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+                <path d="M12 4.5 L21 8.5 L12 12.5 L3 8.5 Z" fill="currentColor"/>
+                <path d="M7 10.2 V14.5 C7 15.6 9.2 16.5 12 16.5 C14.8 16.5 17 15.6 17 14.5 V10.2 L12 12.5 Z" fill="currentColor"/>
+                <line x1="19" y1="7.6" x2="19" y2="13" stroke="#c9a13b" stroke-width="1" stroke-linecap="round"/>
+                <circle cx="19" cy="13.8" r="1" fill="#c9a13b"/>
+              </svg>
+            </span>
+            <span class="logo__word">Classyx</span>
+          </a>
+          <p class="site-footer__tag">Helping kids grow, and giving the parents who cheer them on real peace of mind.</p>
+        </div>
+
+        <nav class="site-footer__links" aria-label="Footer">
+          <div>
+            <h4>Product</h4>
+            <a href="/#how">How it works</a>
+            <a href="/#dashboard">Dashboard</a>
+            <a href="/#pricing">Pricing</a>
+          </div>
+          <div>
+            <h4>Company</h4>
+            <a href="/#story">Our story</a>
+            <button class="nav-link-btn" id="open-modal-btn-nav">Waitlist</button>
+          </div>
+          <div>
+            <h4>Legal</h4>
+            <a href="/privacy-policy.html" aria-label="Privacy Policy">Privacy Policy</a>
+
+          </div>
+        </nav>
+      </div>
+      <div class="container site-footer__bottom">
+        <span>&copy; <span id="year">2026</span> Classyx. All rights reserved.</span>
+        <span>Made with care for families.</span>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body><!-- Waitlist Modal -->
+<div id="waitlist-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+  <div class="modal-box">
+    <button class="modal-close" aria-label="Close">&times;</button>
+    <h2 id="modal-title">Join the Classyx waitlist</h2>
+    <p class="modal-subtitle">Be first to know when we launch. One email, no spam.</p>
+<p class="modal-subtitle" style="font-size:12px;color:#999;margin-top:-8px">Currently available to US residents only.</p>
+
+    <form id="modal-form" novalidate>
+      <label for="modal-email" class="modal-label">Email address</label>
+      <input
+        id="modal-email"
+        name="email"
+        type="email"
+        inputmode="email"
+        autocomplete="email"
+        placeholder="you@example.com"
+        required
+      />
+      <label class="modal-consent">
+        <input type="checkbox" id="modal-consent-checkbox" />
+        <span>I agree to Classyx's <a href="/privacy-policy.html" target="_blank">Privacy Policy</a> and consent to receiving launch updates.</span>
+      </label>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAADpSfVDp1j7V2mzn" data-theme="light"></div>
+      <button type="submit" id="modal-submit" class="btn btn-primary" disabled>
+        <span data-btn-label>Join the waitlist</span>
+      </button>
+      <p id="modal-status" class="form-status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</div>
+</html>

@@ -661,6 +661,13 @@ section[id] {
   }
 }
 
+.hero__social-proof {
+  margin-top: 12px;
+  font-size: 0.86rem;
+  color: var(--ink-2);
+}
+.hero__social-proof strong { color: var(--ink); }
+
 /* Hero visual */
 .hero__visual {
   position: relative;
@@ -1409,6 +1416,16 @@ section[id] {
   box-shadow: none !important;
 }
 
+.plan__features-no {
+  color: var(--ink-3) !important;
+}
+.plan__features-no::before {
+  content: '–' !important;
+  background: var(--surface-2) !important;
+  color: var(--ink-3) !important;
+  box-shadow: none !important;
+}
+
 /* ---------- Founder story ---------- */
 .story__card {
   position: relative;
@@ -1729,6 +1746,9 @@ section[id] {
   position: relative;
   box-shadow: var(--shadow-xl);
 }
+@media (max-width: 480px) {
+  .modal-box { padding: 28px 22px; }
+}
 .modal-close {
   position: absolute;
   top: 16px;
@@ -1805,6 +1825,10 @@ section[id] {
   accent-color: var(--brand);
 }
 .modal-consent a { color: var(--brand); }
+.cf-turnstile {
+  width: 100%;
+  margin-bottom: 20px;
+}
 #modal-submit {
   width: 100%;
   padding: 14px;
@@ -1828,4 +1852,119 @@ section[id] {
   align-items: center;
   gap: 20px;
   margin-top: 32px;
+}
+
+/* ---------- Blog (blog/index.html, blog/*.html) ---------- */
+.blog-grid {
+  max-width: 880px;
+  margin-inline: auto;
+}
+
+.blog-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.blog-card__date {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.blog-card__title {
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+}
+
+.blog-card__excerpt {
+  color: var(--ink-2);
+}
+
+.blog-card__link {
+  margin-top: 4px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.blog-card__link:hover {
+  text-decoration: underline;
+}
+
+/* Article reading layout — its own max-width/padding rather than .container,
+   so the comfortable 680px reading column is independent of the site's
+   wider 1140px content container. */
+.blog-article {
+  max-width: 680px;
+  margin-inline: auto;
+  padding: clamp(40px, 8vw, 72px) clamp(20px, 5vw, 32px) clamp(60px, 9vw, 96px);
+}
+
+.blog-back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.blog-back-link:hover {
+  text-decoration: underline;
+}
+
+.blog-article__date {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.blog-article__title {
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.blog-article__subtitle {
+  margin-top: 14px;
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  color: var(--ink-2);
+  padding-bottom: clamp(24px, 4vw, 32px);
+  border-bottom: 1px solid var(--line-2);
+}
+
+.blog-article__body {
+  margin-top: clamp(24px, 4vw, 32px);
+}
+
+.blog-article__body p {
+  margin-bottom: 20px;
+  font-size: clamp(1rem, 1.6vw, 1.08rem);
+  line-height: 1.75;
+  color: var(--ink-2);
+}
+
+.blog-article__body h2 {
+  margin: 36px 0 14px;
+  font-size: clamp(1.25rem, 2.6vw, 1.45rem);
+}
+
+.blog-cta {
+  margin-top: clamp(36px, 6vw, 56px);
+  padding: clamp(24px, 4vw, 36px);
+  border-radius: var(--r-lg);
+  background: linear-gradient(155deg, var(--brand-tint), var(--accent-tint));
+  border: 1px solid rgba(45, 106, 79, 0.14);
+  text-align: center;
+}
+
+.blog-cta p {
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  font-size: clamp(1rem, 2vw, 1.1rem);
 }

@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Classyx — Help your child build study habits that last</title>
+    <title>Classyx — Become the parent who always knows</title>
     <meta
       name="description"
-      content="Classyx turns your child's notes into AI flashcards, tracks their focus while they study, and gives you a calm parent dashboard with real proof of progress."
+      content="Classyx turns your child's notes into personalized study tools, learns how they study, and quietly keeps you in the loop — so you always know, without the arguments."
     />
     <meta name="theme-color" content="#f7f9fc" />
 
@@ -65,6 +65,7 @@
           <a href="#dashboard">Dashboard</a>
           <a href="#pricing">Pricing</a>
           <a href="#story">Our story</a>
+          <a href="/blog/index.html">Blog</a>
           <a href="/app/child.html" class="btn btn-ghost btn-sm site-nav__btn">I'm a student</a>
           <a href="/app/login.html" class="btn btn-primary btn-sm site-nav__btn">Parent login</a>
         </nav>
@@ -85,14 +86,15 @@
         <div class="hero__glow" aria-hidden="true"></div>
         <div class="container hero__inner">
           <div class="hero__copy" data-reveal>
-            <span class="eyebrow">AI flashcards · Parent dashboard</span>
+            <span class="eyebrow">Support · Encourage · Grow together</span>
             <h1 class="hero__title">
-              Give your child the study habits that shape their future.
+              Become the parent who always knows — without the arguments.
             </h1>
             <p class="hero__subtitle">
-              Classyx turns their notes into smart AI flashcards, keeps them focused while they
-              study, and shows you a calm dashboard with real proof of progress — so you can
-              stop wondering and start cheering them on.
+              Not the parent guessing at "fine." Not the parent waiting for report card day.
+              The one who sees the real picture, has the real conversation, and shows up at
+              exactly the right moment — because Classyx quietly turns their notes into study
+              tools, and turns the guesswork into something you can actually see.
             </p>
             <div class="hero__actions">
               <button class="btn btn-primary btn-lg open-modal-btn">Join the Waitlist</button>
@@ -100,7 +102,19 @@
             </div>
             <p class="hero__trust">
               <span class="hero__trust-dot" aria-hidden="true"></span>
-              Built by a student who lived the struggle. Join the waitlist — no cost, no commitment. Be first when Classyx opens.
+              Built by a student who lived the struggle. No cost, no commitment — just dibs on becoming that parent first.
+            </p>
+
+            <!--
+              Social-proof badge — intentionally hidden for now. The waitlist is
+              still small; a low number here would hurt credibility more than it
+              helps. Once the count is one you're comfortable showing publicly:
+              1) remove the `hidden` attribute below
+              2) replace "XX" with the current count (check the Supabase
+                 `waitlist` table — there's no live counter wired up by design)
+            -->
+            <p class="hero__social-proof" hidden>
+              <span aria-hidden="true">🎉</span> <strong>XX parents</strong> already on the waitlist
             </p>
           </div>
 
@@ -129,7 +143,7 @@
               <div class="float-card__avatar">M</div>
               <div class="float-card__body">
                 <strong>Maya studied 45 min today</strong>
-                <span>Biology · 18 cards mastered ✓</span>
+                <span>Biology · 18 cards mastered — proud moment ✓</span>
               </div>
             </div>
           </div>
@@ -141,10 +155,10 @@
         <div class="container">
           <div class="section-head" data-reveal>
             <span class="eyebrow">The quiet worry</span>
-            <h2 class="section-title">You want to help — but you can't see what's happening.</h2>
+            <h2 class="section-title">You want to support them — but it's hard to know how they're really doing.</h2>
             <p class="section-lead">
-              Every parent who cares runs into the same wall. Classyx was built to take it down,
-              gently.
+              Every parent who cares runs into the same wall. Most don't find out there's a
+              problem until the report card lands. You don't have to be one of them.
             </p>
           </div>
 
@@ -153,10 +167,10 @@
               <span class="pain-card__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/></svg>
               </span>
-              <h3>Is studying actually happening?</h3>
+              <h3>Is it really clicking for them?</h3>
               <p>
-                You close the door and hope the work gets done. There's no window into whether the
-                time at the desk turns into real learning.
+                You close the door and hope it's going well. There's no easy way to understand
+                whether the time at the desk is turning into real understanding.
               </p>
             </article>
 
@@ -166,8 +180,8 @@
               </span>
               <h3>"I studied, I promise."</h3>
               <p>
-                The classic answer — with nothing to back it up. So it comes down to trust, crossed
-                fingers, and the occasional tense conversation.
+                The classic answer — and you want to believe it. Without a way to see their
+                progress, it's just trust, crossed fingers, and the occasional tense conversation.
               </p>
             </article>
 
@@ -177,8 +191,8 @@
               </span>
               <h3>What about their future?</h3>
               <p>
-                Small gaps compound into big ones. You worry the habits that matter for college and
-                beyond aren't forming — and you can't tell until the report card.
+                Small gaps can quietly grow into big ones. You want to know the habits that matter
+                for college and beyond are taking root — long before report card day.
               </p>
             </article>
           </div>
@@ -190,7 +204,7 @@
         <div class="container">
           <div class="section-head" data-reveal>
             <span class="eyebrow">How Classyx works</span>
-            <h2 class="section-title">From a photo of their notes to your peace of mind.</h2>
+            <h2 class="section-title">Classyx gets to know your child — then watches out for them.</h2>
             <p class="section-lead">Four simple steps. Most families are set up in under five minutes.</p>
           </div>
 
@@ -209,8 +223,8 @@
               <span class="step__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6z"/><path d="M19 15l.7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7z"/></svg>
               </span>
-              <h3>AI generates flashcards & study guides</h3>
-              <p>Classyx reads the material and builds smart flashcards, quizzes, and personalized study guides in seconds.</p>
+              <h3>Classyx learns how your child learns</h3>
+              <p>It reads the material and builds flashcards, quizzes, and a study guide shaped around their patterns — ready in seconds, and a little smarter every time.</p>
             </li>
 
             <li class="step" data-reveal>
@@ -218,8 +232,8 @@
               <span class="step__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="0.8" fill="currentColor"/></svg>
               </span>
-              <h3>They study with focus tracking</h3>
-              <p>Your child reviews and self-tests while Classyx honestly tracks focus and recall.</p>
+              <h3>It studies alongside them</h3>
+              <p>Your child reviews and tests themselves while Classyx quietly keeps score — noticing what's sticking and what isn't, long before a test does.</p>
             </li>
 
             <li class="step" data-reveal>
@@ -227,8 +241,8 @@
               <span class="step__icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12.5" y="7" width="3" height="10" rx="1"/><rect x="18" y="13" width="3" height="4" rx="1"/></svg>
               </span>
-              <h3>You see the dashboard</h3>
-              <p>Weekly study time, quiz accuracy, and subjects — clear at a glance, no nagging.</p>
+              <h3>It tells you before you have to ask</h3>
+              <p>A simple weekly view of how they're really doing — and a heads-up if something's slipping, while there's still time to do something about it.</p>
             </li>
           </ol>
         </div>
@@ -239,10 +253,10 @@
         <div class="container">
           <div class="section-head" data-reveal>
             <span class="eyebrow">The parent dashboard</span>
-            <h2 class="section-title">Real proof of progress — calm, clear, and honest.</h2>
+            <h2 class="section-title">Real progress, made easy to see — calm, clear, and honest.</h2>
             <p class="section-lead">
-              No surveillance, no guesswork. Just the few numbers that actually tell you how your
-              child is doing.
+              No pressure, no guesswork. Just enough to help you understand and celebrate how your
+              child is growing — and notice the moment something needs your attention, not months later.
             </p>
           </div>
 
@@ -375,7 +389,7 @@
             <span class="eyebrow">Simple pricing</span>
             <h2 class="section-title">One plan per family. No surprises.</h2>
             <p class="section-lead">
-              Start free. Upgrade any time as your family's needs grow.
+              Start free. Join now and these prices are locked in for you — waitlist members keep founding rates even after launch pricing goes up.
             </p>
           </div>
 
@@ -456,8 +470,11 @@
               </p>
               <p>
                 Classyx is the tool I wish we'd had: it makes studying easier to start, and it
-                gives parents honest proof instead of arguments. Not surveillance — clarity, so
+                gives parents honest proof instead of arguments. Not pressure — clarity, so
                 families can be on the same team again.
+              </p>
+              <p>
+                There's more to the story — the part where it actually catches the thing you would've missed.
               </p>
             </blockquote>
             <div class="story__author">
@@ -476,13 +493,14 @@
         <div class="container container--narrow">
           <div class="waitlist__card" data-reveal>
             <span class="eyebrow eyebrow--center">Be first in line</span>
-            <h2 class="section-title">Join the Classyx waitlist</h2>
+            <h2 class="section-title">Protect your spot on the Classyx waitlist</h2>
             <p class="section-lead">
-              Be the first to know when we open. Founding members get early access and special launch pricing.
+              Early access is limited, and founding pricing won't last past launch. Once we open
+              the doors, this offer closes with them — secure your spot now, while it's still yours to take.
             </p>
 
             <div class="waitlist__cta">
-              <button class="btn btn-primary btn-lg open-modal-btn">Join the waitlist</button>
+              <button class="btn btn-primary btn-lg open-modal-btn">Claim my spot</button>
               <p class="form-fineprint">No spam, ever. One email when we launch — unsubscribe anytime.</p>
             </div>
           </div>
@@ -505,7 +523,7 @@
             </span>
             <span class="logo__word">Classyx</span>
           </a>
-          <p class="site-footer__tag">Study smarter. Show the proof. Built for students and the parents who root for them.</p>
+          <p class="site-footer__tag">Helping kids grow, and giving the parents who cheer them on real peace of mind.</p>
         </div>
 
         <nav class="site-footer__links" aria-label="Footer">
@@ -557,7 +575,7 @@
         <input type="checkbox" id="modal-consent-checkbox" />
         <span>I agree to Classyx's <a href="/privacy-policy.html" target="_blank">Privacy Policy</a> and consent to receiving launch updates.</span>
       </label>
-      <div class="cf-turnstile" data-sitekey="0x4AAAAAADpSfVDp1j7V2mzn" data-theme="light"></div>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAADpSfVDp1j7V2mzn" data-theme="light" data-size="flexible"></div>
       <button type="submit" id="modal-submit" class="btn btn-primary" disabled>
         <span data-btn-label>Join the waitlist</span>
       </button>

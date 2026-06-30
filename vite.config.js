@@ -10,6 +10,11 @@ export default defineConfig({
         confirm: 'confirm.html',
         privacy: 'privacy-policy.html',
         tos: 'tos.html',
+        blogIndex: 'blog/index.html',
+        blogMyBrotherSaysHeStudied: 'blog/my-brother-says-he-studied.html',
+        blogStudyTimeMyth: 'blog/study-time-myth.html',
+        blogSignsFallingBehind: 'blog/signs-falling-behind.html',
+        blogLazyVsStruggling: 'blog/lazy-vs-struggling.html',
         // --- authenticated app ---
         login: 'app/login.html',
         verify: 'app/verify.html',
