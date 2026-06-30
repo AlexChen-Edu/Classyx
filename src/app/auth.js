@@ -55,6 +55,47 @@ export async function getFamily() {
   return _family
 }
 
+let _selfChild = null
+
+/**
+ * For role='self' accounts: the one children row that represents the account
+ * holder themselves, auto-created on first access so a self learner can reuse
+ * all the child-scoped study/analytics infrastructure without a PIN/code —
+ * there's no second person to gate, the parent-authenticated session already
+ * IS their proof of identity. A self family only ever has this one child row.
+ * Cached per page, same pattern as getFamily().
+ */
+export async function getSelfChild() {
+  if (_selfChild) return _selfChild
+  const family = await getFamily()
+
+  const { data: existing, error } = await supabase
+    .from('children')
+    .select('id, name, grade, daily_goal_minutes, created_at')
+    .eq('family_id', family.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  if (existing) {
+    _selfChild = existing
+    return _selfChild
+  }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const local = user?.email ? user.email.split('@')[0] : 'Me'
+  const name = local.charAt(0).toUpperCase() + local.slice(1)
+
+  const { data: created, error: insErr } = await supabase
+    .from('children')
+    .insert({ family_id: family.id, name })
+    .select('id, name, grade, daily_goal_minutes, created_at')
+    .single()
+  if (insErr) throw insErr
+  _selfChild = created
+  return _selfChild
+}
+
 export async function signOut() {
   clearActiveChild()
   clearChildSession()

@@ -36,6 +36,7 @@ const turnstileWidget = $('#turnstile-widget')
 const submitBtn = $('#submit')
 const statusEl = $('[data-status]')
 const magicBtn = $('#magic-link')
+const googleBtn = $('#google-signin')
 const signupConsent = $('#signup-consent')
 const forgotPasswordRow = $('#forgot-password-row')
 
@@ -75,6 +76,7 @@ if (!supabase) {
   setStatus(statusEl, 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.', 'error')
   form.querySelectorAll('input, button').forEach((el) => (el.disabled = true))
   magicBtn.disabled = true
+  googleBtn.disabled = true
 }
 
 // Already signed in? Skip straight to the dashboard.
@@ -382,7 +384,7 @@ async function doSignUp(email, password, turnstileToken, role) {
     })
     if (error) throw error
     if (data.session) {
-      location.replace(role === 'self' ? STUDY : DASHBOARD)
+      location.replace(DASHBOARD)
     } else {
       // Email confirmation required — hand off to the OTP verification page.
       sessionStorage.setItem('verify_email', email)
@@ -417,6 +419,24 @@ magicBtn.addEventListener('click', async () => {
   } catch (err) {
     setStatus(statusEl, friendly(err), 'error')
   } finally {
+    restore()
+  }
+})
+
+googleBtn.addEventListener('click', async () => {
+  const restore = loading(googleBtn, 'Redirecting…')
+  setStatus(statusEl, '')
+  try {
+    // Lands back on the dashboard, whose own role check (see dashboard.js)
+    // sends first-time Google users without a role yet to /app/select-role.html.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${location.origin}${DASHBOARD}` },
+    })
+    if (error) throw error
+    // On success the browser navigates away to Google immediately — no restore() needed.
+  } catch (err) {
+    setStatus(statusEl, friendly(err), 'error')
     restore()
   }
 })

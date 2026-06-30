@@ -1,6 +1,6 @@
 // Parent dashboard: per-child weekly study time, quiz accuracy, last studied,
 // and a live "Active now" presence indicator polled from active_sessions.
-import { requireSession, getFamily, signOut, setActiveChild } from './auth.js'
+import { requireSession, getFamily, signOut, setActiveChild, getSelfChild } from './auth.js'
 import { getDashboardData, getActiveSessions } from './api.js'
 import { $, escapeHtml, initials, tintFor, relativeDay, renderStreakBadge } from './ui.js'
 
@@ -12,12 +12,23 @@ async function main() {
   const session = await requireSession()
   if (!session) return
   const role = session.user.user_metadata?.role
-  if (role && role !== 'parent' && role !== 'self') {
+  if (!role) {
+    // First Google sign-in: no role yet (email signup sets it during the
+    // role-selection step, but OAuth has no such step) — pick one before
+    // entering the dashboard.
+    location.replace('/app/select-role.html')
+    return
+  }
+  if (role !== 'parent' && role !== 'self') {
     location.replace('/app/child.html')
     return
   }
   try {
     await getFamily() // bootstrap the family row on first login
+    if (role === 'self') {
+      await renderSelfDashboard()
+      return
+    }
     const children = await getDashboardData()
     const presence = await fetchPresence()
     render(children, presence)
@@ -29,6 +40,29 @@ async function main() {
     }
     content.innerHTML = `<div class="banner banner--error">Couldn't load your dashboard: ${escapeHtml(err.message)}</div>`
   }
+}
+
+/**
+ * Self learners get a single-profile dashboard instead of the family grid:
+ * their own stats (same ring/stat layout as a child card) plus a "Start
+ * session" button that pre-selects their own auto-created child profile via
+ * setActiveChild — the same parent-authenticated path study.js already uses
+ * for a parent picking a child on child.html, just skipping that picker.
+ */
+async function renderSelfDashboard() {
+  $('#page-title').textContent = 'Your dashboard'
+  $('#page-subtitle').textContent = 'Track your study time and progress.'
+  $('#add-child-btn')?.remove()
+
+  const self = await getSelfChild()
+  const children = await getDashboardData()
+  const stats = children.find((c) => c.id === self.id) || { ...self, todayMinutes: 0, lastStudied: null, accuracy: null, streak: 0 }
+  setActiveChild(stats)
+  content.innerHTML = renderSelfCard(stats)
+  $('#self-start-btn')?.addEventListener('click', () => {
+    setActiveChild(stats)
+    location.href = '/app/study.html'
+  })
 }
 
 /** Set of child_ids with a session pinged within the last 2 minutes. */
@@ -186,6 +220,49 @@ function renderCard(c, isActive) {
 
         <a class="child-card__analytics-link" href="/app/analytics.html?child=${c.id}">Analytics →</a>`}
       </article>`
+}
+
+function renderSelfCard(c) {
+  const tint = tintFor(c.name)
+  const neverStudied = !c.lastStudied
+  const goalMinutes = c.daily_goal_minutes || 30
+  const todayMinutes = c.todayMinutes || 0
+  const met = todayMinutes >= goalMinutes
+  const minutesToGo = Math.max(0, Math.ceil(goalMinutes - todayMinutes))
+
+  return `
+    <div class="self-dashboard">
+      <article class="card child-card">
+        <div class="child-card__top">
+          <span class="avatar" style="background:${tint}">${escapeHtml(initials(c.name))}</span>
+          <div class="child-card__identity">
+            <span class="child-card__name">${escapeHtml(c.name)}</span>
+            <div class="child-card__grade">${c.grade ? 'Grade ' + escapeHtml(c.grade) : 'Self learner'}</div>
+          </div>
+          ${!neverStudied ? renderGoalRing(todayMinutes, goalMinutes) : ''}
+        </div>
+
+        ${neverStudied ? `
+        <div class="waiting-banner">
+          <span class="waiting-banner__icon" aria-hidden="true">👋</span>
+          <div>
+            <p class="waiting-banner__title">Ready when you are</p>
+            <p class="waiting-banner__text">Hit "Start session" below to upload your notes and get studying.</p>
+          </div>
+        </div>` : `
+        <div class="child-card__meta-row">
+          <span class="child-card__goal-text${met ? ' is-complete' : ''}">${met ? '✓ Goal met!' : `${minutesToGo} min to go`}</span>
+        </div>
+
+        ${renderStats(c)}`}
+
+        <button class="btn btn-primary btn-lg btn-block" id="self-start-btn" type="button" style="margin-top:6px">Start session</button>
+        <div class="self-dashboard__links">
+          <a class="btn btn-ghost btn-sm" href="/app/analytics.html?child=${c.id}">Analytics</a>
+          <a class="btn btn-ghost btn-sm" href="/app/settings.html">Settings</a>
+        </div>
+      </article>
+    </div>`
 }
 
 /** Updates each card's presence dot in place — never re-renders the grid. */

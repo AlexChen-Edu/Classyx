@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Who are you? · Classyx</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/app/app.css" />
+  </head>
+  <body class="app">
+    <main class="auth-wrap">
+      <div class="card auth-card">
+        <a class="app-logo" href="/index.html">
+          <span class="app-logo__mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
+          </span>
+          Classyx
+        </a>
+
+        <p class="role-step__heading">One last thing — who are you?</p>
+        <div class="role-cards" role="group" aria-label="Who are you?">
+          <button type="button" class="role-card" data-role="self" aria-pressed="false">
+            <span class="role-card__icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/></svg>
+            </span>
+            <span class="role-card__text">
+              <span class="role-card__label">Just me</span>
+              <span class="role-card__sub">I want to track my own learning</span>
+            </span>
+          </button>
+
+          <button type="button" class="role-card" data-role="parent" aria-pressed="false">
+            <span class="role-card__icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 9 8 11 4.5-2 8-6 8-11V5l-8-3Z"/></svg>
+            </span>
+            <span class="role-card__text">
+              <span class="role-card__label">I'm a parent</span>
+              <span class="role-card__sub">I want to support my child's learning</span>
+            </span>
+          </button>
+        </div>
+        <p class="form-status" id="select-role-status" role="status" aria-live="polite"></p>
+      </div>
+    </main>
+    <script type="module" src="/src/app/select-role.js"></script>
+  </body>
+</html>

@@ -18,6 +18,7 @@ export default defineConfig({
         // --- authenticated app ---
         login: 'app/login.html',
         verify: 'app/verify.html',
+        selectRole: 'app/select-role.html',
         onboarding: 'app/onboarding.html',
         forgotPassword: 'app/forgot-password.html',
         resetPassword: 'app/reset-password.html',

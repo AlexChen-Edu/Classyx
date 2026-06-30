@@ -88,6 +88,22 @@ body.app {
 }
 .auth-card { width: 100%; max-width: 420px; }
 .auth-card .app-logo { margin-bottom: 18px; }
+
+/* Google brand button: white surface, neutral border, dark Google-gray text. */
+.btn-google {
+  background: #fff;
+  color: #3c4043;
+  border-color: #dadce0;
+  box-shadow: var(--shadow-xs);
+}
+.btn-google:hover {
+  background: #f8f9fa;
+  border-color: #dadce0;
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+}
+.btn-google:active { transform: translateY(0); }
+.btn-google svg { flex: none; }
 .auth-tabs {
   display: flex;
   gap: 4px;
