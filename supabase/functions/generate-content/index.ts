@@ -173,7 +173,10 @@ Deno.serve(async (req: Request) => {
     const { data: blob, error: dlErr } = await admin.storage
       .from("uploads")
       .download(upload.file_path);
-    if (dlErr || !blob) throw new Error(`Could not read uploaded file: ${dlErr?.message}`);
+    if (dlErr || !blob) {
+      if (dlErr) console.error("Could not read uploaded file:", dlErr.message);
+      throw new Error("Could not read the uploaded file.");
+    }
 
     const meta = classify(upload.file_path);
     if (!meta) throw new Error("Unsupported file type (use an image or PDF).");
@@ -265,7 +268,10 @@ Deno.serve(async (req: Request) => {
         answer: f.answer,
       })),
     );
-    if (fcErr) throw new Error(`Saving flashcards failed: ${fcErr.message}`);
+    if (fcErr) {
+      console.error("Saving flashcards failed:", fcErr.message);
+      throw new Error("Saving flashcards failed.");
+    }
 
     const { data: guide, error: sgErr } = await admin
       .from("study_guides")
@@ -277,7 +283,10 @@ Deno.serve(async (req: Request) => {
       })
       .select("id")
       .single();
-    if (sgErr) throw new Error(`Saving study guide failed: ${sgErr.message}`);
+    if (sgErr) {
+      console.error("Saving study guide failed:", sgErr.message);
+      throw new Error("Saving study guide failed.");
+    }
 
     await admin
       .from("uploads")
