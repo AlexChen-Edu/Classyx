@@ -8,11 +8,10 @@
 // per-subject mastery %. A quiz result whose flashcard/upload was deleted (or
 // never had a subject) has no resolvable subject and is excluded from the
 // per-subject mastery map, falling back to "—" for that subject below.
-import { requireSession, signOut, getFamily } from './auth.js'
-import { getChildAnalytics, updateChildGoal, updateChildName, updateChildGrade, deleteChild, uploadChildAvatar, getChildAvatarUrl } from './api.js'
+import { requireSession, signOut } from './auth.js'
+import { getChildAnalytics } from './api.js'
 import {
-  $, $$, escapeHtml, formatMinutes, computeStreak, renderStreakBadge,
-  setStatus, loading, initials, tintFor,
+  $, escapeHtml, formatMinutes, computeStreak, renderStreakBadge,
 } from './ui.js'
 
 $('[data-signout]')?.addEventListener('click', signOut)
@@ -22,219 +21,7 @@ const gradeEl = $('#child-grade')
 const contentEl = $('#analytics-content')
 const tabs = document.querySelectorAll('[data-period]')
 
-// --- Settings panel (Goals / General / Billing / Account tabs) -------------
-const settingsBtn = $('#settings-btn')
-const settingsOverlay = $('#settings-overlay')
-const settingsModalEl = $('.settings-modal')
-const settingsClose = $('#settings-close')
-const settingsTitle = $('#settings-title')
-const settingsTabs = $$('.settings-tab')
-const settingsPanes = $$('.settings-pane')
-const goalInput = $('#goal-input')
-const goalSaveBtn = $('#goal-save')
-const goalStatus = $('#goal-status')
-const currentGoalLabel = $('#current-goal-label')
-const generalNameEl = $('#general-name')
-const generalGradeEl = $('#general-grade')
-const accountAvatarEl = $('#account-avatar')
-const avatarInput = $('#avatar-input')
-const avatarStatus = $('#avatar-status')
-const accountNameInput = $('#account-name-input')
-const accountNameSaveBtn = $('#account-name-save')
-const accountNameStatus = $('#account-name-status')
-const accountGradeInput = $('#account-grade-input')
-const accountGradeSaveBtn = $('#account-grade-save')
-const accountGradeStatus = $('#account-grade-status')
-const removeChildBtn = $('#remove-child-btn')
-const removeStatus = $('#remove-status')
-
-const SETTINGS_TAB_TITLES = { goals: 'Goals', general: 'General', billing: 'Billing', account: 'Account' }
-const PLAN_TO_BILLING_KEY = { student: 'single_child', family: 'family' }
-
-settingsBtn?.addEventListener('click', openSettings)
-settingsClose?.addEventListener('click', closeSettings)
-settingsOverlay?.addEventListener('click', (e) => { if (e.target === settingsOverlay) closeSettings() })
-settingsTabs.forEach((tab) => tab.addEventListener('click', () => switchSettingsTab(tab.dataset.settingsTab)))
-goalSaveBtn?.addEventListener('click', saveGoal)
-accountNameSaveBtn?.addEventListener('click', saveAccountName)
-accountGradeSaveBtn?.addEventListener('click', saveAccountGrade)
-avatarInput?.addEventListener('change', uploadAvatar)
-removeChildBtn?.addEventListener('click', removeChild)
-
-function switchSettingsTab(name) {
-  settingsTabs.forEach((t) => t.setAttribute('aria-selected', String(t.dataset.settingsTab === name)))
-  settingsPanes.forEach((p) => p.classList.toggle('hidden', p.dataset.settingsPane !== name))
-  settingsTitle.textContent = SETTINGS_TAB_TITLES[name] || 'Settings'
-  // The pricing comparison table needs more room than the other tabs.
-  settingsModalEl?.classList.toggle('settings-modal--wide', name === 'billing')
-}
-
-function openSettings() {
-  if (!dataset) return
-  const goal = dataset.child.daily_goal_minutes ?? 30
-  goalInput.value = goal
-  currentGoalLabel.textContent = `Current goal: ${goal} min/day`
-  generalNameEl.textContent = dataset.child.name
-  generalGradeEl.textContent = dataset.child.grade ? `Grade ${dataset.child.grade}` : '—'
-  accountNameInput.value = dataset.child.name
-  accountGradeInput.value = dataset.child.grade || ''
-  removeChildBtn.textContent = `Remove ${dataset.child.name}`
-  setStatus(goalStatus, '')
-  setStatus(removeStatus, '')
-  setStatus(accountNameStatus, '')
-  setStatus(accountGradeStatus, '')
-  setStatus(avatarStatus, '')
-  renderAccountAvatar()
-  renderBillingPlans()
-  switchSettingsTab('goals')
-  settingsOverlay.hidden = false
-}
-
-function closeSettings() {
-  settingsOverlay.hidden = true
-}
-
-async function saveGoal() {
-  const minutes = parseInt(goalInput.value, 10)
-  if (!Number.isFinite(minutes) || minutes < 1) {
-    setStatus(goalStatus, 'Enter a number of minutes greater than 0.', 'error')
-    return
-  }
-  setStatus(goalStatus, '')
-  const restore = loading(goalSaveBtn, 'Setting…')
-  try {
-    await updateChildGoal(dataset.child.id, minutes)
-    dataset.child.daily_goal_minutes = minutes
-    currentGoalLabel.textContent = `Current goal: ${minutes} min/day`
-    restore()
-    setStatus(goalStatus, 'Saved!', 'success')
-  } catch (err) {
-    restore()
-    setStatus(goalStatus, err.message || 'Could not save. Try again.', 'error')
-  }
-}
-
-// --- Account tab: name, avatar, remove ---------------------------------------
-async function saveAccountName() {
-  const name = accountNameInput.value.trim()
-  if (!name) {
-    setStatus(accountNameStatus, 'Enter a name.', 'error')
-    return
-  }
-  setStatus(accountNameStatus, '')
-  const restore = loading(accountNameSaveBtn, 'Saving…')
-  try {
-    await updateChildName(dataset.child.id, name)
-    dataset.child.name = name
-    nameEl.textContent = name
-    generalNameEl.textContent = name
-    removeChildBtn.textContent = `Remove ${name}`
-    restore()
-    setStatus(accountNameStatus, 'Saved!', 'success')
-  } catch (err) {
-    restore()
-    setStatus(accountNameStatus, err.message || 'Could not save. Try again.', 'error')
-  }
-}
-
-async function saveAccountGrade() {
-  const grade = accountGradeInput.value
-  setStatus(accountGradeStatus, '')
-  const restore = loading(accountGradeSaveBtn, 'Saving…')
-  try {
-    await updateChildGrade(dataset.child.id, grade)
-    dataset.child.grade = grade || null
-    gradeEl.textContent = grade ? `Grade ${grade}` : 'Learner'
-    generalGradeEl.textContent = grade ? `Grade ${grade}` : '—'
-    restore()
-    setStatus(accountGradeStatus, 'Saved!', 'success')
-  } catch (err) {
-    restore()
-    setStatus(accountGradeStatus, err.message || 'Could not save. Try again.', 'error')
-  }
-}
-
-/** Shows the uploaded photo if one exists, else the same initials/tint fallback used elsewhere. */
-async function renderAccountAvatar() {
-  accountAvatarEl.textContent = initials(dataset.child.name)
-  accountAvatarEl.style.background = tintFor(dataset.child.name)
-  try {
-    const url = await getChildAvatarUrl(dataset.child)
-    if (url) accountAvatarEl.innerHTML = `<img src="${url}" alt="${escapeHtml(dataset.child.name)}'s photo" />`
-  } catch { /* keep the initials fallback */ }
-}
-
-/**
- * Crops to a centered square and re-encodes as PNG before upload, so the
- * stored object is always at the same fixed path/format regardless of what
- * the child picked — no DB column needed to remember the original extension.
- */
-function fileToAvatarBlob(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    const img = new Image()
-    reader.onerror = () => reject(new Error('Could not read that file.'))
-    reader.onload = () => { img.src = reader.result }
-    img.onerror = () => reject(new Error('That file is not a valid image.'))
-    img.onload = () => {
-      const size = 256
-      const side = Math.min(img.width, img.height)
-      const canvas = document.createElement('canvas')
-      canvas.width = size
-      canvas.height = size
-      const ctx = canvas.getContext('2d')
-      ctx.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, size, size)
-      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Could not process that image.'))), 'image/png', 0.92)
-    }
-    reader.readAsDataURL(file)
-  })
-}
-
-async function uploadAvatar() {
-  const file = avatarInput.files?.[0]
-  if (!file) return
-  setStatus(avatarStatus, 'Uploading…')
-  try {
-    const blob = await fileToAvatarBlob(file)
-    await uploadChildAvatar({ child: dataset.child, blob })
-    await renderAccountAvatar()
-    setStatus(avatarStatus, 'Updated!', 'success')
-  } catch (err) {
-    setStatus(avatarStatus, err.message || 'Could not upload that photo.', 'error')
-  } finally {
-    avatarInput.value = ''
-  }
-}
-
-async function removeChild() {
-  const name = dataset.child.name
-  if (!confirm(`This will permanently delete ${name}'s profile and all their study data. Are you sure?`)) return
-  setStatus(removeStatus, '')
-  removeChildBtn.disabled = true
-  try {
-    await deleteChild(dataset.child.id)
-    location.href = '/app/dashboard.html'
-  } catch (err) {
-    removeChildBtn.disabled = false
-    setStatus(removeStatus, err.message || 'Could not remove this profile. Try again.', 'error')
-  }
-}
-
-// --- Billing tab: pricing comparison, current plan highlighted -------------
-function renderBillingPlans() {
-  const currentKey = PLAN_TO_BILLING_KEY[family?.plan] || 'free'
-  $$('.billing-plans [data-plan]').forEach((card) => {
-    const isCurrent = card.dataset.plan === currentKey
-    card.classList.toggle('is-current', isCurrent)
-    const btn = card.querySelector('.billing-upgrade-btn')
-    if (!btn) return
-    btn.textContent = isCurrent ? 'Current plan' : 'Upgrade'
-    btn.disabled = isCurrent
-  })
-}
-
 let dataset = null // { child, sessions, quizzes } — the full, unfiltered fetch
-let family = null // { id, plan } — only used to highlight the current plan in the Billing tab
 let period = 'week'
 let subjectFilter = 'all'
 
@@ -259,12 +46,6 @@ async function main() {
     showError(err.message || 'Could not load analytics for this child.')
     return
   }
-
-  // Only used to highlight the current plan in the Billing tab — not worth
-  // failing the whole page over, so this is best-effort.
-  try {
-    family = await getFamily()
-  } catch { /* Billing tab just won't highlight a current plan */ }
 
   nameEl.textContent = dataset.child.name
   gradeEl.textContent = dataset.child.grade ? `Grade ${dataset.child.grade}` : 'Learner'

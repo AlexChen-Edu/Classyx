@@ -911,6 +911,76 @@ body.app {
   .account-avatar-row label.btn { width: 100%; text-align: center; }
 }
 
+/* ---------- Settings page (app/settings.html) — full-page version of the
+   tabbed sidebar layout above. Reuses .settings-layout/.settings-sidebar/
+   .settings-tab/.settings-panel-body as-is (those rules aren't modal-scoped),
+   just wraps them in a page card instead of an .overlay modal. ---------- */
+.settings-page {
+  max-width: 900px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.settings-page .settings-layout { min-height: 480px; }
+
+.settings-child-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-child-row:last-child { border-bottom: 0; }
+.settings-child-row__avatar {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+}
+.settings-child-row__avatar img { width: 100%; height: 100%; object-fit: cover; }
+.settings-child-row__info { flex: 1; min-width: 0; }
+.settings-child-row__name { font-weight: 600; color: var(--ink); }
+.settings-child-row__grade { font-size: 0.85rem; color: var(--ink-3); }
+
+.settings-billing-note { color: var(--ink-3); font-size: 0.9rem; margin-bottom: 18px; }
+
+.settings-account-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.settings-danger-zone {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-legal-list { display: flex; flex-direction: column; gap: 10px; }
+.settings-legal-list a {
+  display: block;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.settings-legal-list a:hover { border-color: var(--brand); background: var(--brand-tint); }
+
+@media (max-width: 37.5rem) {
+  .settings-page { max-width: 100%; border-radius: 0; border-left: 0; border-right: 0; }
+  .settings-page .settings-layout { min-height: 0; }
+}
+
 /* ---------- Modal ---------- */
 .overlay {
   position: fixed; inset: 0;

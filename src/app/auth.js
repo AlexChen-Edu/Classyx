@@ -30,12 +30,17 @@ export async function getFamily() {
 
   const { data: existing, error } = await supabase
     .from('families')
-    .select('id, plan')
+    .select('id, plan, is_deactivated')
     .eq('parent_id', user.id)
     .maybeSingle()
   if (error) throw error
 
   if (existing) {
+    if (existing.is_deactivated) {
+      const e = new Error('This account has been deactivated.')
+      e.deactivated = true
+      throw e
+    }
     _family = existing
     return _family
   }
@@ -43,7 +48,7 @@ export async function getFamily() {
   const { data: created, error: insErr } = await supabase
     .from('families')
     .insert({ parent_id: user.id, plan: 'student' })
-    .select('id, plan')
+    .select('id, plan, is_deactivated')
     .single()
   if (insErr) throw insErr
   _family = created

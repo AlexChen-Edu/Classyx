@@ -22,6 +22,7 @@ export default defineConfig({
         resetPassword: 'app/reset-password.html',
         dashboard: 'app/dashboard.html',
         analytics: 'app/analytics.html',
+        settings: 'app/settings.html',
         child: 'app/child.html',
         study: 'app/study.html',
         addChild: 'app/add-child.html',

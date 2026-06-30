@@ -6,7 +6,7 @@
 //    creation entirely and redirects to the code-entry page.
 //  - Magic link: passwordless sign-in link.
 import { supabase, supabaseAnon } from '../supabaseClient.js'
-import { setChildSession } from './auth.js'
+import { setChildSession, getFamily } from './auth.js'
 import { $, $$, setStatus, loading } from './ui.js'
 
 const DASHBOARD = '/app/dashboard.html'
@@ -347,6 +347,19 @@ async function doSignIn(email, password) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
     const role = data.user?.user_metadata?.role
+    if (role === 'parent' || role === 'self') {
+      try {
+        await getFamily()
+      } catch (famErr) {
+        if (famErr.deactivated) {
+          await supabase.auth.signOut()
+          setStatus(statusEl, 'This account has been deactivated. Contact support if this was a mistake.', 'error')
+          restore()
+          return
+        }
+        throw famErr
+      }
+    }
     location.replace(role === 'parent' || role === 'self' ? DASHBOARD : CHILD)
   } catch (err) {
     setStatus(statusEl, friendly(err), 'error')

@@ -418,6 +418,15 @@ export async function getChildAnalytics(childId) {
   return { child, sessions: sessions ?? [], quizzes: quizzes ?? [] }
 }
 
+// --- Account ------------------------------------------------------------------
+
+/** Marks the caller's own family row deactivated (RLS-scoped via the owner-all policy). Login then blocks the account — see getFamily(). */
+export async function deactivateAccount() {
+  const family = await getFamily()
+  const { error } = await supabase.from('families').update({ is_deactivated: true }).eq('id', family.id)
+  if (error) throw error
+}
+
 // --- Dashboard aggregates ---------------------------------------------------
 
 export async function getDashboardData() {

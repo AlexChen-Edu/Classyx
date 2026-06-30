@@ -7,7 +7,6 @@ import { $, escapeHtml, relativeDay, initials, tintFor, setStatus, loading } fro
 const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
 
 const content = $('#content')
-$('[data-signout]')?.addEventListener('click', signOut)
 
 async function main() {
   const session = await requireSession()
@@ -24,6 +23,10 @@ async function main() {
     render(children, presence)
     startPolling()
   } catch (err) {
+    if (err.deactivated) {
+      await signOut()
+      return
+    }
     content.innerHTML = `<div class="banner banner--error">Couldn't load your dashboard: ${escapeHtml(err.message)}</div>`
   }
 }
