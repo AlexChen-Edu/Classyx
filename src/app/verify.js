@@ -8,6 +8,7 @@ import { $, $$, setStatus, loading } from './ui.js'
 
 const LOGIN = '/app/login.html'
 const DASHBOARD = '/app/dashboard.html'
+const ONBOARDING = '/app/onboarding.html'
 const EMAIL_KEY = 'verify_email'
 
 const form = $('#verify-form')
@@ -53,10 +54,11 @@ async function submitCode() {
   const restore = loading(submitBtn, 'Verifying…')
   setStatus(statusEl, '')
   try {
-    const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'signup' })
+    const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: 'signup' })
     if (error) throw error
     sessionStorage.removeItem(EMAIL_KEY)
-    location.replace(DASHBOARD)
+    const role = data.user?.user_metadata?.role
+    location.replace(role === 'parent' ? ONBOARDING : DASHBOARD)
   } catch (err) {
     setStatus(statusEl, friendly(err), 'error')
     codeBoxes.forEach((b) => (b.value = ''))
