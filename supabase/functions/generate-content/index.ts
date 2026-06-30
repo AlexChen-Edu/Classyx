@@ -9,7 +9,7 @@
 //      client). The service-role key is only used AFTER ownership is proven.
 //   2. Download the uploaded note (image or PDF) from the private "uploads"
 //      bucket with the service-role client.
-//   3. Send it to OpenAI (gpt-4o-mini, multimodal — handles image OCR and PDF
+//   3. Send it to OpenAI (gpt-5.4-nano, multimodal — handles image OCR and PDF
 //      reading in a single call) and ask for 20 flashcards + a structured
 //      study guide as strict JSON.
 //   4. Persist flashcards + study_guide, mark the upload processed.
@@ -37,7 +37,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
+const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-5.4-nano";
 
 // The OpenAI key is intentionally a placeholder until the user sets it.
 function getOpenAiKey(): string | null {
