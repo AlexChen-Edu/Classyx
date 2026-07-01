@@ -803,6 +803,66 @@ body.app {
 .btn-danger { background: #c0492f; color: #fff; }
 .btn-danger:hover { background: #a23c25; }
 
+/* Billing period toggle — iOS-style pill */
+.billing-toggle-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+.billing-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface-2, #f0f0f0);
+  border-radius: 999px;
+  padding: 4px;
+  gap: 2px;
+  border: 1px solid var(--line, #e4e4e4);
+}
+.billing-toggle__opt {
+  padding: 7px 20px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--ink-3, #666);
+  transition: background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease;
+}
+.billing-toggle__opt.is-active {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+/* Price fields that animate on toggle */
+.plan__amount { transition: opacity 0.18s ease; }
+.plan__original {
+  font-size: 0.9rem;
+  color: var(--ink-3, #888);
+  text-decoration: line-through;
+  margin-left: 4px;
+  transition: opacity 0.18s ease;
+}
+.plan__billed {
+  font-size: 0.78rem;
+  color: var(--ink-3, #888);
+  margin-top: 2px;
+}
+.plan__save-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--brand-ink, #1a5c35);
+  background: var(--brand-tint, #e6f4ec);
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 .billing-plans {
   display: grid;
   grid-template-columns: 1fr;
@@ -1380,3 +1440,57 @@ body.app {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
+
+/* ---------- Ask thread (follow-up conversation) ---------- */
+.ask-exchange {
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.ask-exchange:first-child {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+/* User question shown as a compact pill above each answer */
+.ask-q-chip {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--brand-tint);
+  color: var(--brand-ink);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+/* Follow-up text input + arrow send button */
+.ask-followup-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.ask-followup-bar .input { flex: 1; }
+.ask-followup-send {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+}
+
+/* ---------- Dashboard — AI credit usage line ---------- */
+.child-card__credits {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  margin-top: 10px;
+}
+.child-card__credits--warn { color: var(--notice); font-weight: 600; }

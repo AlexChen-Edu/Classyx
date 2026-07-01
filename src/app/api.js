@@ -13,6 +13,12 @@ const CHILD_COLS = 'id, name, grade, daily_goal_minutes, created_at'
 /** Max child profiles per plan. Missing/unrecognized plan -> treated as free. */
 const PLAN_CHILD_LIMITS = { free: 1, single_child: 1, family: 3 }
 
+/** Monthly AI credit limits per plan. Missing/unrecognized plan -> 10 (free). */
+const PLAN_AI_LIMITS = { free: 10, student: 300, family: 900 }
+export function aiLimitFor(plan) {
+  return PLAN_AI_LIMITS[plan] ?? PLAN_AI_LIMITS.free
+}
+
 export function childLimitFor(plan) {
   return PLAN_CHILD_LIMITS[plan] ?? PLAN_CHILD_LIMITS.free
 }
@@ -180,33 +186,39 @@ export async function generateContent({ uploadId, childId, subject, viaParentSes
   if (error) {
     let message = 'Generation failed. Please try again.'
     let notConfigured = false
+    let creditsExhausted = false
     try {
       const body = await error.context?.json?.()
       if (body?.message) message = body.message
       if (body?.error === 'not_configured') notConfigured = true
+      if (body?.error === 'credits_exhausted') creditsExhausted = true
     } catch { /* keep default */ }
     const e = new Error(message)
     e.notConfigured = notConfigured
+    e.creditsExhausted = creditsExhausted
     throw e
   }
   return data
 }
 
-export async function askQuestion({ childId, question, viaParentSession }) {
+export async function askQuestion({ childId, question, viaParentSession, context = [] }) {
   const client = viaParentSession ? supabase : supabaseAnon
   const { data, error } = await client.functions.invoke('generate-content', {
-    body: { mode: 'ask', child_id: childId, question },
+    body: { mode: 'ask', child_id: childId, question, context },
   })
   if (error) {
     let message = 'Failed to get an answer. Please try again.'
     let notConfigured = false
+    let creditsExhausted = false
     try {
       const body = await error.context?.json?.()
       if (body?.message) message = body.message
       if (body?.error === 'not_configured') notConfigured = true
+      if (body?.error === 'credits_exhausted') creditsExhausted = true
     } catch { /* keep default */ }
     const e = new Error(message)
     e.notConfigured = notConfigured
+    e.creditsExhausted = creditsExhausted
     throw e
   }
   return data
@@ -460,13 +472,24 @@ export async function deactivateAccount() {
 
 export async function getDashboardData() {
   const children = await listChildren()
-  const [{ data: sessions }, { data: quizzes }] = await Promise.all([
+  const family = await getFamily()
+
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+
+  const [{ data: sessions }, { data: quizzes }, { data: usageRows }] = await Promise.all([
     supabase.from('study_sessions').select('child_id, started_at, duration_minutes, duration_seconds'),
     supabase.from('quiz_results').select('child_id, correct, answered_at'),
+    supabase.from('ai_usage').select('child_id').gte('used_at', monthStart),
   ])
 
+  // Count ai_usage rows per child for the current month
+  const usageCounts = {}
+  for (const row of usageRows ?? []) {
+    usageCounts[row.child_id] = (usageCounts[row.child_id] || 0) + 1
+  }
+
   // Start of the current week (Monday 00:00 local) and of today.
-  const now = new Date()
   const day = (now.getDay() + 6) % 7
   const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day)
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -497,7 +520,8 @@ export async function getDashboardData() {
     const correct = cQuizzes.filter((q) => q.correct).length
     const accuracy = total ? Math.round((correct / total) * 100) : null
     const streak = computeStreak(cSessions)
+    const monthlyUsage = usageCounts[child.id] || 0
 
-    return { ...child, weekMinutes, todayMinutes, lastStudied, quizCount: total, accuracy, streak }
+    return { ...child, weekMinutes, todayMinutes, lastStudied, quizCount: total, accuracy, streak, monthlyUsage, familyPlan: family?.plan ?? null }
   })
 }

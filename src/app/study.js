@@ -29,9 +29,13 @@ const els = {
   uploadSection: $('#upload-section'),
   intentSection: $('#intent-section'),
   askSection: $('#ask-section'),
+  askInputWrap: $('#ask-input-wrap'),
   askInput: $('#ask-input'),
   askBtn: $('#ask-btn'),
-  askResult: $('#ask-result'),
+  askThread: $('#ask-thread'),
+  askFollowupWrap: $('#ask-followup-wrap'),
+  askFollowupInput: $('#ask-followup-input'),
+  askFollowupBtn: $('#ask-followup-btn'),
   generating: $('#generating'),
   results: $('#results'),
   goalBarFill: $('#goal-bar-fill'),
@@ -475,6 +479,8 @@ async function generate(mode) {
     if (err.notConfigured) {
       setStatus(els.status, '', '')
       banner(`<div class="banner banner--info">${escapeHtml(err.message)}</div>`)
+    } else if (err.creditsExhausted) {
+      setStatus(els.status, "You've used all your study credits for this month. Let your parent know to check the plan.", 'error')
     } else {
       setStatus(els.status, friendlyMessage(err, 'Generation failed. Please try again.'), 'error')
     }
@@ -561,7 +567,7 @@ function renderSummarizeResult(result) {
     ${keyPoints ? `<h3>Key Points</h3><ul>${keyPoints}</ul>` : ''}`
 }
 
-function renderAskResult(result, container) {
+function renderAskResult(result, container, onChipClick) {
   const followUps = (result.follow_up_questions || [])
     .map((q) => `<button class="followup-chip" type="button">${escapeHtml(q)}</button>`)
     .join('')
@@ -591,14 +597,73 @@ function renderAskResult(result, container) {
   container.innerHTML = html
   container.querySelectorAll('.followup-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
-      els.askInput.value = chip.textContent
-      els.askBtn.disabled = false
-      els.askInput.focus()
+      if (onChipClick) {
+        onChipClick(chip.textContent)
+      } else {
+        els.askFollowupInput.value = chip.textContent
+        els.askFollowupBtn.disabled = false
+        els.askFollowupInput.focus()
+      }
     })
   })
 }
 
-// ============================ Ask anything =================================
+// ============================ Ask anything — conversation thread ===========
+/** Full history of this session's ask-thread exchanges. */
+let conversationHistory = []
+
+/** Compact plain-text summary of a result, used as the assistant's turn in history. */
+function summariseForHistory(result) {
+  const parts = []
+  if (result.headline) parts.push(result.headline.replace(/\*\*/g, ''))
+  if (result.answer) parts.push(result.answer.replace(/\*\*/g, ''))
+  if (result.key_points?.length) parts.push(result.key_points.join('. '))
+  return parts.join('\n\n')
+}
+
+/** Pre-fill the follow-up input from a suggested chip. */
+function fillFollowup(text) {
+  els.askFollowupInput.value = text
+  els.askFollowupBtn.disabled = false
+  els.askFollowupInput.focus()
+}
+
+/** Append a Q/A exchange to the thread and scroll it into view. */
+function appendExchange(question, result) {
+  const exchange = document.createElement('div')
+  exchange.className = 'ask-exchange'
+
+  const chip = document.createElement('div')
+  chip.className = 'ask-q-chip'
+  chip.textContent = question
+  chip.title = question
+
+  const answerWrap = document.createElement('div')
+  answerWrap.className = 'ask-answer-wrap'
+
+  exchange.appendChild(chip)
+  exchange.appendChild(answerWrap)
+  els.askThread.appendChild(exchange)
+
+  renderAskResult(result, answerWrap, fillFollowup)
+
+  // Smooth-scroll the new exchange into view (not instant, so the user can
+  // see the transition from their question chip to the answer).
+  requestAnimationFrame(() =>
+    exchange.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  )
+}
+
+/** Switch from initial-input view to the thread+followup view. */
+function showThread(question, result) {
+  conversationHistory = []
+  els.askInputWrap.classList.add('hidden')
+  els.askThread.innerHTML = ''
+  els.askThread.classList.remove('hidden')
+  els.askFollowupWrap.classList.remove('hidden')
+  appendExchange(question, result)
+}
+
 function wireAskSection() {
   els.askInput.addEventListener('input', () => {
     els.askBtn.disabled = !els.askInput.value.trim()
@@ -607,6 +672,14 @@ function wireAskSection() {
     if (e.key === 'Enter' && !els.askBtn.disabled) ask()
   })
   els.askBtn.addEventListener('click', ask)
+
+  els.askFollowupInput.addEventListener('input', () => {
+    els.askFollowupBtn.disabled = !els.askFollowupInput.value.trim()
+  })
+  els.askFollowupInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !els.askFollowupBtn.disabled) sendFollowup()
+  })
+  els.askFollowupBtn.addEventListener('click', sendFollowup)
 }
 
 async function ask() {
@@ -615,24 +688,60 @@ async function ask() {
 
   const statusEl = $('[data-ask-status]')
   setStatus(statusEl, '', '')
-  els.askResult.classList.add('hidden')
   els.askBtn.disabled = true
   els.askBtn.textContent = 'Asking…'
 
   try {
     const data = await askQuestion({ childId: child.id, question, viaParentSession })
-    renderAskResult(data.result, els.askResult)
-    els.askResult.classList.remove('hidden')
+    showThread(question, data.result)
+    conversationHistory.push({ role: 'user', content: question })
+    conversationHistory.push({ role: 'assistant', content: summariseForHistory(data.result) })
     showMascot('Great question!')
   } catch (err) {
-    if (err.notConfigured) {
-      setStatus(statusEl, err.message, 'error')
-    } else {
-      setStatus(statusEl, friendlyMessage(err, 'Could not get an answer. Please try again.'), 'error')
-    }
+    handleAskError(err, statusEl)
   } finally {
     els.askBtn.disabled = false
     els.askBtn.textContent = 'Ask'
+  }
+}
+
+async function sendFollowup() {
+  const question = els.askFollowupInput.value.trim()
+  if (!question) return
+
+  const statusEl = $('[data-ask-status]')
+  setStatus(statusEl, '', '')
+  els.askFollowupBtn.disabled = true
+  els.askFollowupInput.disabled = true
+
+  try {
+    const data = await askQuestion({
+      childId: child.id,
+      question,
+      viaParentSession,
+      context: conversationHistory,
+    })
+    els.askFollowupInput.value = ''
+    appendExchange(question, data.result)
+    conversationHistory.push({ role: 'user', content: question })
+    conversationHistory.push({ role: 'assistant', content: summariseForHistory(data.result) })
+    showMascot('Keep the questions coming!')
+  } catch (err) {
+    handleAskError(err, statusEl)
+  } finally {
+    els.askFollowupBtn.disabled = !els.askFollowupInput.value.trim()
+    els.askFollowupInput.disabled = false
+    els.askFollowupInput.focus()
+  }
+}
+
+function handleAskError(err, statusEl) {
+  if (err.creditsExhausted) {
+    setStatus(statusEl, "You've used all your study credits for this month. Let your parent know to check the plan.", 'error')
+  } else if (err.notConfigured) {
+    setStatus(statusEl, err.message, 'error')
+  } else {
+    setStatus(statusEl, friendlyMessage(err, 'Could not get an answer. Please try again.'), 'error')
   }
 }
 

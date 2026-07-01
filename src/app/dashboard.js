@@ -1,7 +1,7 @@
 // Parent dashboard: per-child weekly study time, quiz accuracy, last studied,
 // and a live "Active now" presence indicator polled from active_sessions.
 import { requireSession, getFamily, signOut, setActiveChild, getSelfChild } from './auth.js'
-import { getDashboardData, getActiveSessions } from './api.js'
+import { getDashboardData, getActiveSessions, aiLimitFor } from './api.js'
 import { $, escapeHtml, initials, tintFor, relativeDay, renderStreakBadge, friendlyMessage } from './ui.js'
 
 const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
@@ -169,6 +169,10 @@ function renderStats(c) {
     : `<span class="child-card__stat-value" style="color:${accuracyColor(c.accuracy)}">${c.accuracy}%</span>
        <span class="child-card__stat-sub">${accuracyLabel(c.accuracy)}</span>`
 
+  const monthlyLimit = aiLimitFor(c.familyPlan)
+  const usedCredits = c.monthlyUsage ?? 0
+  const creditsNearLimit = usedCredits >= Math.floor(monthlyLimit * 0.8)
+
   return `
     <div class="child-card__stats">
       <div class="child-card__stat">
@@ -183,7 +187,8 @@ function renderStats(c) {
         <span class="child-card__stat-label">Streak</span>
         ${c.streak > 0 ? renderStreakBadge(c.streak) : `<span class="child-card__stat-value">0 days</span>`}
       </div>
-    </div>`
+    </div>
+    <p class="child-card__credits${creditsNearLimit ? ' child-card__credits--warn' : ''}">${usedCredits} of ${monthlyLimit} AI credits used this month</p>`
 }
 
 function renderCard(c, isActive) {

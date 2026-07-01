@@ -124,13 +124,26 @@
               <p>Type any question and get a clear, student-friendly answer.</p>
             </div>
           </div>
-          <div class="form-row">
-            <label for="ask-input">Your question</label>
-            <input type="text" class="input" id="ask-input" placeholder="e.g. explain photosynthesis, what is the quadratic formula…" />
+          <!-- Initial input: shown before any question is asked -->
+          <div id="ask-input-wrap">
+            <div class="form-row">
+              <label for="ask-input">Your question</label>
+              <input type="text" class="input" id="ask-input" placeholder="e.g. explain photosynthesis, what is the quadratic formula…" />
+            </div>
+            <button class="btn btn-primary btn-lg btn-block" id="ask-btn" type="button" disabled>Ask</button>
           </div>
-          <button class="btn btn-primary btn-lg btn-block" id="ask-btn" type="button" disabled>Ask</button>
-          <p class="form-status" data-ask-status role="status" aria-live="polite"></p>
-          <div id="ask-result" class="hidden" style="margin-top:24px"></div>
+          <!-- Conversation thread: accumulates all Q/A exchanges -->
+          <div id="ask-thread" class="hidden"></div>
+          <!-- Follow-up bar: shown after the first answer -->
+          <div id="ask-followup-wrap" class="hidden">
+            <div class="ask-followup-bar">
+              <input type="text" class="input" id="ask-followup-input" placeholder="Ask a follow-up…" />
+              <button class="btn btn-primary ask-followup-send" id="ask-followup-btn" type="button" disabled aria-label="Send follow-up">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+            </div>
+          </div>
+          <p class="form-status" data-ask-status role="status" aria-live="polite" style="margin-top:8px"></p>
         </section>
 
         <!-- Generating -->

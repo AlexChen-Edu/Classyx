@@ -8,12 +8,13 @@
 //   ask         — text question answered without a file upload
 //
 // Input (POST JSON):
-//   { mode, child_id, upload_id?, subject? }  — for flashcards/solve/summarize
-//   { mode: 'ask', child_id, question }        — for ask
+//   { mode, child_id, upload_id?, subject? }           — flashcards/solve/summarize
+//   { mode: 'ask', child_id, question, context? }       — ask (context = prior turns)
 //
 // SECURITY:
 //   * OPENAI_API_KEY lives ONLY here (Deno.env), never in the browser.
 //   * Until OPENAI_API_KEY is set, returns HTTP 503 "not configured".
+//   * Monthly credit limits are enforced before each OpenAI call.
 //   * SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are
 //     injected automatically by the platform.
 // ===========================================================================
@@ -34,6 +35,13 @@ const json = (body: unknown, status = 200) =>
   });
 
 const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-5.4-nano";
+
+// Monthly AI credit limits per plan. Unknown/missing plan → FREE_LIMIT.
+const PLAN_AI_LIMITS: Record<string, number> = {
+  student: 300,
+  family: 900,
+};
+const FREE_LIMIT = 10;
 
 function getOpenAiKey(): string | null {
   const key = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -193,11 +201,21 @@ const SCHEMA_NAMES: Record<string, string> = {
   ask: "ask_response",
 };
 
+type ConversationTurn = { role: "user" | "assistant"; content: string };
+
 async function callOpenAI(
   openAiKey: string,
   mode: string,
   userContent: unknown[],
+  context: ConversationTurn[] = [],
 ): Promise<string> {
+  // Interleave prior conversation turns before the current user message so the
+  // model knows what was already discussed (ask follow-up thread).
+  const contextMessages = context.map((turn) => ({
+    role: turn.role,
+    content: [{ type: "input_text", text: turn.content }],
+  }));
+
   const aiRes = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -211,6 +229,7 @@ async function callOpenAI(
           role: "system",
           content: [{ type: "input_text", text: SYSTEM_PROMPTS[mode] }],
         },
+        ...contextMessages,
         { role: "user", content: userContent },
       ],
       text: {
@@ -253,6 +272,7 @@ Deno.serve(async (req: Request) => {
   let upload_id: string | undefined;
   let subject: string | undefined;
   let question: string | undefined;
+  let context: ConversationTurn[] = [];
 
   try {
     const body = await req.json();
@@ -263,6 +283,16 @@ Deno.serve(async (req: Request) => {
     if (mode === "ask") {
       question = String(body.question ?? "").trim();
       if (!child_id || !question) throw new Error("missing fields");
+      // Optional conversation history for follow-up threading
+      if (Array.isArray(body.context)) {
+        context = (body.context as unknown[])
+          .filter((t): t is ConversationTurn =>
+            typeof t === "object" && t !== null &&
+            (t as ConversationTurn).role === "user" || (t as ConversationTurn).role === "assistant" &&
+            typeof (t as ConversationTurn).content === "string"
+          )
+          .slice(0, 20); // cap history at 20 turns (10 exchanges)
+      }
     } else {
       upload_id = body.upload_id;
       subject = body.subject;
@@ -294,6 +324,55 @@ Deno.serve(async (req: Request) => {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Credit check helper — runs after authorization, before every OpenAI call.
+  // Returns { familyId } if within limit, or a Response if over limit.
+  // ---------------------------------------------------------------------------
+  async function checkCredits(childId: string): Promise<{ familyId: string } | Response> {
+    const { data: childRow } = await admin
+      .from("children")
+      .select("family_id")
+      .eq("id", childId)
+      .single();
+    if (!childRow) return json({ error: "Child not found" }, 404);
+
+    const familyId = childRow.family_id as string;
+    const { data: familyRow } = await admin
+      .from("families")
+      .select("plan")
+      .eq("id", familyId)
+      .single();
+
+    const limit = familyRow
+      ? (PLAN_AI_LIMITS[familyRow.plan as string] ?? FREE_LIMIT)
+      : FREE_LIMIT;
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const { count } = await admin
+      .from("ai_usage")
+      .select("*", { count: "exact", head: true })
+      .eq("child_id", childId)
+      .gte("used_at", monthStart);
+
+    if ((count ?? 0) >= limit) {
+      return json(
+        {
+          error: "credits_exhausted",
+          message:
+            "You've used all your study credits this month. Ask a parent to upgrade your plan.",
+        },
+        429,
+      );
+    }
+
+    return { familyId };
+  }
+
+  async function recordUsage(childId: string, familyId: string) {
+    await admin.from("ai_usage").insert({ child_id: childId, family_id: familyId });
+  }
+
   // ===========================================================================
   // ASK mode — text question only, no file
   // ===========================================================================
@@ -316,13 +395,25 @@ Deno.serve(async (req: Request) => {
     }
     if (!authorized) return json({ error: "Not authorized" }, 403);
 
+    // Credit check
+    const creditResult = await checkCredits(child_id);
+    if (creditResult instanceof Response) return creditResult;
+    const { familyId } = creditResult;
+
     try {
       const outText = await callOpenAI(
         openAiKey,
         "ask",
         [{ type: "input_text", text: question! }],
+        context,
       );
       const parsed = JSON.parse(outText);
+
+      // Record usage after successful generation
+      await recordUsage(child_id, familyId).catch((e) =>
+        console.error("ai_usage insert failed:", e)
+      );
+
       return json({ success: true, mode: "ask", result: parsed });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Generation failed.";
@@ -368,6 +459,11 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!upload) return json({ error: "Upload not found" }, 404);
+
+  // Credit check (after ownership proof, before the expensive AI call)
+  const creditResult = await checkCredits(child_id);
+  if (creditResult instanceof Response) return creditResult;
+  const { familyId } = creditResult;
 
   try {
     // --- Download the note ---------------------------------------------------
@@ -465,6 +561,11 @@ Deno.serve(async (req: Request) => {
         .update({ processed: true, error: null })
         .eq("id", upload_id!);
 
+      // Record usage after successful generation
+      await recordUsage(child_id, familyId).catch((e) =>
+        console.error("ai_usage insert failed:", e)
+      );
+
       return json({
         success: true,
         flashcard_count: flashcards.length,
@@ -477,6 +578,11 @@ Deno.serve(async (req: Request) => {
       .from("uploads")
       .update({ processed: true, error: null })
       .eq("id", upload_id!);
+
+    // Record usage after successful generation
+    await recordUsage(child_id, familyId).catch((e) =>
+      console.error("ai_usage insert failed:", e)
+    );
 
     return json({ success: true, mode, result: parsed });
   } catch (err) {
