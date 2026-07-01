@@ -47,13 +47,24 @@
 
               <div class="settings-pane hidden" data-settings-pane="billing">
                 <p class="settings-billing-note">Your family's current plan is highlighted below.</p>
+
+                <div class="billing-toggle-wrap">
+                  <div class="billing-toggle" id="billing-toggle" role="group" aria-label="Billing period">
+                    <button class="billing-toggle__opt" data-period="monthly" type="button">Monthly</button>
+                    <button class="billing-toggle__opt is-active" data-period="annual" type="button">Annual</button>
+                  </div>
+                </div>
+
                 <div class="billing-plans">
                   <article class="card plan" data-plan="free">
                     <div class="plan__head">
                       <h3 class="plan__name">Free</h3>
                       <p class="plan__for">Try Classyx with one learner</p>
                     </div>
-                    <p class="plan__price"><span class="plan__amount">$0</span><span class="plan__per">/month</span></p>
+                    <p class="plan__price">
+                      <span class="plan__amount">$0</span><span class="plan__per">/month</span>
+                    </p>
+                    <p class="plan__billed"></p>
                     <ul class="plan__features">
                       <li>1 child account</li>
                       <li>10 study packs / month</li>
@@ -69,7 +80,12 @@
                       <h3 class="plan__name">Single Child</h3>
                       <p class="plan__for">For one focused learner</p>
                     </div>
-                    <p class="plan__price"><span class="plan__amount">$7.99</span><span class="plan__per">/month</span></p>
+                    <p class="plan__price">
+                      <span class="plan__amount">$6.39</span><span class="plan__per">/mo</span>
+                      <span class="plan__original">$7.99/mo</span>
+                      <span class="plan__save-badge">Save 20%</span>
+                    </p>
+                    <p class="plan__billed">billed $76.68/year</p>
                     <ul class="plan__features">
                       <li>1 child account</li>
                       <li>300 study packs / month</li>
@@ -85,7 +101,12 @@
                       <h3 class="plan__name">Family</h3>
                       <p class="plan__for">For households with more than one student</p>
                     </div>
-                    <p class="plan__price"><span class="plan__amount">$19.99</span><span class="plan__per">/month</span></p>
+                    <p class="plan__price">
+                      <span class="plan__amount">$15.99</span><span class="plan__per">/mo</span>
+                      <span class="plan__original">$19.99/mo</span>
+                      <span class="plan__save-badge">Save 20%</span>
+                    </p>
+                    <p class="plan__billed">billed $191.88/year</p>
                     <ul class="plan__features">
                       <li>300 study packs / month per child</li>
                       <li>Advanced dashboard</li>

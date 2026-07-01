@@ -11,6 +11,43 @@ import { $, $$, escapeHtml, setStatus, loading, initials, tintFor, friendlyMessa
 const TAB_TITLES = { children: 'Children', billing: 'Billing', account: 'Account', legal: 'Legal' }
 const PLAN_TO_BILLING_KEY = { student: 'single_child', family: 'family' }
 
+let billingPeriod = 'annual'
+
+const PRICES = {
+  free:         { monthly: '$0',     annual: '$0',     billed: '' },
+  single_child: { monthly: '$7.99',  annual: '$6.39',  billed: 'billed $76.68/year' },
+  family:       { monthly: '$19.99', annual: '$15.99', billed: 'billed $191.88/year' },
+}
+
+function updateBillingPrices() {
+  const isAnnual = billingPeriod === 'annual'
+  $$('.billing-plans [data-plan]').forEach((card) => {
+    const p = PRICES[card.dataset.plan]
+    if (!p) return
+    const amountEl = card.querySelector('.plan__amount')
+    const origEl = card.querySelector('.plan__original')
+    const billedEl = card.querySelector('.plan__billed')
+    const badgeEl = card.querySelector('.plan__save-badge')
+    if (amountEl) amountEl.textContent = isAnnual ? p.annual : p.monthly
+    if (origEl) origEl.style.display = isAnnual && card.dataset.plan !== 'free' ? '' : 'none'
+    if (billedEl) billedEl.textContent = isAnnual ? p.billed : ''
+    if (badgeEl) badgeEl.style.display = isAnnual && card.dataset.plan !== 'free' ? '' : 'none'
+  })
+}
+
+const billingToggleEl = $('#billing-toggle')
+if (billingToggleEl) {
+  billingToggleEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.billing-toggle__opt')
+    if (!btn) return
+    billingPeriod = btn.dataset.period
+    billingToggleEl.querySelectorAll('.billing-toggle__opt').forEach((b) => {
+      b.classList.toggle('is-active', b.dataset.period === billingPeriod)
+    })
+    updateBillingPrices()
+  })
+}
+
 const settingsTabs = $$('.settings-tab')
 const settingsPanes = $$('.settings-pane')
 const settingsTitle = $('#settings-title')
@@ -330,6 +367,7 @@ function renderBillingPlans() {
     btn.textContent = isCurrent ? 'Current plan' : 'Upgrade'
     btn.disabled = isCurrent
   })
+  updateBillingPrices()
 }
 
 // --- Account tab -----------------------------------------------------------------

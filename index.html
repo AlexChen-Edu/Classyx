@@ -392,13 +392,23 @@
             </p>
           </div>
 
+          <div class="billing-toggle-wrap" style="display:flex;justify-content:center;margin-bottom:28px">
+            <div class="billing-toggle" id="billing-toggle" role="group" aria-label="Billing period" style="display:inline-flex;align-items:center;background:var(--surface-2,#f0f0f0);border-radius:999px;padding:4px;gap:2px;border:1px solid var(--line,#e4e4e4)">
+              <button class="billing-toggle__opt" data-period="monthly" type="button" style="padding:7px 20px;border-radius:999px;border:none;background:transparent;font:inherit;font-size:0.88rem;font-weight:500;cursor:pointer;color:var(--ink-3,#666);transition:background 0.22s,color 0.22s,box-shadow 0.22s">Monthly</button>
+              <button class="billing-toggle__opt is-active" data-period="annual" type="button" style="padding:7px 20px;border-radius:999px;border:none;background:var(--brand);color:#fff;font:inherit;font-size:0.88rem;font-weight:500;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.15);transition:background 0.22s,color 0.22s,box-shadow 0.22s">Annual</button>
+            </div>
+          </div>
+
           <div class="grid grid-3 plans">
-            <article class="card plan" data-reveal>
+            <article class="card plan" data-reveal data-plan="free">
               <div class="plan__head">
                 <h3 class="plan__name">Free</h3>
                 <p class="plan__for">Try Classyx with one learner</p>
               </div>
-              <p class="plan__price"><span class="plan__amount">$0</span><span class="plan__per">/month</span></p>
+              <p class="plan__price">
+                <span class="plan__amount">$0</span><span class="plan__per">/month</span>
+              </p>
+              <p class="plan__billed" style="font-size:0.78rem;color:var(--ink-3,#888);margin-top:2px;min-height:1.2em"></p>
               <ul class="plan__features">
                 <li>1 child account</li>
                 <li>10 study packs / month</li>
@@ -408,13 +418,18 @@
               <a class="btn btn-ghost btn-block" href="/app/login.html">Choose plan</a>
             </article>
 
-            <article class="card plan plan--featured" data-reveal>
+            <article class="card plan plan--featured" data-reveal data-plan="single_child">
               <span class="plan__badge">Most popular</span>
               <div class="plan__head">
                 <h3 class="plan__name">Single Child</h3>
                 <p class="plan__for">For one focused learner</p>
               </div>
-              <p class="plan__price"><span class="plan__amount">$7.99</span><span class="plan__per">/month</span></p>
+              <p class="plan__price">
+                <span class="plan__amount">$6.39</span><span class="plan__per">/mo</span>
+                <span class="plan__original" style="font-size:0.9rem;color:var(--ink-3,#888);text-decoration:line-through;margin-left:4px">$7.99/mo</span>
+                <span class="plan__save-badge" style="display:inline-flex;align-items:center;font-size:0.72rem;font-weight:700;color:var(--brand-ink,#1a5c35);background:var(--brand-tint,#e6f4ec);border-radius:999px;padding:2px 8px;margin-left:6px">Save 20%</span>
+              </p>
+              <p class="plan__billed" style="font-size:0.78rem;color:var(--ink-3,#888);margin-top:2px;min-height:1.2em">billed $76.68/year</p>
               <ul class="plan__features">
                 <li>1 child account</li>
                 <li>300 study packs / month</li>
@@ -425,12 +440,17 @@
               <a class="btn btn-primary btn-block" href="/app/login.html">Choose plan</a>
             </article>
 
-            <article class="card plan" data-reveal>
+            <article class="card plan" data-reveal data-plan="family">
               <div class="plan__head">
                 <h3 class="plan__name">Family</h3>
                 <p class="plan__for">For households with more than one student</p>
               </div>
-              <p class="plan__price"><span class="plan__amount">$19.99</span><span class="plan__per">/month</span></p>
+              <p class="plan__price">
+                <span class="plan__amount">$15.99</span><span class="plan__per">/mo</span>
+                <span class="plan__original" style="font-size:0.9rem;color:var(--ink-3,#888);text-decoration:line-through;margin-left:4px">$19.99/mo</span>
+                <span class="plan__save-badge" style="display:inline-flex;align-items:center;font-size:0.72rem;font-weight:700;color:var(--brand-ink,#1a5c35);background:var(--brand-tint,#e6f4ec);border-radius:999px;padding:2px 8px;margin-left:6px">Save 20%</span>
+              </p>
+              <p class="plan__billed" style="font-size:0.78rem;color:var(--ink-3,#888);margin-top:2px;min-height:1.2em">billed $191.88/year</p>
               <ul class="plan__features">
                 <li>Up to 3 child accounts</li>
                 <li>900 study packs / month</li>
@@ -439,6 +459,54 @@
               <a class="btn btn-ghost btn-block" href="/app/login.html">Choose plan</a>
             </article>
           </div>
+
+          <script>
+          (function() {
+            var PRICES = {
+              free:         { monthly: '$0',     annual: '$0',     billed: '' },
+              single_child: { monthly: '$7.99',  annual: '$6.39',  billed: 'billed $76.68/year' },
+              family:       { monthly: '$19.99', annual: '$15.99', billed: 'billed $191.88/year' },
+            };
+            var period = 'annual';
+            function applyToggle(toggleEl) {
+              toggleEl.querySelectorAll('.billing-toggle__opt').forEach(function(btn) {
+                var active = btn.dataset.period === period;
+                btn.classList.toggle('is-active', active);
+                btn.style.background = active ? 'var(--brand)' : 'transparent';
+                btn.style.color = active ? '#fff' : 'var(--ink-3,#666)';
+                btn.style.boxShadow = active ? '0 1px 4px rgba(0,0,0,0.15)' : 'none';
+              });
+            }
+            function updatePrices() {
+              var isAnnual = period === 'annual';
+              document.querySelectorAll('.plans [data-plan]').forEach(function(card) {
+                var p = PRICES[card.dataset.plan];
+                if (!p) return;
+                var amountEl = card.querySelector('.plan__amount');
+                var origEl = card.querySelector('.plan__original');
+                var billedEl = card.querySelector('.plan__billed');
+                var badgeEl = card.querySelector('.plan__save-badge');
+                if (amountEl) amountEl.textContent = isAnnual ? p.annual : p.monthly;
+                if (origEl) origEl.style.display = isAnnual && card.dataset.plan !== 'free' ? '' : 'none';
+                if (billedEl) billedEl.textContent = isAnnual ? p.billed : '';
+                if (badgeEl) badgeEl.style.display = isAnnual && card.dataset.plan !== 'free' ? '' : 'none';
+              });
+            }
+            document.addEventListener('DOMContentLoaded', function() {
+              var toggle = document.getElementById('billing-toggle');
+              if (!toggle) return;
+              applyToggle(toggle);
+              updatePrices();
+              toggle.addEventListener('click', function(e) {
+                var btn = e.target.closest('.billing-toggle__opt');
+                if (!btn) return;
+                period = btn.dataset.period;
+                applyToggle(toggle);
+                updatePrices();
+              });
+            });
+          })();
+          </script>
         </div>
       </section>
 
