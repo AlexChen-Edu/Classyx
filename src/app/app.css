@@ -1312,3 +1312,30 @@ body.app {
 .banner--error { background: var(--notice-tint); color: var(--notice); border: 1px solid #f0d9ad; }
 .banner--info { background: var(--brand-tint); color: var(--brand-ink); border: 1px solid #cfe6d8; }
 .hidden { display: none !important; }
+
+/* ---------- Follow-up question chips (Ask anything) ---------- */
+.followup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.followup-chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.followup-chip:hover {
+  border-color: var(--brand);
+  background: var(--brand-tint);
+  color: var(--brand-ink);
+}
+.followup-chip:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}

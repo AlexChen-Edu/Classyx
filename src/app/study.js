@@ -1,9 +1,9 @@
-// Study interface: upload -> AI generate -> flashcards / guide / self-test,
-// with a study timer that auto-saves to study_sessions.
+// Study interface: upload -> intent selection -> AI generate -> results,
+// plus an "Ask anything" tab for text questions without a file upload.
 import { supabase } from '../supabaseClient.js'
 import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, clearRememberedDevice, clearChildSession, clearActiveChild, markStudiedToday } from './auth.js'
 import {
-  uploadNote, generateContent, getFlashcards, getStudyGuide,
+  uploadNote, generateContent, askQuestion, getFlashcards, getStudyGuide,
   recordQuizResult, startSession, touchSession,
   startPresence, pingPresence, endPresenceBeacon, getChildStreak,
   saveChildSession, saveChildSessionBeacon,
@@ -27,6 +27,11 @@ const els = {
   generate: $('#generate'),
   status: $('[data-status]'),
   uploadSection: $('#upload-section'),
+  intentSection: $('#intent-section'),
+  askSection: $('#ask-section'),
+  askInput: $('#ask-input'),
+  askBtn: $('#ask-btn'),
+  askResult: $('#ask-result'),
   generating: $('#generating'),
   results: $('#results'),
   goalBarFill: $('#goal-bar-fill'),
@@ -34,6 +39,7 @@ const els = {
 }
 
 let chosenFile = null
+let currentStudyMode = 'flashcards'
 
 /**
  * The active child can come from either trust path:
@@ -84,6 +90,9 @@ async function main() {
   els.childName.textContent = child.name
   startTimer()
   wireUpload()
+  wireIntent()
+  wireModeTab()
+  wireAskSection()
   wireTabs()
   wireForgetDevice()
   wireEndSession()
@@ -367,6 +376,23 @@ function endPresence() {
   endPresenceBeacon(child.id)
 }
 
+// ============================ Mode tabs (Upload / Ask) =====================
+function wireModeTab() {
+  $$('#mode-tab-bar [data-mode]').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      $$('#mode-tab-bar [data-mode]').forEach((t) =>
+        t.setAttribute('aria-selected', String(t === tab)))
+      if (tab.dataset.mode === 'ask') {
+        show('none') // hide all upload-flow views
+        els.askSection.classList.remove('hidden')
+      } else {
+        els.askSection.classList.add('hidden')
+        show('upload')
+      }
+    })
+  })
+}
+
 // ============================ Upload + generate ============================
 function wireUpload() {
   els.dropzone.addEventListener('click', () => els.file.click())
@@ -381,7 +407,15 @@ function wireUpload() {
     els.dropzone.addEventListener(evt, (e) => { e.preventDefault(); els.dropzone.classList.remove('is-drag') }))
   els.dropzone.addEventListener('drop', (e) => setFile(e.dataTransfer.files[0]))
 
-  els.generate.addEventListener('click', generate)
+  // The generate button now advances to the intent selection step.
+  els.generate.addEventListener('click', () => show('intent'))
+}
+
+function wireIntent() {
+  $$('[data-intent]').forEach((card) => {
+    card.addEventListener('click', () => generate(card.dataset.intent))
+  })
+  $('#back-to-upload')?.addEventListener('click', () => show('upload'))
 }
 
 function setFile(file) {
@@ -395,22 +429,47 @@ function setFile(file) {
   els.generate.disabled = false
 }
 
-async function generate() {
+async function generate(mode) {
   if (!chosenFile) return
+  currentStudyMode = mode
   const subject = els.subject.value || 'General'
+
+  const titles = {
+    flashcards: 'Building your study pack…',
+    solve: 'Analyzing your problem…',
+    summarize: 'Summarizing your notes…',
+  }
+  const notes = {
+    flashcards: 'Reading your notes and writing flashcards. This takes 5–15 seconds.',
+    solve: 'Thinking through the Socratic guidance. This takes 5–10 seconds.',
+    summarize: 'Pulling out the key points. This takes 5–10 seconds.',
+  }
+  $('#generating-title').textContent = titles[mode] || 'Working on it…'
+  $('#generating-note').textContent = notes[mode] || 'This takes 5–15 seconds.'
+
   show('generating')
   try {
     const upload = await uploadNote({ child, file: chosenFile, subject, viaParentSession })
-    const result = await generateContent({ uploadId: upload.id, childId: child.id, subject, viaParentSession })
-    const [cards, guide] = await Promise.all([
-      getFlashcards(upload.id, viaParentSession),
-      getStudyGuide(upload.id, viaParentSession),
-    ])
-    if (!cards.length) throw new Error('No flashcards were generated. Try a clearer photo.')
-    loadDeck(cards)
-    renderGuide(guide)
-    buildTest(cards)
-    show('results')
+    const result = await generateContent({ uploadId: upload.id, childId: child.id, subject, viaParentSession, mode })
+
+    if (mode === 'flashcards') {
+      const [cards, guide] = await Promise.all([
+        getFlashcards(upload.id, viaParentSession),
+        getStudyGuide(upload.id, viaParentSession),
+      ])
+      if (!cards.length) throw new Error('No flashcards were generated. Try a clearer photo.')
+      loadDeck(cards)
+      renderGuide(guide)
+      buildTest(cards)
+      showResults('flashcards')
+    } else if (mode === 'solve') {
+      renderSolveResult(result.result)
+      showResults('solve')
+      showMascot("Think it through — you've got this.")
+    } else if (mode === 'summarize') {
+      renderSummarizeResult(result.result)
+      showResults('summarize')
+    }
   } catch (err) {
     show('upload')
     if (err.notConfigured) {
@@ -423,7 +482,6 @@ async function generate() {
 }
 
 function banner(html) {
-  // insert an info banner at the top of the upload section (once)
   const existing = $('#gen-banner')
   if (existing) existing.remove()
   const div = document.createElement('div')
@@ -432,19 +490,117 @@ function banner(html) {
   els.uploadSection.prepend(div)
 }
 
+/** Show one of the upload-flow views; passing any other string hides them all. */
 function show(view) {
   els.uploadSection.classList.toggle('hidden', view !== 'upload')
+  els.intentSection.classList.toggle('hidden', view !== 'intent')
   els.generating.classList.toggle('hidden', view !== 'generating')
   els.results.classList.toggle('hidden', view !== 'results')
 }
 
-$('#new-upload')?.addEventListener('click', () => {
+function showResults(mode) {
+  $('#results-flashcards').classList.toggle('hidden', mode !== 'flashcards')
+  $('#results-solve').classList.toggle('hidden', mode !== 'solve')
+  $('#results-summarize').classList.toggle('hidden', mode !== 'summarize')
+  show('results')
+}
+
+function resetToUpload() {
   chosenFile = null
   els.file.value = ''
   els.fileInfo.innerHTML = ''
   els.generate.disabled = true
   show('upload')
-})
+}
+
+$('#new-upload')?.addEventListener('click', resetToUpload)
+$('#new-upload-solve')?.addEventListener('click', resetToUpload)
+$('#new-upload-summarize')?.addEventListener('click', resetToUpload)
+
+// ============================ Result renderers =============================
+
+function renderSolveResult(result) {
+  const el = $('#solve-content')
+  if (!result) { el.innerHTML = '<p class="muted">No guidance was generated.</p>'; return }
+  el.innerHTML = `
+    <h3 style="margin-top:0">The Concept</h3>
+    <p class="guide__summary">${escapeHtml(result.concept || '')}</p>
+    <h3>A Hint</h3>
+    <p class="guide__summary">${escapeHtml(result.hint || '')}</p>
+    <h3>First Step</h3>
+    <p class="guide__summary">${escapeHtml(result.first_step || '')}</p>
+    <h3>Think About This</h3>
+    <p class="guide__summary" style="font-style:italic;color:var(--brand-ink)">${escapeHtml(result.guiding_question || '')}</p>`
+}
+
+function renderSummarizeResult(result) {
+  const el = $('#summarize-content')
+  if (!result) { el.innerHTML = '<p class="muted">No summary was generated.</p>'; return }
+  const keyPoints = (result.key_points || []).map((p) => `<li>${escapeHtml(p)}</li>`).join('')
+  el.innerHTML = `
+    <h3 style="margin-top:0">Summary</h3>
+    <p class="guide__summary">${escapeHtml(result.summary || '')}</p>
+    ${keyPoints ? `<h3>Key Points</h3><ul>${keyPoints}</ul>` : ''}`
+}
+
+function renderAskResult(result, container) {
+  const keyPoints = (result.key_points || []).map((p) => `<li>${escapeHtml(p)}</li>`).join('')
+  const followUps = (result.follow_up_questions || [])
+    .map((q) => `<button class="followup-chip" type="button">${escapeHtml(q)}</button>`)
+    .join('')
+  container.innerHTML = `
+    <div class="guide">
+      <h3 style="margin-top:0">Answer</h3>
+      <p class="guide__summary">${escapeHtml(result.answer || '')}</p>
+      ${keyPoints ? `<h3>Key points</h3><ul>${keyPoints}</ul>` : ''}
+      ${followUps ? `<h3>Explore more</h3><div class="followup-chips">${followUps}</div>` : ''}
+    </div>`
+  container.querySelectorAll('.followup-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      els.askInput.value = chip.textContent
+      els.askBtn.disabled = false
+      els.askInput.focus()
+    })
+  })
+}
+
+// ============================ Ask anything =================================
+function wireAskSection() {
+  els.askInput.addEventListener('input', () => {
+    els.askBtn.disabled = !els.askInput.value.trim()
+  })
+  els.askInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !els.askBtn.disabled) ask()
+  })
+  els.askBtn.addEventListener('click', ask)
+}
+
+async function ask() {
+  const question = els.askInput.value.trim()
+  if (!question) return
+
+  const statusEl = $('[data-ask-status]')
+  setStatus(statusEl, '', '')
+  els.askResult.classList.add('hidden')
+  els.askBtn.disabled = true
+  els.askBtn.textContent = 'Asking…'
+
+  try {
+    const data = await askQuestion({ childId: child.id, question, viaParentSession })
+    renderAskResult(data.result, els.askResult)
+    els.askResult.classList.remove('hidden')
+    showMascot('Great question!')
+  } catch (err) {
+    if (err.notConfigured) {
+      setStatus(statusEl, err.message, 'error')
+    } else {
+      setStatus(statusEl, friendlyMessage(err, 'Could not get an answer. Please try again.'), 'error')
+    }
+  } finally {
+    els.askBtn.disabled = false
+    els.askBtn.textContent = 'Ask'
+  }
+}
 
 // ============================ Flashcard deck ==============================
 let deck = []
@@ -537,7 +693,7 @@ async function mark(correct, card) {
   renderTest()
 }
 
-// ============================ Tabs ==============================
+// ============================ Tabs (flashcard results) =====================
 function wireTabs() {
   $$('.seg [data-tab]').forEach((tab) => {
     tab.addEventListener('click', () => {

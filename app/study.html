@@ -38,9 +38,18 @@
           <p class="goal-bar-label" id="goal-label">0% of today's goal</p>
         </div>
         <div id="streak-slot" style="text-align:center;margin-bottom:14px"></div>
+
+        <!-- Top-level mode switcher -->
+        <div style="text-align:center;margin-bottom:20px">
+          <div class="seg" role="tablist" id="mode-tab-bar">
+            <button role="tab" aria-selected="true" data-mode="upload">Upload notes</button>
+            <button role="tab" aria-selected="false" data-mode="ask">Ask anything</button>
+          </div>
+        </div>
+
         <!-- Upload -->
         <section id="upload-section" class="card" style="max-width:680px;margin-inline:auto">
-          <div class="page-head" style="margin-bottom:14px"><div><h1 style="font-size:1.4rem">Upload your notes</h1><p>Snap a photo or drop a PDF — we'll make flashcards and a study guide.</p></div></div>
+          <div class="page-head" style="margin-bottom:14px"><div><h1 style="font-size:1.4rem">Upload your notes</h1><p>Snap a photo or drop a PDF — we'll help you study.</p></div></div>
 
           <div class="form-row">
             <label for="subject">Subject</label>
@@ -64,60 +73,140 @@
           <div id="file-info"></div>
 
           <button class="btn btn-primary btn-lg btn-block" id="generate" type="button" disabled style="margin-top:18px">
-            Generate study pack
+            Choose how to study →
           </button>
           <p class="form-status" data-status role="status" aria-live="polite"></p>
+        </section>
+
+        <!-- Intent selection -->
+        <section id="intent-section" class="hidden" style="max-width:680px;margin-inline:auto">
+          <div class="card">
+            <div class="page-head" style="margin-bottom:4px">
+              <div>
+                <h2 style="font-size:1.2rem;margin-bottom:4px">What do you want to do?</h2>
+                <p>Choose how you'd like to study this material.</p>
+              </div>
+            </div>
+            <div class="role-cards" style="margin-top:18px">
+              <button class="role-card" data-intent="solve" type="button">
+                <div class="role-card__icon" style="font-size:1.4rem">🧩</div>
+                <div class="role-card__text">
+                  <span class="role-card__label">Solve this problem</span>
+                  <span class="role-card__sub">AI guides you step-by-step without giving the answer away. Best for math, puzzles, and homework questions.</span>
+                </div>
+              </button>
+              <button class="role-card" data-intent="flashcards" type="button">
+                <div class="role-card__icon" style="font-size:1.4rem">🃏</div>
+                <div class="role-card__text">
+                  <span class="role-card__label">Make me flashcards</span>
+                  <span class="role-card__sub">Turns your notes into study cards and a study guide you can review anytime.</span>
+                </div>
+              </button>
+              <button class="role-card" data-intent="summarize" type="button">
+                <div class="role-card__icon" style="font-size:1.4rem">📝</div>
+                <div class="role-card__text">
+                  <span class="role-card__label">Summarize this</span>
+                  <span class="role-card__sub">Get a concise summary and key points from your notes, fast.</span>
+                </div>
+              </button>
+            </div>
+            <p style="margin-top:18px">
+              <button class="btn btn-ghost btn-sm" id="back-to-upload" type="button">← Back</button>
+            </p>
+          </div>
+        </section>
+
+        <!-- Ask anything -->
+        <section id="ask-section" class="card hidden" style="max-width:680px;margin-inline:auto">
+          <div class="page-head" style="margin-bottom:14px">
+            <div>
+              <h2 style="font-size:1.2rem">Ask anything</h2>
+              <p>Type any question and get a clear, student-friendly answer.</p>
+            </div>
+          </div>
+          <div class="form-row">
+            <label for="ask-input">Your question</label>
+            <input type="text" class="input" id="ask-input" placeholder="e.g. explain photosynthesis, what is the quadratic formula…" />
+          </div>
+          <button class="btn btn-primary btn-lg btn-block" id="ask-btn" type="button" disabled>Ask</button>
+          <p class="form-status" data-ask-status role="status" aria-live="polite"></p>
+          <div id="ask-result" class="hidden" style="margin-top:24px"></div>
         </section>
 
         <!-- Generating -->
         <section id="generating" class="hidden">
           <div class="generating">
             <span class="spinner spinner--lg"></span>
-            <h2 style="font-size:1.2rem">Building your study pack…</h2>
-            <p class="muted" id="generating-note">Reading your notes and writing flashcards. This takes 5–15 seconds.</p>
+            <h2 style="font-size:1.2rem" id="generating-title">Working on it…</h2>
+            <p class="muted" id="generating-note">This takes 5–15 seconds.</p>
           </div>
         </section>
 
         <!-- Results -->
         <section id="results" class="hidden">
-          <div style="text-align:center;margin-bottom:20px">
-            <div class="seg" role="tablist">
-              <button role="tab" aria-selected="true" data-tab="cards">Flashcards</button>
-              <button role="tab" aria-selected="false" data-tab="guide">Study guide</button>
-              <button role="tab" aria-selected="false" data-tab="test">Self-test</button>
-            </div>
-          </div>
 
-          <div id="panel-cards" class="panel-view">
-            <div class="flashcard-flip" id="flashcard" role="button" tabindex="0" aria-label="Flashcard, press Enter to flip">
-              <div class="flashcard-flip__inner">
-                <div class="flashcard-face flashcard-front">
-                  <span class="flashcard-face__tag">Question</span>
-                  <div class="flashcard-face__text" id="card-q"></div>
-                  <span class="flashcard-face__hint">Tap to flip</span>
-                </div>
-                <div class="flashcard-face flashcard-back">
-                  <span class="flashcard-face__tag">Answer</span>
-                  <div class="flashcard-face__text" id="card-a"></div>
-                  <span class="flashcard-face__hint">Tap to flip back</span>
-                </div>
+          <!-- Flashcards mode -->
+          <div id="results-flashcards">
+            <div style="text-align:center;margin-bottom:20px">
+              <div class="seg" role="tablist">
+                <button role="tab" aria-selected="true" data-tab="cards">Flashcards</button>
+                <button role="tab" aria-selected="false" data-tab="guide">Study guide</button>
+                <button role="tab" aria-selected="false" data-tab="test">Self-test</button>
               </div>
             </div>
-            <div class="deck-nav">
-              <button class="btn btn-ghost btn-sm" id="prev">← Prev</button>
-              <span class="deck-count" id="deck-count">1 / 1</span>
-              <button class="btn btn-ghost btn-sm" id="next">Next →</button>
+
+            <div id="panel-cards" class="panel-view">
+              <div class="flashcard-flip" id="flashcard" role="button" tabindex="0" aria-label="Flashcard, press Enter to flip">
+                <div class="flashcard-flip__inner">
+                  <div class="flashcard-face flashcard-front">
+                    <span class="flashcard-face__tag">Question</span>
+                    <div class="flashcard-face__text" id="card-q"></div>
+                    <span class="flashcard-face__hint">Tap to flip</span>
+                  </div>
+                  <div class="flashcard-face flashcard-back">
+                    <span class="flashcard-face__tag">Answer</span>
+                    <div class="flashcard-face__text" id="card-a"></div>
+                    <span class="flashcard-face__hint">Tap to flip back</span>
+                  </div>
+                </div>
+              </div>
+              <div class="deck-nav">
+                <button class="btn btn-ghost btn-sm" id="prev">← Prev</button>
+                <span class="deck-count" id="deck-count">1 / 1</span>
+                <button class="btn btn-ghost btn-sm" id="next">Next →</button>
+              </div>
+              <p style="text-align:center;margin-top:18px"><button class="btn btn-ghost btn-sm" id="new-upload">↺ Upload more notes</button></p>
             </div>
-            <p style="text-align:center;margin-top:18px"><button class="btn btn-ghost btn-sm" id="new-upload">↺ Upload more notes</button></p>
+
+            <div id="panel-guide" class="panel-view hidden">
+              <div class="card guide" id="guide-content"></div>
+            </div>
+
+            <div id="panel-test" class="panel-view hidden">
+              <div class="card center-narrow" id="test-content"></div>
+            </div>
           </div>
 
-          <div id="panel-guide" class="panel-view hidden">
-            <div class="card guide" id="guide-content"></div>
+          <!-- Solve mode -->
+          <div id="results-solve" class="hidden" style="max-width:680px;margin-inline:auto">
+            <div class="card guide">
+              <div id="solve-content"></div>
+              <p style="text-align:center;margin-top:24px">
+                <button class="btn btn-ghost btn-sm" id="new-upload-solve">↺ Upload more notes</button>
+              </p>
+            </div>
           </div>
 
-          <div id="panel-test" class="panel-view hidden">
-            <div class="card center-narrow" id="test-content"></div>
+          <!-- Summarize mode -->
+          <div id="results-summarize" class="hidden" style="max-width:680px;margin-inline:auto">
+            <div class="card guide">
+              <div id="summarize-content"></div>
+              <p style="text-align:center;margin-top:24px">
+                <button class="btn btn-ghost btn-sm" id="new-upload-summarize">↺ Upload more notes</button>
+              </p>
+            </div>
           </div>
+
         </section>
       </div>
     </main>

@@ -1,25 +1,21 @@
 // ===========================================================================
 // generate-content — Classyx AI generation (server-side ONLY)
 // ---------------------------------------------------------------------------
-// Input  (POST JSON):  { upload_id, child_id, subject }
-// Output (JSON):       { success: true, flashcard_count, guide_id }
+// Modes:
+//   flashcards  — 20 Q&A flashcards + study guide, saved to DB
+//   solve       — Socratic guidance on a problem, returned directly
+//   summarize   — concise summary + key points, returned directly
+//   ask         — text question answered without a file upload
 //
-// Flow:
-//   1. Verify the caller's JWT and that they OWN the upload/child (RLS-scoped
-//      client). The service-role key is only used AFTER ownership is proven.
-//   2. Download the uploaded note (image or PDF) from the private "uploads"
-//      bucket with the service-role client.
-//   3. Send it to OpenAI (gpt-5.4-nano, multimodal — handles image OCR and PDF
-//      reading in a single call) and ask for 20 flashcards + a structured
-//      study guide as strict JSON.
-//   4. Persist flashcards + study_guide, mark the upload processed.
+// Input (POST JSON):
+//   { mode, child_id, upload_id?, subject? }  — for flashcards/solve/summarize
+//   { mode: 'ask', child_id, question }        — for ask
 //
 // SECURITY:
 //   * OPENAI_API_KEY lives ONLY here (Deno.env), never in the browser.
-//   * Until OPENAI_API_KEY is set, this returns HTTP 503 "not configured" so
-//     the rest of the app keeps working — drop the key in later, no code change.
-//   * SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are injected
-//     automatically by the platform.
+//   * Until OPENAI_API_KEY is set, returns HTTP 503 "not configured".
+//   * SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY are
+//     injected automatically by the platform.
 // ===========================================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -39,14 +35,12 @@ const json = (body: unknown, status = 200) =>
 
 const OPENAI_MODEL = Deno.env.get("OPENAI_MODEL") || "gpt-5.4-nano";
 
-// The OpenAI key is intentionally a placeholder until the user sets it.
 function getOpenAiKey(): string | null {
   const key = Deno.env.get("OPENAI_API_KEY") ?? "";
-  if (!key || key.startsWith("sk-REPLACE")) return null; // not configured yet
+  if (!key || key.startsWith("sk-REPLACE")) return null;
   return key;
 }
 
-// Map a file extension to how OpenAI should receive it.
 function classify(path: string): { kind: "image" | "pdf"; mime: string } | null {
   const ext = path.split(".").pop()?.toLowerCase() ?? "";
   const images: Record<string, string> = {
@@ -62,7 +56,6 @@ function classify(path: string): { kind: "image" | "pdf"; mime: string } | null 
   return null;
 }
 
-// Base64-encode bytes in chunks (avoids call-stack overflow on large files).
 function toBase64(bytes: Uint8Array): string {
   let binary = "";
   const chunk = 0x8000;
@@ -72,45 +65,167 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-const SYSTEM_PROMPT =
-  "You are a study assistant for K-12 and early-college students. You read a " +
-  "student's uploaded class notes (an image or PDF) and turn them into study " +
-  "materials. Be accurate to the source notes; do not invent facts that are " +
-  "not supported by the notes. Keep questions and answers concise and clear " +
-  "for the student's level.";
+function extractOutputText(ai: unknown): string | undefined {
+  const a = ai as Record<string, unknown>;
+  if (typeof a.output_text === "string") return a.output_text;
+  if (Array.isArray(a.output)) {
+    for (const item of a.output) {
+      const parts = (item as Record<string, unknown>)?.content;
+      if (Array.isArray(parts)) {
+        const t = parts.find((c: { type: string }) => c.type === "output_text");
+        if (t && typeof (t as Record<string, unknown>).text === "string") {
+          return (t as Record<string, string>).text;
+        }
+      }
+    }
+  }
+  return undefined;
+}
 
-// Strict JSON schema for the model's output.
-const OUTPUT_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    flashcards: {
-      type: "array",
-      description: "About 20 question/answer flashcards drawn from the notes.",
-      items: {
+// ---------------------------------------------------------------------------
+// Per-mode system prompts
+// ---------------------------------------------------------------------------
+const SYSTEM_PROMPTS: Record<string, string> = {
+  flashcards:
+    "You are a study assistant for K-12 and early-college students. You read a " +
+    "student's uploaded class notes (an image or PDF) and turn them into study " +
+    "materials. Be accurate to the source notes; do not invent facts that are " +
+    "not supported by the notes. Keep questions and answers concise and clear " +
+    "for the student's level.",
+  solve:
+    "You are a Socratic tutor. Do NOT give the answer directly. Instead, look at " +
+    "the problem and guide the student to figure it out themselves. Ask a leading " +
+    "question, explain the concept behind it, and show the first step only. " +
+    "Return JSON with { concept: string, hint: string, first_step: string, guiding_question: string }",
+  summarize:
+    "Summarize the key concepts from these notes into a clear, concise study guide. " +
+    "Return JSON with { summary: string, key_points: string[] }",
+  ask:
+    "You are a friendly, clear tutor for students. Answer this question in a way " +
+    "that's easy to understand. Use simple language. Return JSON with " +
+    "{ answer: string, key_points: string[], follow_up_questions: string[] } " +
+    "where follow_up_questions are 2-3 related questions the student might want to explore next.",
+};
+
+// ---------------------------------------------------------------------------
+// Per-mode JSON output schemas (strict mode for OpenAI structured output)
+// ---------------------------------------------------------------------------
+const OUTPUT_SCHEMAS: Record<string, object> = {
+  flashcards: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      flashcards: {
+        type: "array",
+        description: "About 20 question/answer flashcards drawn from the notes.",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            question: { type: "string" },
+            answer: { type: "string" },
+          },
+          required: ["question", "answer"],
+        },
+      },
+      study_guide: {
         type: "object",
         additionalProperties: false,
         properties: {
-          question: { type: "string" },
-          answer: { type: "string" },
+          summary: { type: "string" },
+          key_concepts: { type: "array", items: { type: "string" } },
+          practice_questions: { type: "array", items: { type: "string" } },
         },
-        required: ["question", "answer"],
+        required: ["summary", "key_concepts", "practice_questions"],
       },
     },
-    study_guide: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        summary: { type: "string" },
-        key_concepts: { type: "array", items: { type: "string" } },
-        practice_questions: { type: "array", items: { type: "string" } },
-      },
-      required: ["summary", "key_concepts", "practice_questions"],
-    },
+    required: ["flashcards", "study_guide"],
   },
-  required: ["flashcards", "study_guide"],
+  solve: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      concept: { type: "string" },
+      hint: { type: "string" },
+      first_step: { type: "string" },
+      guiding_question: { type: "string" },
+    },
+    required: ["concept", "hint", "first_step", "guiding_question"],
+  },
+  summarize: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      summary: { type: "string" },
+      key_points: { type: "array", items: { type: "string" } },
+    },
+    required: ["summary", "key_points"],
+  },
+  ask: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      answer: { type: "string" },
+      key_points: { type: "array", items: { type: "string" } },
+      follow_up_questions: { type: "array", items: { type: "string" } },
+    },
+    required: ["answer", "key_points", "follow_up_questions"],
+  },
 };
 
+const SCHEMA_NAMES: Record<string, string> = {
+  flashcards: "study_pack",
+  solve: "solve_response",
+  summarize: "summarize_response",
+  ask: "ask_response",
+};
+
+async function callOpenAI(
+  openAiKey: string,
+  mode: string,
+  userContent: unknown[],
+): Promise<string> {
+  const aiRes = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openAiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      input: [
+        {
+          role: "system",
+          content: [{ type: "input_text", text: SYSTEM_PROMPTS[mode] }],
+        },
+        { role: "user", content: userContent },
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: SCHEMA_NAMES[mode],
+          strict: true,
+          schema: OUTPUT_SCHEMAS[mode],
+        },
+      },
+    }),
+  });
+
+  if (!aiRes.ok) {
+    const detail = await aiRes.text();
+    console.error("OpenAI error:", aiRes.status, detail);
+    throw new Error(`AI request failed (${aiRes.status}).`);
+  }
+
+  const ai = await aiRes.json();
+  const outText = extractOutputText(ai);
+  if (!outText) throw new Error("AI returned no usable content.");
+  return outText;
+}
+
+// ---------------------------------------------------------------------------
+// Main handler
+// ---------------------------------------------------------------------------
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -119,19 +234,31 @@ Deno.serve(async (req: Request) => {
   const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-  // --- Parse input ---------------------------------------------------------
-  let upload_id: string, child_id: string, subject: string | undefined;
+  // --- Parse input -----------------------------------------------------------
+  let mode: string;
+  let child_id: string;
+  let upload_id: string | undefined;
+  let subject: string | undefined;
+  let question: string | undefined;
+
   try {
     const body = await req.json();
-    upload_id = body.upload_id;
+    mode = ["flashcards", "solve", "summarize", "ask"].includes(body.mode)
+      ? body.mode
+      : "flashcards";
     child_id = body.child_id;
-    subject = body.subject;
-    if (!upload_id || !child_id) throw new Error("missing fields");
+    if (mode === "ask") {
+      question = String(body.question ?? "").trim();
+      if (!child_id || !question) throw new Error("missing fields");
+    } else {
+      upload_id = body.upload_id;
+      subject = body.subject;
+      if (!upload_id || !child_id) throw new Error("missing fields");
+    }
   } catch {
-    return json({ error: "upload_id and child_id are required" }, 400);
+    return json({ error: "Required fields missing" }, 400);
   }
 
-  // --- Authn/authz: prove the caller owns this upload -----------------------
   const authHeader = req.headers.get("Authorization") ?? "";
   if (!authHeader) return json({ error: "Not authenticated" }, 401);
 
@@ -140,49 +267,7 @@ Deno.serve(async (req: Request) => {
   });
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-  type UploadRow = { id: string; child_id: string; file_path: string; subject: string | null };
-  let upload: UploadRow | null = null;
-
-  // Path 1: an authenticated parent — the RLS-scoped client proves ownership
-  // directly (owns_child() on the uploads table).
-  const { data: ownedUpload, error: ownErr } = await userClient
-    .from("uploads")
-    .select("id, child_id, file_path, subject")
-    .eq("id", upload_id)
-    .maybeSingle();
-  if (ownErr) return json({ error: "Authorization check failed" }, 500);
-
-  if (ownedUpload && ownedUpload.child_id === child_id) {
-    upload = ownedUpload;
-  } else {
-    // Path 2: an account-less child has no auth.uid() for RLS to scope to
-    // (and intentionally no anon SELECT policy on uploads). Re-derive
-    // authorization the same way active_sessions/save_child_session already
-    // do: a live active_sessions row for child_id proves the caller just
-    // redeemed that child's code. Look the upload up with the service-role
-    // client and confirm it actually belongs to that child before trusting it.
-    const { data: liveSession } = await admin
-      .from("active_sessions")
-      .select("child_id")
-      .eq("child_id", child_id)
-      .maybeSingle();
-    if (liveSession) {
-      const { data: anonUpload } = await admin
-        .from("uploads")
-        .select("id, child_id, file_path, subject")
-        .eq("id", upload_id)
-        .maybeSingle();
-      if (anonUpload && anonUpload.child_id === child_id) upload = anonUpload;
-    }
-  }
-
-  if (!upload) {
-    // Either it doesn't exist, they don't own it, or (anon path) there's no
-    // live session proving they redeemed this child's code.
-    return json({ error: "Upload not found" }, 404);
-  }
-
-  // --- AI key gate: graceful "not configured" until the key is set ----------
+  // --- AI key gate -----------------------------------------------------------
   const openAiKey = getOpenAiKey();
   if (!openAiKey) {
     return json(
@@ -196,9 +281,83 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  // From here on we use the service-role client (ownership already proven).
+  // ===========================================================================
+  // ASK mode — text question only, no file
+  // ===========================================================================
+  if (mode === "ask") {
+    // Auth: parent JWT (RLS owns_child) OR anon child with live session.
+    const { data: ownedChild } = await userClient
+      .from("children")
+      .select("id")
+      .eq("id", child_id)
+      .maybeSingle();
+
+    let authorized = !!ownedChild;
+    if (!authorized) {
+      const { data: liveSession } = await admin
+        .from("active_sessions")
+        .select("child_id")
+        .eq("child_id", child_id)
+        .maybeSingle();
+      authorized = !!liveSession;
+    }
+    if (!authorized) return json({ error: "Not authorized" }, 403);
+
+    try {
+      const outText = await callOpenAI(
+        openAiKey,
+        "ask",
+        [{ type: "input_text", text: question! }],
+      );
+      const parsed = JSON.parse(outText);
+      return json({ success: true, mode: "ask", result: parsed });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Generation failed.";
+      console.error("ask failed:", message);
+      return json({ error: "generation_failed", message }, 500);
+    }
+  }
+
+  // ===========================================================================
+  // UPLOAD modes — flashcards | solve | summarize
+  // ===========================================================================
+
+  // --- Authz: prove caller owns this upload ----------------------------------
+  type UploadRow = { id: string; child_id: string; file_path: string; subject: string | null };
+  let upload: UploadRow | null = null;
+
+  // Path 1: authenticated parent — RLS proves ownership.
+  const { data: ownedUpload, error: ownErr } = await userClient
+    .from("uploads")
+    .select("id, child_id, file_path, subject")
+    .eq("id", upload_id!)
+    .maybeSingle();
+  if (ownErr) return json({ error: "Authorization check failed" }, 500);
+
+  if (ownedUpload && ownedUpload.child_id === child_id) {
+    upload = ownedUpload;
+  } else {
+    // Path 2: account-less child — a live active_sessions row proves they
+    // redeemed this child's code (same pattern as save_child_session).
+    const { data: liveSession } = await admin
+      .from("active_sessions")
+      .select("child_id")
+      .eq("child_id", child_id)
+      .maybeSingle();
+    if (liveSession) {
+      const { data: anonUpload } = await admin
+        .from("uploads")
+        .select("id, child_id, file_path, subject")
+        .eq("id", upload_id!)
+        .maybeSingle();
+      if (anonUpload && anonUpload.child_id === child_id) upload = anonUpload;
+    }
+  }
+
+  if (!upload) return json({ error: "Upload not found" }, 404);
+
   try {
-    // --- Download the note from private storage ----------------------------
+    // --- Download the note ---------------------------------------------------
     const { data: blob, error: dlErr } = await admin.storage
       .from("uploads")
       .download(upload.file_path);
@@ -214,124 +373,106 @@ Deno.serve(async (req: Request) => {
     const dataUrl = `data:${meta.mime};base64,${toBase64(bytes)}`;
     const subj = subject || upload.subject || "these notes";
 
-    // --- Build the multimodal request --------------------------------------
-    const userContent: unknown[] = [
-      {
-        type: "input_text",
-        text:
-          `These are a student's notes for ${subj}. Read them carefully and ` +
-          `produce exactly 20 flashcards (question/answer) plus a study guide ` +
-          `with a short summary, a list of key concepts, and 5 practice ` +
-          `questions. Base everything strictly on the notes.`,
-      },
+    // --- User message text per mode -----------------------------------------
+    const userTextByMode: Record<string, string> = {
+      flashcards:
+        `These are a student's notes for ${subj}. Read them carefully and ` +
+        `produce exactly 20 flashcards (question/answer) plus a study guide ` +
+        `with a short summary, a list of key concepts, and 5 practice ` +
+        `questions. Base everything strictly on the notes.`,
+      solve:
+        `This is a student's homework problem or question for ${subj}. ` +
+        `Use the Socratic method to guide them — do NOT give the answer, ` +
+        `just help them think through it step by step.`,
+      summarize:
+        `These are a student's notes for ${subj}. ` +
+        `Summarize the key concepts into a clear, concise overview.`,
+    };
+
+    const fileContent =
       meta.kind === "image"
         ? { type: "input_image", image_url: dataUrl }
         : {
             type: "input_file",
             filename: upload.file_path.split("/").pop() ?? "notes.pdf",
             file_data: dataUrl,
-          },
-    ];
+          };
 
-    // --- Call OpenAI (Responses API: supports both images and PDFs) --------
-    const aiRes = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${openAiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        input: [
-          { role: "system", content: [{ type: "input_text", text: SYSTEM_PROMPT }] },
-          { role: "user", content: userContent },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "study_pack",
-            strict: true,
-            schema: OUTPUT_SCHEMA,
-          },
-        },
-      }),
-    });
+    // --- Call OpenAI --------------------------------------------------------
+    const outText = await callOpenAI(
+      openAiKey,
+      mode,
+      [{ type: "input_text", text: userTextByMode[mode] }, fileContent],
+    );
 
-    if (!aiRes.ok) {
-      const detail = await aiRes.text();
-      console.error("OpenAI error:", aiRes.status, detail);
-      throw new Error(`AI request failed (${aiRes.status}).`);
-    }
-
-    const ai = await aiRes.json();
-
-    // Extract the JSON text from the Responses API payload.
-    let outText: string | undefined = ai.output_text;
-    if (!outText && Array.isArray(ai.output)) {
-      for (const item of ai.output) {
-        const part = item?.content?.find?.((c: { type: string }) => c.type === "output_text");
-        if (part?.text) { outText = part.text; break; }
-      }
-    }
-    if (!outText) throw new Error("AI returned no usable content.");
-
-    let parsed: {
-      flashcards: { question: string; answer: string }[];
-      study_guide: { summary: string; key_concepts: string[]; practice_questions: string[] };
-    };
+    let parsed: Record<string, unknown>;
     try {
       parsed = JSON.parse(outText);
     } catch {
       throw new Error("AI returned malformed JSON.");
     }
 
-    const flashcards = (parsed.flashcards ?? []).filter((f) => f.question && f.answer);
-    if (flashcards.length === 0) throw new Error("No flashcards were generated.");
+    // --- Persist results (flashcards only) -----------------------------------
+    if (mode === "flashcards") {
+      const flashcards = (
+        (parsed.flashcards as { question: string; answer: string }[]) ?? []
+      ).filter((f) => f.question && f.answer);
+      if (flashcards.length === 0) throw new Error("No flashcards were generated.");
 
-    // --- Persist results ---------------------------------------------------
-    const { error: fcErr } = await admin.from("flashcards").insert(
-      flashcards.map((f) => ({
-        upload_id,
-        child_id,
-        question: f.question,
-        answer: f.answer,
-      })),
-    );
-    if (fcErr) {
-      console.error("Saving flashcards failed:", fcErr.message);
-      throw new Error("Saving flashcards failed.");
+      const { error: fcErr } = await admin.from("flashcards").insert(
+        flashcards.map((f) => ({
+          upload_id: upload_id!,
+          child_id,
+          question: f.question,
+          answer: f.answer,
+        })),
+      );
+      if (fcErr) {
+        console.error("Saving flashcards failed:", fcErr.message);
+        throw new Error("Saving flashcards failed.");
+      }
+
+      const { data: guide, error: sgErr } = await admin
+        .from("study_guides")
+        .insert({
+          upload_id: upload_id!,
+          child_id,
+          subject: subj,
+          content: JSON.stringify(parsed.study_guide ?? {}),
+        })
+        .select("id")
+        .single();
+      if (sgErr) {
+        console.error("Saving study guide failed:", sgErr.message);
+        throw new Error("Saving study guide failed.");
+      }
+
+      await admin
+        .from("uploads")
+        .update({ processed: true, error: null })
+        .eq("id", upload_id!);
+
+      return json({
+        success: true,
+        flashcard_count: flashcards.length,
+        guide_id: guide.id,
+      });
     }
 
-    const { data: guide, error: sgErr } = await admin
-      .from("study_guides")
-      .insert({
-        upload_id,
-        child_id,
-        subject: subj,
-        content: JSON.stringify(parsed.study_guide ?? {}),
-      })
-      .select("id")
-      .single();
-    if (sgErr) {
-      console.error("Saving study guide failed:", sgErr.message);
-      throw new Error("Saving study guide failed.");
-    }
-
+    // solve / summarize — return result directly, no DB write needed
     await admin
       .from("uploads")
       .update({ processed: true, error: null })
-      .eq("id", upload_id);
+      .eq("id", upload_id!);
 
-    return json({
-      success: true,
-      flashcard_count: flashcards.length,
-      guide_id: guide.id,
-    });
+    return json({ success: true, mode, result: parsed });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Generation failed.";
     console.error("generate-content failed:", message);
-    // Record the failure on the upload so the UI can show a retry/error state.
-    await admin.from("uploads").update({ processed: false, error: message }).eq("id", upload_id);
+    await admin
+      .from("uploads")
+      .update({ processed: false, error: message })
+      .eq("id", upload_id!);
     return json({ error: "generation_failed", message }, 500);
   }
 });

@@ -172,13 +172,33 @@ export async function uploadNote({ child, file, subject, viaParentSession }) {
  * including the "AI not configured yet" (503) state before the key is set.
  * Same client choice as uploadNote — see its comment.
  */
-export async function generateContent({ uploadId, childId, subject, viaParentSession }) {
+export async function generateContent({ uploadId, childId, subject, viaParentSession, mode = 'flashcards' }) {
   const client = viaParentSession ? supabase : supabaseAnon
   const { data, error } = await client.functions.invoke('generate-content', {
-    body: { upload_id: uploadId, child_id: childId, subject },
+    body: { upload_id: uploadId, child_id: childId, subject, mode },
   })
   if (error) {
     let message = 'Generation failed. Please try again.'
+    let notConfigured = false
+    try {
+      const body = await error.context?.json?.()
+      if (body?.message) message = body.message
+      if (body?.error === 'not_configured') notConfigured = true
+    } catch { /* keep default */ }
+    const e = new Error(message)
+    e.notConfigured = notConfigured
+    throw e
+  }
+  return data
+}
+
+export async function askQuestion({ childId, question, viaParentSession }) {
+  const client = viaParentSession ? supabase : supabaseAnon
+  const { data, error } = await client.functions.invoke('generate-content', {
+    body: { mode: 'ask', child_id: childId, question },
+  })
+  if (error) {
+    let message = 'Failed to get an answer. Please try again.'
     let notConfigured = false
     try {
       const body = await error.context?.json?.()
