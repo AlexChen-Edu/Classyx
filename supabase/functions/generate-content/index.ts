@@ -288,7 +288,7 @@ Deno.serve(async (req: Request) => {
         context = (body.context as unknown[])
           .filter((t): t is ConversationTurn =>
             typeof t === "object" && t !== null &&
-            (t as ConversationTurn).role === "user" || (t as ConversationTurn).role === "assistant" &&
+            ((t as ConversationTurn).role === "user" || (t as ConversationTurn).role === "assistant") &&
             typeof (t as ConversationTurn).content === "string"
           )
           .slice(0, 20); // cap history at 20 turns (10 exchanges)
@@ -377,15 +377,31 @@ Deno.serve(async (req: Request) => {
   // ASK mode — text question only, no file
   // ===========================================================================
   if (mode === "ask") {
-    // Auth: parent JWT (RLS owns_child) OR anon child with live session.
-    const { data: ownedChild } = await userClient
-      .from("children")
-      .select("id")
-      .eq("id", child_id)
-      .maybeSingle();
+    // Auth: verify via getUser() (validates JWT with Supabase Auth, not just
+    // decodes it) then check ownership with admin — avoids the RLS recursion
+    // issue that caused the userClient children query to silently return null.
+    // Fallback: account-less child with a live active_sessions row.
+    const { data: { user } } = await userClient.auth.getUser();
 
-    let authorized = !!ownedChild;
-    if (!authorized) {
+    let authorized = false;
+    if (user) {
+      // Authenticated parent: verify the child belongs to their family.
+      const { data: familyRow } = await admin
+        .from("families")
+        .select("id")
+        .eq("parent_id", user.id)
+        .maybeSingle();
+      if (familyRow) {
+        const { data: childRow } = await admin
+          .from("children")
+          .select("id")
+          .eq("id", child_id)
+          .eq("family_id", familyRow.id)
+          .maybeSingle();
+        authorized = !!childRow;
+      }
+    } else {
+      // Account-less child: must have a live study session.
       const { data: liveSession } = await admin
         .from("active_sessions")
         .select("child_id")

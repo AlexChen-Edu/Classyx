@@ -149,6 +149,15 @@ async function completeOnboarding(plan, btn) {
   const restore = loading(btn, 'Saving…')
   setStatus(statusEl, '')
   try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      // Session not ready yet (token from email-verification redirect hasn't
+      // been exchanged). Store the choice and apply it once the dashboard
+      // picks it up after requireSession() succeeds.
+      sessionStorage.setItem('pending_plan', JSON.stringify({ plan, billing_period: billingPeriod }))
+      location.replace(DASHBOARD)
+      return
+    }
     const { error } = await supabase.auth.updateUser({ data: { plan, billing_period: billingPeriod } })
     if (error) throw error
     location.replace(DASHBOARD)

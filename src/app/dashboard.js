@@ -3,14 +3,26 @@
 import { requireSession, getFamily, signOut, setActiveChild, getSelfChild } from './auth.js'
 import { getDashboardData, getActiveSessions, aiLimitFor } from './api.js'
 import { $, escapeHtml, initials, tintFor, relativeDay, renderStreakBadge, friendlyMessage } from './ui.js'
+import { supabase } from '../supabaseClient.js'
 
 const STALE_MS = 2 * 60 * 1000 // matches the 2-minute staleness rule in the migration
 
 const content = $('#content')
 
+async function applyPendingPlan() {
+  const raw = sessionStorage.getItem('pending_plan')
+  if (!raw) return
+  sessionStorage.removeItem('pending_plan')
+  try {
+    const { plan, billing_period } = JSON.parse(raw)
+    await supabase.auth.updateUser({ data: { plan, billing_period } })
+  } catch { /* best effort — user can pick a plan later */ }
+}
+
 async function main() {
   const session = await requireSession()
   if (!session) return
+  await applyPendingPlan()
   const role = session.user.user_metadata?.role
   if (!role) {
     // First Google sign-in: no role yet (email signup sets it during the
