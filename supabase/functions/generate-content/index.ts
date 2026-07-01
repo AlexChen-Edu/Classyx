@@ -101,10 +101,21 @@ const SYSTEM_PROMPTS: Record<string, string> = {
     "Summarize the key concepts from these notes into a clear, concise study guide. " +
     "Return JSON with { summary: string, key_points: string[] }",
   ask:
-    "You are a friendly, clear tutor for students. Answer this question in a way " +
-    "that's easy to understand. Use simple language. Return JSON with " +
-    "{ answer: string, key_points: string[], follow_up_questions: string[] } " +
-    "where follow_up_questions are 2-3 related questions the student might want to explore next.",
+    "You are a friendly, clear tutor for students. First decide which type of " +
+    "question this is:\n" +
+    "- 'simple': a factual lookup (what is X, who was X, define X, when did X) — " +
+    "requires a short direct answer of 1-2 sentences.\n" +
+    "- 'detailed': a conceptual explanation (how does X work, explain X, why does X " +
+    "happen) — requires a structured explanation.\n\n" +
+    "Set response_type accordingly.\n\n" +
+    "For 'simple': set headline to the key term bolded plus an ultra-short definition " +
+    "(e.g. '**Chlorophyll** — the green pigment that gives plants their color'). " +
+    "Write the answer in 1-2 clear sentences. key_points may be empty.\n\n" +
+    "For 'detailed': set headline to the topic name (plain text, no markdown). " +
+    "Write a clear structured answer using **bold** for key terms, and separate " +
+    "paragraphs with a blank line (two newlines) for breathing room. " +
+    "Include 3-5 key_points as short memorable takeaways.\n\n" +
+    "Always add 2-3 follow_up_questions. Use simple, student-friendly language.",
 };
 
 // ---------------------------------------------------------------------------
@@ -165,11 +176,13 @@ const OUTPUT_SCHEMAS: Record<string, object> = {
     type: "object",
     additionalProperties: false,
     properties: {
+      response_type: { type: "string", enum: ["simple", "detailed"] },
+      headline: { type: "string" },
       answer: { type: "string" },
       key_points: { type: "array", items: { type: "string" } },
       follow_up_questions: { type: "array", items: { type: "string" } },
     },
-    required: ["answer", "key_points", "follow_up_questions"],
+    required: ["response_type", "headline", "answer", "key_points", "follow_up_questions"],
   },
 };
 

@@ -517,6 +517,24 @@ $('#new-upload')?.addEventListener('click', resetToUpload)
 $('#new-upload-solve')?.addEventListener('click', resetToUpload)
 $('#new-upload-summarize')?.addEventListener('click', resetToUpload)
 
+// ============================ Markdown renderer ============================
+// Minimal safe markdown: escapes HTML first, then applies bold/italic/newlines.
+// Only used on AI-generated text — the escapeHtml pass makes the substitutions safe.
+function renderMd(text) {
+  if (!text) return ''
+  let out = escapeHtml(text)
+  // Bold: **text**
+  out = out.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+  // Italic: *text* (not adjacent to other asterisks)
+  out = out.replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+  // Double newline → paragraph break; single newline → <br>
+  out = out
+    .split('\n\n')
+    .map((p) => `<p class="ask-answer__para">${p.replace(/\n/g, '<br>')}</p>`)
+    .join('')
+  return out
+}
+
 // ============================ Result renderers =============================
 
 function renderSolveResult(result) {
@@ -544,17 +562,33 @@ function renderSummarizeResult(result) {
 }
 
 function renderAskResult(result, container) {
-  const keyPoints = (result.key_points || []).map((p) => `<li>${escapeHtml(p)}</li>`).join('')
   const followUps = (result.follow_up_questions || [])
     .map((q) => `<button class="followup-chip" type="button">${escapeHtml(q)}</button>`)
     .join('')
-  container.innerHTML = `
-    <div class="guide">
-      <h3 style="margin-top:0">Answer</h3>
-      <p class="guide__summary">${escapeHtml(result.answer || '')}</p>
-      ${keyPoints ? `<h3>Key points</h3><ul>${keyPoints}</ul>` : ''}
-      ${followUps ? `<h3>Explore more</h3><div class="followup-chips">${followUps}</div>` : ''}
-    </div>`
+  const followUpsHtml = followUps
+    ? `<div style="margin-top:16px"><p class="ask-explore-label">Explore more</p><div class="followup-chips">${followUps}</div></div>`
+    : ''
+
+  let html
+  if (result.response_type === 'simple') {
+    html = `
+      <div class="ask-simple">
+        <p class="ask-headline">${renderMd(result.headline || '')}</p>
+        <div class="ask-answer">${renderMd(result.answer || '')}</div>
+        ${followUpsHtml}
+      </div>`
+  } else {
+    const keyPoints = (result.key_points || []).map((p) => `<li class="ask-kp">${renderMd(p)}</li>`).join('')
+    html = `
+      <div class="ask-detailed guide">
+        ${result.headline ? `<h3 class="ask-detailed__title">${escapeHtml(result.headline)}</h3>` : ''}
+        <div class="ask-answer">${renderMd(result.answer || '')}</div>
+        ${keyPoints ? `<h3>Key points</h3><ul class="ask-kp-list">${keyPoints}</ul>` : ''}
+        ${followUpsHtml}
+      </div>`
+  }
+
+  container.innerHTML = html
   container.querySelectorAll('.followup-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
       els.askInput.value = chip.textContent

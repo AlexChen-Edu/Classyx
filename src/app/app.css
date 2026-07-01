@@ -1313,6 +1313,47 @@ body.app {
 .banner--info { background: var(--brand-tint); color: var(--brand-ink); border: 1px solid #cfe6d8; }
 .hidden { display: none !important; }
 
+/* ---------- Ask anything result ---------- */
+/* Simple response: large bolded headline + compact answer */
+.ask-headline {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+/* Detailed response: topic title matching guide h3 */
+.ask-detailed__title {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+/* Shared answer body */
+.ask-answer {
+  color: var(--ink-2);
+  line-height: 1.65;
+}
+.ask-answer__para { margin: 0 0 0.75em; }
+.ask-answer__para:last-child { margin-bottom: 0; }
+/* Key-point list reuses .guide li style */
+.ask-kp-list { display: flex; flex-direction: column; gap: 8px; }
+.ask-kp { position: relative; padding-left: 24px; color: var(--ink-2); }
+.ask-kp::before {
+  content: '';
+  position: absolute; left: 6px; top: 9px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent);
+}
+/* "Explore more" section label */
+.ask-explore-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+
 /* ---------- Follow-up question chips (Ask anything) ---------- */
 .followup-chips {
   display: flex;
