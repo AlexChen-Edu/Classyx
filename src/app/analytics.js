@@ -8,10 +8,10 @@
 // per-subject mastery %. A quiz result whose flashcard/upload was deleted (or
 // never had a subject) has no resolvable subject and is excluded from the
 // per-subject mastery map, falling back to "—" for that subject below.
-import { requireSession, signOut } from './auth.js'
+import { requireSession, signOut, getChildSession, getActiveChild } from './auth.js'
 import { getChildAnalytics } from './api.js'
 import {
-  $, escapeHtml, formatMinutes, computeStreak, renderStreakBadge, friendlyMessage,
+  $, $$, escapeHtml, formatMinutes, computeStreak, renderStreakBadge, friendlyMessage,
 } from './ui.js'
 
 $('[data-signout]')?.addEventListener('click', signOut)
@@ -26,18 +26,42 @@ let period = 'week'
 let subjectFilter = 'all'
 
 async function main() {
-  const session = await requireSession()
-  if (!session) return
-  const role = session.user.user_metadata?.role
-  if (role && role !== 'parent' && role !== 'self') {
-    location.replace('/app/child.html')
-    return
+  const childSession = getChildSession()
+  const activeChild = getActiveChild()
+  // isChildContext: arrived via the study page (either parent-selected child or account-less child)
+  const isChildContext = !!(childSession || activeChild)
+
+  if (!isChildContext) {
+    // Parent accessing analytics directly — require a parent/self session.
+    const session = await requireSession()
+    if (!session) return
+    const role = session.user.user_metadata?.role
+    if (role && role !== 'parent' && role !== 'self') {
+      location.replace('/app/child.html')
+      return
+    }
   }
+  // Child context (parent-authenticated or account-less): skip requireSession — the parent
+  // Supabase session may still be active in localStorage and will power getChildAnalytics.
+  // For account-less children with no parent session, getChildAnalytics will throw due to
+  // RLS and we'll show a graceful error rather than redirecting to sign-in.
 
   const childId = new URLSearchParams(location.search).get('child')
   if (!childId) {
-    showError("No child specified. Go back to the dashboard and pick a child's Analytics link.")
+    showError("No child specified. Go back and pick a child's Analytics link.")
     return
+  }
+
+  // Back button: child context → Back to study; parent context → Back to dashboard (default in HTML).
+  const backBtn = document.getElementById('back-btn')
+  if (backBtn && isChildContext) {
+    backBtn.textContent = '← Back to study'
+    backBtn.href = '/app/study.html'
+  }
+
+  // Hide parent-only header elements when in child context.
+  if (isChildContext) {
+    document.querySelectorAll('[data-parent-only]').forEach((el) => { el.hidden = true })
   }
 
   try {

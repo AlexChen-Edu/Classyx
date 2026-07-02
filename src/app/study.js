@@ -6,7 +6,7 @@ import {
   uploadNote, generateContent, askQuestion, getFlashcards,
   startSession, touchSession,
   startPresence, pingPresence, endPresenceBeacon, getChildStreak,
-  saveChildSession, saveChildSessionBeacon,
+  saveChildSession, saveChildSessionBeacon, getTodaySeconds,
 } from './api.js'
 import { $, $$, setStatus, loading, escapeHtml, computeStreak, renderStreakBadge, initials, tintFor, friendlyMessage } from './ui.js'
 
@@ -407,6 +407,7 @@ function showCelebration() {
 let sessionRow = null
 let startedAtMs = Date.now()
 let seconds = 0
+let priorTodaySeconds = 0
 let tickInterval = null
 let saveInterval = null
 let pingInterval = null
@@ -424,7 +425,7 @@ let goalReached = false
 function updateGoalBar() {
   if (!els.goalBarFill) return
   const goalSeconds = (child?.daily_goal_minutes || 30) * 60
-  const pct = Math.min(100, Math.round((seconds / goalSeconds) * 100))
+  const pct = Math.min(100, Math.round(((seconds + priorTodaySeconds) / goalSeconds) * 100))
   els.goalBarFill.style.width = `${pct}%`
   if (pct >= 100) {
     if (!goalReached) {
@@ -459,7 +460,15 @@ function stopTick() {
 async function startTimer() {
   startedAtMs = Date.now()
   seconds = 0
+  priorTodaySeconds = 0
   totalPausedMs = 0
+
+  // Seed the XP bar from today's already-completed study time (parent-session path only;
+  // account-less children have no RLS access to study_sessions so we leave priorTodaySeconds=0).
+  if (viaParentSession) {
+    try { priorTodaySeconds = await getTodaySeconds(child.id) } catch { /* best effort */ }
+  }
+
   updateDisplay()
   startTick()
   if (viaParentSession) {

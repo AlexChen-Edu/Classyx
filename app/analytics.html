@@ -21,14 +21,14 @@
           Classyx
         </a>
         <div class="app-header__spacer"></div>
-        <a class="btn btn-ghost btn-sm" href="/app/child.html">Study mode</a>
-        <button class="btn btn-ghost btn-sm" data-signout type="button">Sign out</button>
+        <a class="btn btn-ghost btn-sm" data-parent-only href="/app/child.html">Study mode</a>
+        <button class="btn btn-ghost btn-sm" data-parent-only data-signout type="button">Sign out</button>
       </div>
     </header>
 
     <main class="app-main">
       <div class="container">
-        <a class="btn btn-ghost btn-sm" href="/app/dashboard.html" style="margin-bottom:18px">← Back to dashboard</a>
+        <a id="back-btn" class="btn btn-ghost btn-sm" href="/app/dashboard.html" style="margin-bottom:18px">← Back to dashboard</a>
 
         <div class="page-head" id="child-header">
           <div class="seg" role="tablist" aria-label="Time period">

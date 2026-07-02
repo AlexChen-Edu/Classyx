@@ -405,6 +405,26 @@ export function endPresenceBeacon(childId) {
   } catch { /* best effort */ }
 }
 
+/**
+ * Total duration_seconds accumulated by a child for today's calendar date.
+ * Used by study.js to seed the XP bar at session start so prior sessions in the
+ * same day are already counted. Requires parent auth (RLS-scoped to owns_child).
+ */
+export async function getTodaySeconds(childId) {
+  const todayStart = new Date()
+  todayStart.setHours(0, 0, 0, 0)
+  const { data, error } = await supabase
+    .from('study_sessions')
+    .select('duration_seconds, duration_minutes')
+    .eq('child_id', childId)
+    .gte('started_at', todayStart.toISOString())
+  if (error) throw error
+  return (data ?? []).reduce(
+    (sum, s) => sum + (s.duration_seconds ?? (s.duration_minutes || 0) * 60),
+    0,
+  )
+}
+
 /** RLS-scoped to the caller's own children; used by the parent dashboard. */
 export async function getActiveSessions() {
   const { data, error } = await supabase
