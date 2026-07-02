@@ -213,7 +213,7 @@ async function callOpenAI(
   // model knows what was already discussed (ask follow-up thread).
   const contextMessages = context.map((turn) => ({
     role: turn.role,
-    content: [{ type: "input_text", text: turn.content }],
+    content: [{ type: turn.role === "assistant" ? "output_text" : "input_text", text: turn.content }],
   }));
 
   const aiRes = await fetch("https://api.openai.com/v1/responses", {
