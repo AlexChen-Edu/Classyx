@@ -595,6 +595,9 @@ function renderAskResult(result, container, onChipClick) {
   }
 
   container.innerHTML = html
+  if (typeof MathJax !== 'undefined') {
+    MathJax.typesetPromise([container]).catch(console.error)
+  }
   container.querySelectorAll('.followup-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
       if (onChipClick) {
