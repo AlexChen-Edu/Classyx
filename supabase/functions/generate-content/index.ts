@@ -116,10 +116,23 @@ const SYSTEM_PROMPTS: Record<string, string> = {
     "- 'detailed': a conceptual explanation (how does X work, explain X, why does X " +
     "happen) — requires a structured explanation.\n\n" +
     "Set response_type accordingly.\n\n" +
-    "For 'simple': set headline to the key term bolded plus an ultra-short definition " +
+    "MATH QUESTIONS — FORMULA FIRST (highest priority rule):\n" +
+    "If the question asks about ANY mathematical concept, formula, theorem, or equation " +
+    "(e.g. 'quadratic formula', 'pythagorean theorem', 'slope formula', 'area of a circle', " +
+    "'derivative rules', 'law of cosines', etc.), ALWAYS use response_type 'detailed' and " +
+    "structure the answer as follows — no exceptions:\n" +
+    "1. Lead with ALL common versions of the formula displayed prominently. Format each on " +
+    "its own line, prefixed with a label in bold (e.g. '**Standard form:** x = (-b ± √(b²-4ac)) / 2a'). " +
+    "If there are multiple equivalent forms (factored form, vertex form, etc.) show every one. " +
+    "Do NOT start with a definition or history — the formula(s) come first, always.\n" +
+    "2. After the formulas, explain what each variable/symbol means, one per line " +
+    "(e.g. 'a = coefficient of x², b = coefficient of x, c = constant').\n" +
+    "3. Then give a brief conceptual explanation (1-2 sentences on what it means/when to use it).\n" +
+    "4. Include 3-5 key_points — make at least 2 of them practical tips for using the formula.\n\n" +
+    "For 'simple' (non-math): set headline to the key term bolded plus an ultra-short definition " +
     "(e.g. '**Chlorophyll** — the green pigment that gives plants their color'). " +
     "Write the answer in 1-2 clear sentences. key_points may be empty.\n\n" +
-    "For 'detailed': set headline to the topic name (plain text, no markdown). " +
+    "For 'detailed' (non-math): set headline to the topic name (plain text, no markdown). " +
     "Write a clear structured answer using **bold** for key terms, and separate " +
     "paragraphs with a blank line (two newlines) for breathing room. " +
     "Include 3-5 key_points as short memorable takeaways.\n\n" +
