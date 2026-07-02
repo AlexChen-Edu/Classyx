@@ -621,11 +621,11 @@ function summariseForHistory(result) {
   return parts.join('\n\n')
 }
 
-/** Pre-fill the follow-up input from a suggested chip. */
+/** Auto-send a follow-up question from a suggested chip. */
 function fillFollowup(text) {
   els.askFollowupInput.value = text
   els.askFollowupBtn.disabled = false
-  els.askFollowupInput.focus()
+  sendFollowup()
 }
 
 /** Append a Q/A exchange to the thread and scroll it into view. */
