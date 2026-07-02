@@ -528,7 +528,14 @@ $('#new-upload-summarize')?.addEventListener('click', resetToUpload)
 // Only used on AI-generated text — the escapeHtml pass makes the substitutions safe.
 function renderMd(text) {
   if (!text) return ''
-  let out = escapeHtml(text)
+  // Pull out LaTeX blocks first so \n inside them never becomes <br>
+  const latexBlocks = []
+  const MARK = ''
+  const safe = text.replace(/\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)/g, (m) => {
+    latexBlocks.push(escapeHtml(m))
+    return `${MARK}${latexBlocks.length - 1}${MARK}`
+  })
+  let out = escapeHtml(safe)
   // Bold: **text**
   out = out.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
   // Italic: *text* (not adjacent to other asterisks)
@@ -538,6 +545,10 @@ function renderMd(text) {
     .split('\n\n')
     .map((p) => `<p class="ask-answer__para">${p.replace(/\n/g, '<br>')}</p>`)
     .join('')
+  // Restore LaTeX blocks (already HTML-escaped)
+  if (latexBlocks.length) {
+    out = out.replace(new RegExp(`${MARK}(\\d+)${MARK}`, 'g'), (_, i) => latexBlocks[+i])
+  }
   return out
 }
 
@@ -596,7 +607,9 @@ function renderAskResult(result, container, onChipClick) {
 
   container.innerHTML = html
   if (typeof MathJax !== 'undefined') {
-    MathJax.typesetPromise([container]).catch(console.error)
+    ;(MathJax.startup?.promise ?? Promise.resolve())
+      .then(() => MathJax.typesetPromise([container]))
+      .catch(console.error)
   }
   container.querySelectorAll('.followup-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
