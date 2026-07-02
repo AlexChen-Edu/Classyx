@@ -20,200 +20,349 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script"></script>
   </head>
-  <body class="app">
-    <header class="app-header">
-      <div class="container app-header__inner">
-        <a class="app-logo" href="/app/dashboard.html">
-          <span class="app-logo__mark" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
+  <body class="app study-app">
+
+    <!-- =================== LEFT SIDEBAR =================== -->
+    <nav class="study-sidebar" id="study-sidebar" aria-label="Study navigation">
+      <div class="study-sidebar__top">
+        <a class="study-sidebar__logo" href="/app/dashboard.html">
+          <span class="study-sidebar__logo-mark" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
           </span>
           Classyx
         </a>
-        <div class="app-header__spacer"></div>
-        <span class="timer-pill"><span class="timer-dot"></span><span id="timer">0:00</span></span>
-        <span class="app-header__child" id="child-name">—</span>
-        <button class="btn-link" id="forget-device" type="button">Forget this device</button>
-        <a class="btn btn-ghost btn-sm" href="/app/child.html">Switch</a>
-        <button class="btn btn-primary btn-sm" id="end-session" type="button">End session</button>
+        <ul class="study-nav" role="list">
+          <li>
+            <button class="study-nav__item is-active" data-nav="home" type="button">
+              <svg class="study-nav__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              Home
+            </button>
+          </li>
+          <li>
+            <button class="study-nav__item" data-nav="flashcards" type="button">
+              <svg class="study-nav__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16"/></svg>
+              Flashcards
+            </button>
+          </li>
+          <li>
+            <button class="study-nav__item" data-nav="study-guides" type="button">
+              <svg class="study-nav__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Study Guides
+            </button>
+          </li>
+          <li>
+            <button class="study-nav__item" data-nav="ask" type="button">
+              <svg class="study-nav__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Ask Questions
+            </button>
+          </li>
+          <li>
+            <button class="study-nav__item" data-nav="progress" type="button">
+              <svg class="study-nav__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              Progress
+            </button>
+          </li>
+          <li>
+            <button class="study-nav__item" data-nav="settings" type="button">
+              <svg class="study-nav__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Settings
+            </button>
+          </li>
+        </ul>
       </div>
-    </header>
-
-    <main class="app-main">
-      <div class="container">
-        <div class="goal-bar-wrap" style="margin-bottom:14px">
-          <div class="goal-bar-track">
-            <div class="goal-bar-fill" id="goal-bar-fill"></div>
-          </div>
-          <p class="goal-bar-label" id="goal-label">0% of today's goal</p>
+      <div class="study-sidebar__footer">
+        <div class="study-sidebar__child" id="sidebar-child">
+          <!-- filled by JS: avatar initials + name -->
         </div>
-        <div id="streak-slot" style="text-align:center;margin-bottom:14px"></div>
+      </div>
+    </nav>
 
-        <!-- Top-level mode switcher -->
-        <div style="text-align:center;margin-bottom:20px">
-          <div class="seg" role="tablist" id="mode-tab-bar">
-            <button role="tab" aria-selected="true" data-mode="upload">Upload notes</button>
-            <button role="tab" aria-selected="false" data-mode="ask">Ask anything</button>
-          </div>
+    <!-- =================== MAIN AREA =================== -->
+    <div class="study-layout">
+
+      <!-- Top bar -->
+      <header class="study-topbar">
+        <button class="study-topbar__menu-btn" id="sidebar-toggle" type="button" aria-label="Open menu" aria-expanded="false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="study-topbar__right">
+          <div id="topbar-streak"><!-- filled by JS --></div>
+          <span class="timer-pill"><span class="timer-dot"></span><span id="timer">0:00</span></span>
+          <button class="btn btn-primary btn-sm" id="end-session" type="button">End session</button>
         </div>
+      </header>
 
-        <!-- Upload -->
-        <section id="upload-section" class="card" style="max-width:680px;margin-inline:auto">
-          <div class="page-head" style="margin-bottom:14px"><div><h1 style="font-size:1.4rem">Upload your notes</h1><p>Snap a photo or drop a PDF — we'll help you study.</p></div></div>
+      <!-- Goal XP bar (slim strip below topbar) -->
+      <div class="study-goal-strip">
+        <div class="study-goal-strip__track">
+          <div class="goal-bar-fill" id="goal-bar-fill"></div>
+        </div>
+        <span class="study-goal-strip__label" id="goal-label">0% of today's goal</span>
+      </div>
 
-          <div class="form-row">
-            <label for="subject">Subject</label>
-            <select class="input" id="subject">
-              <option value="">Choose a subject…</option>
-              <option>Biology</option><option>Chemistry</option><option>Physics</option>
-              <option>Math</option><option>History</option><option>English</option>
-              <option>Geography</option><option>Spanish</option><option>French</option>
-              <option value="Other">Other</option>
-            </select>
+      <!-- Views -->
+      <main class="study-main">
+
+        <!-- ========= HOME ========= -->
+        <section id="view-home" class="study-view">
+          <div class="home-header">
+            <h1 class="home-greeting" id="home-greeting">Good morning! 👋</h1>
+            <p class="home-subtitle">What would you like to study today?</p>
           </div>
 
-          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a file">
-            <div class="dropzone__icon">
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8 12 3 7 8"/><path d="M12 3v12"/></svg>
-            </div>
-            <div class="dropzone__main">Tap to choose, or drag a file here</div>
-            <div class="hint">JPG, PNG, or PDF · up to 10 MB</div>
-            <input type="file" id="file" accept="image/*,application/pdf" />
+          <h2 class="home-section-title">Study Tools</h2>
+          <div class="home-tools-grid">
+            <button class="home-tool-card" data-tool="flashcards" type="button">
+              <div class="home-tool-card__icon home-tool-card__icon--purple">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16"/></svg>
+              </div>
+              <span class="home-tool-card__title">Generate Flashcards</span>
+              <span class="home-tool-card__sub">Turn your notes into flashcards in seconds.</span>
+              <span class="home-tool-card__arrow" aria-hidden="true">→</span>
+            </button>
+            <button class="home-tool-card" data-tool="study-guides" type="button">
+              <div class="home-tool-card__icon home-tool-card__icon--green">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <span class="home-tool-card__title">Generate Study Guide</span>
+              <span class="home-tool-card__sub">Create a comprehensive study guide on any topic.</span>
+              <span class="home-tool-card__arrow" aria-hidden="true">→</span>
+            </button>
+            <button class="home-tool-card" data-tool="ask" type="button">
+              <div class="home-tool-card__icon home-tool-card__icon--blue">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              </div>
+              <span class="home-tool-card__title">Ask Questions</span>
+              <span class="home-tool-card__sub">Get instant answers and explanations.</span>
+              <span class="home-tool-card__arrow" aria-hidden="true">→</span>
+            </button>
           </div>
-          <div id="file-info"></div>
 
-          <button class="btn btn-primary btn-lg btn-block" id="generate" type="button" disabled style="margin-top:18px">
-            Choose how to study →
-          </button>
-          <p class="form-status" data-status role="status" aria-live="polite"></p>
+          <h2 class="home-section-title">Recent Activity</h2>
+          <div class="home-recent" id="home-recent">
+            <p class="muted" style="text-align:center;padding:22px 0">Loading…</p>
+          </div>
+
+          <div class="home-quote-card">
+            <span class="home-quote-mark" aria-hidden="true">"</span>
+            <p class="home-quote-text" id="home-quote"></p>
+          </div>
         </section>
 
-        <!-- Intent selection -->
-        <section id="intent-section" class="hidden" style="max-width:680px;margin-inline:auto">
-          <div class="card">
-            <div class="page-head" style="margin-bottom:4px">
+        <!-- ========= UPLOAD FLOW (flashcards + study guides) ========= -->
+        <section id="view-upload" class="study-view hidden">
+          <p class="study-view__back">
+            <button class="btn btn-ghost btn-sm" id="back-to-home-upload" type="button">← Home</button>
+          </p>
+
+          <!-- Upload step -->
+          <div id="upload-section" class="card" style="max-width:680px;margin-inline:auto">
+            <div class="page-head" style="margin-bottom:14px">
               <div>
-                <h2 style="font-size:1.2rem;margin-bottom:4px">What do you want to do?</h2>
-                <p>Choose how you'd like to study this material.</p>
+                <h1 style="font-size:1.4rem" id="upload-view-title">Upload your notes</h1>
+                <p id="upload-view-sub">Snap a photo or drop a PDF — we'll help you study.</p>
               </div>
             </div>
-            <div class="role-cards" style="margin-top:18px">
-              <button class="role-card" data-intent="solve" type="button">
-                <div class="role-card__icon" style="font-size:1.4rem">🧩</div>
-                <div class="role-card__text">
-                  <span class="role-card__label">Solve this problem</span>
-                  <span class="role-card__sub">AI guides you step-by-step without giving the answer away. Best for math, puzzles, and homework questions.</span>
-                </div>
-              </button>
-              <button class="role-card" data-intent="flashcards" type="button">
-                <div class="role-card__icon" style="font-size:1.4rem">🃏</div>
-                <div class="role-card__text">
-                  <span class="role-card__label">Make me flashcards</span>
-                  <span class="role-card__sub">Turns your notes into 20 flashcards you can flip through and study.</span>
-                </div>
-              </button>
-              <button class="role-card" data-intent="summarize" type="button">
-                <div class="role-card__icon" style="font-size:1.4rem">📝</div>
-                <div class="role-card__text">
-                  <span class="role-card__label">Summarize this</span>
-                  <span class="role-card__sub">Get a concise summary and key points from your notes, fast.</span>
-                </div>
-              </button>
-            </div>
-            <p style="margin-top:18px">
-              <button class="btn btn-ghost btn-sm" id="back-to-upload" type="button">← Back</button>
-            </p>
-          </div>
-        </section>
 
-        <!-- Ask anything -->
-        <section id="ask-section" class="card hidden" style="max-width:680px;margin-inline:auto">
-          <div class="page-head" style="margin-bottom:14px">
-            <div>
-              <h2 style="font-size:1.2rem">Ask anything</h2>
-              <p>Type any question and get a clear, student-friendly answer.</p>
-            </div>
-          </div>
-          <!-- Initial input: shown before any question is asked -->
-          <div id="ask-input-wrap">
             <div class="form-row">
-              <label for="ask-input">Your question</label>
-              <input type="text" class="input" id="ask-input" placeholder="e.g. explain photosynthesis, what is the quadratic formula…" />
+              <label for="subject">Subject</label>
+              <select class="input" id="subject">
+                <option value="">Choose a subject…</option>
+                <option>Biology</option><option>Chemistry</option><option>Physics</option>
+                <option>Math</option><option>History</option><option>English</option>
+                <option>Geography</option><option>Spanish</option><option>French</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
-            <button class="btn btn-primary btn-lg btn-block" id="ask-btn" type="button" disabled>Ask</button>
-          </div>
-          <!-- Conversation thread: accumulates all Q/A exchanges -->
-          <div id="ask-thread" class="hidden"></div>
-          <!-- Follow-up bar: shown after the first answer -->
-          <div id="ask-followup-wrap" class="hidden">
-            <div class="ask-followup-bar">
-              <input type="text" class="input" id="ask-followup-input" placeholder="Ask a follow-up…" />
-              <button class="btn btn-primary ask-followup-send" id="ask-followup-btn" type="button" disabled aria-label="Send follow-up">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </button>
+
+            <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a file">
+              <div class="dropzone__icon">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8 12 3 7 8"/><path d="M12 3v12"/></svg>
+              </div>
+              <div class="dropzone__main">Tap to choose, or drag a file here</div>
+              <div class="hint">JPG, PNG, or PDF · up to 10 MB</div>
+              <input type="file" id="file" accept="image/*,application/pdf" />
             </div>
+            <div id="file-info"></div>
+
+            <button class="btn btn-primary btn-lg btn-block" id="generate" type="button" disabled style="margin-top:18px">
+              Choose how to study →
+            </button>
+            <p class="form-status" data-status role="status" aria-live="polite"></p>
           </div>
-          <p class="form-status" data-ask-status role="status" aria-live="polite" style="margin-top:8px"></p>
-        </section>
 
-        <!-- Generating -->
-        <section id="generating" class="hidden">
-          <div class="generating">
-            <span class="spinner spinner--lg"></span>
-            <h2 style="font-size:1.2rem" id="generating-title">Working on it…</h2>
-            <p class="muted" id="generating-note">This takes 5–15 seconds.</p>
-          </div>
-        </section>
-
-        <!-- Results -->
-        <section id="results" class="hidden">
-
-          <!-- Flashcards mode -->
-          <div id="results-flashcards">
-            <div class="flashcard-flip" id="flashcard" role="button" tabindex="0" aria-label="Flashcard, press Enter to flip">
-              <div class="flashcard-flip__inner">
-                <div class="flashcard-face flashcard-front">
-                  <span class="flashcard-face__tag">Question</span>
-                  <div class="flashcard-face__text" id="card-q"></div>
-                  <span class="flashcard-face__hint">Tap to flip</span>
-                </div>
-                <div class="flashcard-face flashcard-back">
-                  <span class="flashcard-face__tag">Answer</span>
-                  <div class="flashcard-face__text" id="card-a"></div>
-                  <span class="flashcard-face__hint">Tap to flip back</span>
+          <!-- Intent selection step -->
+          <div id="intent-section" class="hidden" style="max-width:680px;margin-inline:auto">
+            <div class="card">
+              <div class="page-head" style="margin-bottom:4px">
+                <div>
+                  <h2 style="font-size:1.2rem;margin-bottom:4px">What do you want to do?</h2>
+                  <p>Choose how you'd like to study this material.</p>
                 </div>
               </div>
-            </div>
-            <div class="deck-nav">
-              <button class="btn btn-ghost btn-sm" id="prev">← Prev</button>
-              <span class="deck-count" id="deck-count">1 / 1</span>
-              <button class="btn btn-ghost btn-sm" id="next">Next →</button>
-            </div>
-            <p style="text-align:center;margin-top:18px"><button class="btn btn-ghost btn-sm" id="new-upload">↺ Upload more notes</button></p>
-          </div>
-
-          <!-- Solve mode -->
-          <div id="results-solve" class="hidden" style="max-width:680px;margin-inline:auto">
-            <div class="card guide">
-              <div id="solve-content"></div>
-              <p style="text-align:center;margin-top:24px">
-                <button class="btn btn-ghost btn-sm" id="new-upload-solve">↺ Upload more notes</button>
+              <div class="role-cards" style="margin-top:18px">
+                <button class="role-card" data-intent="solve" type="button">
+                  <div class="role-card__icon" style="font-size:1.4rem">🧩</div>
+                  <div class="role-card__text">
+                    <span class="role-card__label">Solve this problem</span>
+                    <span class="role-card__sub">AI guides you step-by-step without giving the answer away. Best for math, puzzles, and homework questions.</span>
+                  </div>
+                </button>
+                <button class="role-card" data-intent="flashcards" type="button">
+                  <div class="role-card__icon" style="font-size:1.4rem">🃏</div>
+                  <div class="role-card__text">
+                    <span class="role-card__label">Make me flashcards</span>
+                    <span class="role-card__sub">Turns your notes into 20 flashcards you can flip through and study.</span>
+                  </div>
+                </button>
+                <button class="role-card" data-intent="summarize" type="button">
+                  <div class="role-card__icon" style="font-size:1.4rem">📝</div>
+                  <div class="role-card__text">
+                    <span class="role-card__label">Summarize this</span>
+                    <span class="role-card__sub">Get a concise summary and key points from your notes, fast.</span>
+                  </div>
+                </button>
+              </div>
+              <p style="margin-top:18px">
+                <button class="btn btn-ghost btn-sm" id="back-to-upload" type="button">← Back</button>
               </p>
             </div>
           </div>
 
-          <!-- Summarize mode -->
-          <div id="results-summarize" class="hidden" style="max-width:680px;margin-inline:auto">
-            <div class="card guide">
-              <div id="summarize-content"></div>
-              <p style="text-align:center;margin-top:24px">
-                <button class="btn btn-ghost btn-sm" id="new-upload-summarize">↺ Upload more notes</button>
+          <!-- Generating spinner -->
+          <section id="generating" class="hidden">
+            <div class="generating">
+              <span class="spinner spinner--lg"></span>
+              <h2 style="font-size:1.2rem" id="generating-title">Working on it…</h2>
+              <p class="muted" id="generating-note">This takes 5–15 seconds.</p>
+            </div>
+          </section>
+
+          <!-- Results -->
+          <section id="results" class="hidden">
+
+            <!-- Flashcards mode -->
+            <div id="results-flashcards">
+              <div class="flashcard-flip" id="flashcard" role="button" tabindex="0" aria-label="Flashcard, press Enter to flip">
+                <div class="flashcard-flip__inner">
+                  <div class="flashcard-face flashcard-front">
+                    <span class="flashcard-face__tag">Question</span>
+                    <div class="flashcard-face__text" id="card-q"></div>
+                    <span class="flashcard-face__hint">Tap to flip</span>
+                  </div>
+                  <div class="flashcard-face flashcard-back">
+                    <span class="flashcard-face__tag">Answer</span>
+                    <div class="flashcard-face__text" id="card-a"></div>
+                    <span class="flashcard-face__hint">Tap to flip back</span>
+                  </div>
+                </div>
+              </div>
+              <div class="deck-nav">
+                <button class="btn btn-ghost btn-sm" id="prev">← Prev</button>
+                <span class="deck-count" id="deck-count">1 / 1</span>
+                <button class="btn btn-ghost btn-sm" id="next">Next →</button>
+              </div>
+              <p style="text-align:center;margin-top:18px">
+                <button class="btn btn-ghost btn-sm" id="new-upload">↺ Upload more notes</button>
               </p>
             </div>
-          </div>
 
+            <!-- Solve mode -->
+            <div id="results-solve" class="hidden" style="max-width:680px;margin-inline:auto">
+              <div class="card guide">
+                <div id="solve-content"></div>
+                <p style="text-align:center;margin-top:24px">
+                  <button class="btn btn-ghost btn-sm" id="new-upload-solve">↺ Upload more notes</button>
+                </p>
+              </div>
+            </div>
+
+            <!-- Summarize mode -->
+            <div id="results-summarize" class="hidden" style="max-width:680px;margin-inline:auto">
+              <div class="card guide">
+                <div id="summarize-content"></div>
+                <p style="text-align:center;margin-top:24px">
+                  <button class="btn btn-ghost btn-sm" id="new-upload-summarize">↺ Upload more notes</button>
+                </p>
+              </div>
+            </div>
+
+          </section>
         </section>
-      </div>
-    </main>
+
+        <!-- ========= ASK ANYTHING ========= -->
+        <section id="view-ask" class="study-view hidden">
+          <p class="study-view__back">
+            <button class="btn btn-ghost btn-sm" id="back-to-home-ask" type="button">← Home</button>
+          </p>
+          <div id="ask-section" class="card" style="max-width:680px;margin-inline:auto">
+            <div class="page-head" style="margin-bottom:14px">
+              <div>
+                <h2 style="font-size:1.2rem">Ask anything</h2>
+                <p>Type any question and get a clear, student-friendly answer.</p>
+              </div>
+            </div>
+            <div id="ask-input-wrap">
+              <div class="form-row">
+                <label for="ask-input">Your question</label>
+                <input type="text" class="input" id="ask-input" placeholder="e.g. explain photosynthesis, what is the quadratic formula…" />
+              </div>
+              <button class="btn btn-primary btn-lg btn-block" id="ask-btn" type="button" disabled>Ask</button>
+            </div>
+            <div id="ask-thread" class="hidden"></div>
+            <div id="ask-followup-wrap" class="hidden">
+              <div class="ask-followup-bar">
+                <input type="text" class="input" id="ask-followup-input" placeholder="Ask a follow-up…" />
+                <button class="btn btn-primary ask-followup-send" id="ask-followup-btn" type="button" disabled aria-label="Send follow-up">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+              </div>
+            </div>
+            <p class="form-status" data-ask-status role="status" aria-live="polite" style="margin-top:8px"></p>
+          </div>
+        </section>
+
+        <!-- ========= SETTINGS ========= -->
+        <section id="view-settings" class="study-view hidden">
+          <div class="card" style="max-width:480px;margin-inline:auto">
+            <h2 style="font-size:1.1rem;margin-bottom:18px">Settings</h2>
+            <div class="settings-field">
+              <span class="settings-field__label">Logged in as</span>
+              <span class="settings-field__value" id="settings-child-name">—</span>
+            </div>
+            <div style="margin-top:20px;display:flex;flex-direction:column;gap:10px">
+              <button class="btn btn-ghost" id="forget-device" type="button">Forget this device</button>
+              <a class="btn btn-ghost" href="/app/child.html">Switch profile</a>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <!-- =================== MOBILE BOTTOM TAB BAR =================== -->
+    <nav class="study-bottom-bar" aria-label="Quick navigation">
+      <button class="study-bottom-bar__item is-active" data-nav="home" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="study-bottom-bar__item" data-nav="flashcards" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16"/></svg>
+        <span>Cards</span>
+      </button>
+      <button class="study-bottom-bar__item" data-nav="ask" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Ask</span>
+      </button>
+      <button class="study-bottom-bar__item" data-nav="progress" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Progress</span>
+      </button>
+      <button class="study-bottom-bar__item" data-nav="settings" type="button">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
 
     <!-- Mascot speech bubble: tiny, corner-anchored, contextual one-liners. -->
     <div class="mascot-bubble" id="mascot-bubble" hidden></div>

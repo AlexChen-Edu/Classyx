@@ -1,5 +1,5 @@
-// Study interface: upload -> intent selection -> AI generate -> results,
-// plus an "Ask anything" tab for text questions without a file upload.
+// Study interface: sidebar layout with Home / Flashcards / Study Guides / Ask / Progress / Settings.
+// All AI generation, ask-anything, and session logic is unchanged from the original.
 import { supabase } from '../supabaseClient.js'
 import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, clearRememberedDevice, clearChildSession, clearActiveChild, markStudiedToday } from './auth.js'
 import {
@@ -14,11 +14,9 @@ const MAX_BYTES = 10 * 1024 * 1024
 const CHILD_URL = '/app/child.html'
 
 let child = null
-/** True only for a parent's authenticated session + a profile picked on child.html. */
 let viaParentSession = false
 
 const els = {
-  childName: $('#child-name'),
   timer: $('#timer'),
   subject: $('#subject'),
   dropzone: $('#dropzone'),
@@ -46,13 +44,24 @@ let chosenFile = null
 let currentStudyMode = 'flashcards'
 let currentUploadId = null
 
+// Tracks which sub-mode was last successfully generated (for sidebar nav)
+let activeResults = null
+// Pre-selected intent coming from a home tool card ('flashcards' | 'summarize' | null)
+let pendingIntent = null
+
+const QUOTES = [
+  'Discipline today, success tomorrow.',
+  'Small steps every day lead to big results.',
+  'Every expert was once a beginner.',
+  'The secret of getting ahead is getting started.',
+  'Hard work beats talent when talent doesn\'t work hard.',
+]
+
 /**
  * The active child can come from either trust path:
  *  - a parent's authenticated session + a profile picked on child.html, or
  *  - an account-less child session (redeem_child_code) stored for this tab.
- * If neither is present, fall back to the remembered device in localStorage
- * — this is the case of a closed-and-reopened tab, where sessionStorage was
- * wiped but the "remember this device" profile survived.
+ * If neither is present, fall back to the remembered device in localStorage.
  */
 async function resolveActiveChild() {
   if (supabase) {
@@ -92,19 +101,215 @@ async function main() {
     location.replace(CHILD_URL)
     return
   }
-  els.childName.textContent = child.name
-  startTimer()
+  renderSidebarChild(child)
+  renderHomeGreeting(child)
+  renderHomeQuote()
+  loadRecentActivity()
+  wireNav()
+  wireToolCards()
+  wireBackButtons()
   wireUpload()
   wireIntent()
-  wireModeTab()
   wireAskSection()
   wireForgetDevice()
   wireEndSession()
+  startTimer()
   renderStreak()
   showMascot("Let's go! 📚")
 }
 
-// ============================ Mascot (Tamagotchi effect) ===================
+// ============================ Sidebar child footer ===========================
+function renderSidebarChild(child) {
+  const container = $('#sidebar-child')
+  if (!container) return
+  const color = tintFor(child.name)
+  container.innerHTML = `
+    <div class="study-sidebar__child-avatar" style="background:${escapeHtml(color)}">${escapeHtml(initials(child.name))}</div>
+    <span class="study-sidebar__child-name">${escapeHtml(child.name)}</span>`
+  const nameEl = $('#settings-child-name')
+  if (nameEl) nameEl.textContent = child.name
+}
+
+// ============================ Navigation ====================================
+function showView(viewName) {
+  $$('.study-view').forEach((v) => v.classList.add('hidden'))
+  $(`#view-${viewName}`)?.classList.remove('hidden')
+}
+
+function setActiveNavItem(navName) {
+  $$('[data-nav]').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.nav === navName)
+  })
+}
+
+function navigateTo(navName) {
+  switch (navName) {
+    case 'home':
+      showView('home')
+      setActiveNavItem('home')
+      break
+
+    case 'flashcards':
+      showView('upload')
+      setActiveNavItem('flashcards')
+      if (activeResults === 'flashcards') {
+        showResults('flashcards')
+      } else {
+        pendingIntent = 'flashcards'
+        updateUploadContext('flashcards')
+        show('upload')
+      }
+      break
+
+    case 'study-guides':
+      showView('upload')
+      setActiveNavItem('study-guides')
+      if (activeResults === 'summarize') {
+        showResults('summarize')
+      } else {
+        pendingIntent = 'summarize'
+        updateUploadContext('study-guides')
+        show('upload')
+      }
+      break
+
+    case 'ask':
+      showView('ask')
+      setActiveNavItem('ask')
+      break
+
+    case 'progress':
+      if (child?.id) location.href = `/app/analytics.html?child=${child.id}`
+      break
+
+    case 'settings':
+      showView('settings')
+      setActiveNavItem('settings')
+      break
+  }
+}
+
+function wireNav() {
+  $$('[data-nav]').forEach((btn) => {
+    btn.addEventListener('click', () => navigateTo(btn.dataset.nav))
+  })
+  // Mobile hamburger: toggle sidebar overlay (future enhancement)
+  $('#sidebar-toggle')?.addEventListener('click', () => {
+    const sidebar = $('#study-sidebar')
+    if (!sidebar) return
+    const open = sidebar.classList.toggle('is-open')
+    $('#sidebar-toggle')?.setAttribute('aria-expanded', String(open))
+  })
+}
+
+// ============================ Home view =====================================
+function getGreeting() {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function renderHomeGreeting(child) {
+  const el = $('#home-greeting')
+  if (el) el.textContent = `${getGreeting()}, ${child.name} 👋`
+}
+
+function renderHomeQuote() {
+  const el = $('#home-quote')
+  if (el) el.textContent = QUOTES[Math.floor(Math.random() * QUOTES.length)]
+}
+
+function timeAgo(iso) {
+  if (!iso) return ''
+  const diff = Date.now() - new Date(iso).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 2) return 'Just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days} days ago`
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+async function loadRecentActivity() {
+  const container = $('#home-recent')
+  if (!container || !supabase) return
+  try {
+    const { data, error } = await supabase
+      .from('study_sessions')
+      .select('started_at, subject')
+      .eq('child_id', child.id)
+      .order('started_at', { ascending: false })
+      .limit(3)
+    if (error) throw error
+    if (!data?.length) {
+      container.innerHTML = '<p class="muted" style="text-align:center;padding:22px 0">No sessions yet — start studying to see your history!</p>'
+      return
+    }
+    container.innerHTML = data.map((session) => {
+      const subj = session.subject || 'General'
+      const color = tintFor(subj)
+      return `
+        <div class="recent-row">
+          <div class="recent-row__icon" style="background:${escapeHtml(color)}22">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${escapeHtml(color)}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div class="recent-row__info">
+            <div class="recent-row__title">${escapeHtml(subj)}</div>
+            <div class="recent-row__type">Study session</div>
+          </div>
+          <div class="recent-row__time">${escapeHtml(timeAgo(session.started_at))}</div>
+        </div>`
+    }).join('')
+  } catch {
+    container.innerHTML = '<p class="muted" style="text-align:center;padding:22px 0">Could not load recent activity.</p>'
+  }
+}
+
+// ============================ Tool cards ====================================
+function wireToolCards() {
+  $$('[data-tool]').forEach((card) => {
+    card.addEventListener('click', () => {
+      const tool = card.dataset.tool
+      if (tool === 'ask') {
+        navigateTo('ask')
+      } else {
+        navigateTo(tool) // 'flashcards' or 'study-guides'
+      }
+    })
+  })
+}
+
+function wireBackButtons() {
+  $('#back-to-home-upload')?.addEventListener('click', () => navigateTo('home'))
+  $('#back-to-home-ask')?.addEventListener('click', () => navigateTo('home'))
+}
+
+// Update upload section title/button to reflect pre-selected intent
+function updateUploadContext(context) {
+  const titleEl = $('#upload-view-title')
+  const subEl = $('#upload-view-sub')
+  if (context === 'flashcards') {
+    if (titleEl) titleEl.textContent = 'Generate Flashcards'
+    if (subEl) subEl.textContent = "Upload your notes and we'll make flashcards."
+    els.generate.textContent = 'Make me flashcards →'
+  } else if (context === 'study-guides') {
+    if (titleEl) titleEl.textContent = 'Generate Study Guide'
+    if (subEl) subEl.textContent = "Upload your notes and we'll summarize them."
+    els.generate.textContent = 'Generate study guide →'
+  } else {
+    if (titleEl) titleEl.textContent = 'Upload your notes'
+    if (subEl) subEl.textContent = "Snap a photo or drop a PDF — we'll help you study."
+    els.generate.textContent = 'Choose how to study →'
+  }
+  // Re-disable generate if no file chosen yet
+  if (!chosenFile) els.generate.disabled = true
+}
+
+// ============================ Mascot (Tamagotchi effect) ====================
 let mascotTimer = null
 let mascotHitTenMin = false
 
@@ -129,7 +334,7 @@ function showMascot(text, ms = 4000) {
  */
 let currentStreak = 0
 async function renderStreak() {
-  const slot = $('#streak-slot')
+  const slot = $('#topbar-streak')
   if (!slot) return
   try {
     const sessions = await getChildStreak(child.id)
@@ -215,7 +420,6 @@ function updateDisplay() {
   updateGoalBar()
 }
 
-/** XP-bar-style fill: seconds studied / daily goal (in seconds), capped at 100%. */
 let goalReached = false
 function updateGoalBar() {
   if (!els.goalBarFill) return
@@ -226,12 +430,12 @@ function updateGoalBar() {
     if (!goalReached) {
       goalReached = true
       els.goalBarFill.classList.add('is-complete')
-      els.goalLabel.classList.add('is-complete')
+      els.goalLabel?.classList.add('is-complete')
       showMascot('Goal crushed. 🔥')
     }
-    els.goalLabel.textContent = '🎉 Daily goal reached!'
+    if (els.goalLabel) els.goalLabel.textContent = '🎉 Daily goal reached!'
   } else {
-    els.goalLabel.textContent = `${pct}% of today's goal`
+    if (els.goalLabel) els.goalLabel.textContent = `${pct}% of today's goal`
   }
 }
 
@@ -262,31 +466,17 @@ async function startTimer() {
     try {
       sessionRow = await startSession({ childId: child.id, subject: els.subject.value || null })
     } catch { /* timer still shows; we just won't persist if this failed */ }
-    // Auto-save every 60s so progress survives an abrupt close. Safe to call
-    // repeatedly since it's an UPDATE on the same row, unlike the anon path's
-    // one-shot RPC below.
     saveInterval = setInterval(saveSession, 60000)
     window.addEventListener('pagehide', saveSession)
   } else {
-    // Account-less child: no row to update, so there's nothing to autosave —
-    // just a single save at the true end of the session (pagehide/
-    // beforeunload here, or the "End session" button). Registered before
-    // endPresence's own pagehide/beforeunload listeners below so the save
-    // request is issued first, while its required active_sessions row still
-    // exists (see the save_child_session migration).
     window.addEventListener('pagehide', saveAnonSessionBeacon)
     window.addEventListener('beforeunload', saveAnonSessionBeacon)
   }
   document.addEventListener('visibilitychange', handleVisibilityChange)
 
-  // Live presence for the parent dashboard's "Active now" indicator.
   try {
     const presence = await startPresence(child.id)
     if (presence?.childMissing) {
-      // This profile was deleted (most likely from a stale "remembered
-      // device" pointing at a child the parent has since removed) — bail
-      // out before wiring up more intervals/listeners for a session that
-      // can never be saved.
       stopTick()
       clearInterval(saveInterval)
       clearRememberedDevice()
@@ -297,13 +487,10 @@ async function startTimer() {
     }
   } catch { /* best effort */ }
   startPresencePing()
-  // pagehide fires both on real tab close and on normal in-app navigation
-  // (e.g. clicking "Switch"), so this also ends presence on the latter.
   window.addEventListener('pagehide', endPresence)
   window.addEventListener('beforeunload', endPresence)
 }
 
-/** Tab hidden: stop ticking seconds so the display freezes; tab visible: resume from where it left off. */
 function handleVisibilityChange() {
   if (document.hidden) {
     stopTick()
@@ -316,7 +503,6 @@ function handleVisibilityChange() {
   }
 }
 
-/** Separate from the display timer — just keeps active_sessions fresh for the parent dashboard. */
 function startPresencePing() {
   pingInterval = setInterval(() => pingPresence(child.id, totalPausedMs).catch(() => {}), 5000)
 }
@@ -325,23 +511,14 @@ function saveSession() {
   if (sessionRow) touchSession({ sessionId: sessionRow.id, startedAtMs, pausedMs: totalPausedMs })
 }
 
-/**
- * Same calc touchSession uses internally, exposed here so the anon path can
- * pass it explicitly. Floors at 1 (not 0): a session under 30 seconds would
- * otherwise round down to 0 minutes and effectively vanish from the
- * dashboard/streak — any session that actually started counts for at least
- * one minute.
- */
 function elapsedMinutes() {
   return Math.max(1, Math.round((Date.now() - startedAtMs - totalPausedMs) / 60000))
 }
 
-/** Exact elapsed seconds, unrounded/unfloored — for the dashboard's daily-goal ring. */
 function elapsedSeconds() {
   return Math.max(0, Math.round((Date.now() - startedAtMs - totalPausedMs) / 1000))
 }
 
-/** Fire-and-forget; for pagehide/beforeunload, where an awaited call can't be trusted to finish. */
 function saveAnonSessionBeacon() {
   if (anonSessionSaved || viaParentSession) return
   anonSessionSaved = true
@@ -353,7 +530,6 @@ function saveAnonSessionBeacon() {
   })
 }
 
-/** Awaited variant for the "End session" button, where we can show a loading state and wait. */
 async function saveAnonSessionAwaited() {
   if (anonSessionSaved || viaParentSession) return
   anonSessionSaved = true
@@ -365,12 +541,6 @@ async function saveAnonSessionAwaited() {
   })
 }
 
-/**
- * Fires on "End session" and on tab close (pagehide/beforeunload) — i.e.
- * whenever the session is actually over. Stops every interval, including
- * the display poll, so the timer freezes at whatever it last showed instead
- * of continuing to tick (or jump) after the session has ended.
- */
 function endPresence() {
   if (presenceEnded || !child) return
   presenceEnded = true
@@ -378,23 +548,6 @@ function endPresence() {
   clearInterval(pingInterval)
   clearInterval(saveInterval)
   endPresenceBeacon(child.id)
-}
-
-// ============================ Mode tabs (Upload / Ask) =====================
-function wireModeTab() {
-  $$('#mode-tab-bar [data-mode]').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      $$('#mode-tab-bar [data-mode]').forEach((t) =>
-        t.setAttribute('aria-selected', String(t === tab)))
-      if (tab.dataset.mode === 'ask') {
-        show('none') // hide all upload-flow views
-        els.askSection.classList.remove('hidden')
-      } else {
-        els.askSection.classList.add('hidden')
-        show('upload')
-      }
-    })
-  })
 }
 
 // ============================ Upload + generate ============================
@@ -411,8 +564,13 @@ function wireUpload() {
     els.dropzone.addEventListener(evt, (e) => { e.preventDefault(); els.dropzone.classList.remove('is-drag') }))
   els.dropzone.addEventListener('drop', (e) => setFile(e.dataTransfer.files[0]))
 
-  // The generate button now advances to the intent selection step.
-  els.generate.addEventListener('click', () => show('intent'))
+  els.generate.addEventListener('click', () => {
+    if (pendingIntent) {
+      generate(pendingIntent)
+    } else {
+      show('intent')
+    }
+  })
 }
 
 function wireIntent() {
@@ -461,13 +619,16 @@ async function generate(mode) {
       const cards = await getFlashcards(upload.id, viaParentSession)
       if (!cards.length) throw new Error('No flashcards were generated. Try a clearer photo.')
       loadDeck(cards)
+      activeResults = 'flashcards'
       showResults('flashcards')
     } else if (mode === 'solve') {
       renderSolveResult(result.result)
+      activeResults = 'solve'
       showResults('solve')
       showMascot("Think it through — you've got this.")
     } else if (mode === 'summarize') {
       renderSummarizeResult(result.result)
+      activeResults = 'summarize'
       showResults('summarize')
     }
   } catch (err) {
@@ -492,7 +653,7 @@ function banner(html) {
   els.uploadSection.prepend(div)
 }
 
-/** Show one of the upload-flow views; passing any other string hides them all. */
+/** Show one of the upload sub-views; any other string hides them all. */
 function show(view) {
   els.uploadSection.classList.toggle('hidden', view !== 'upload')
   els.intentSection.classList.toggle('hidden', view !== 'intent')
@@ -511,7 +672,8 @@ function resetToUpload() {
   chosenFile = null
   els.file.value = ''
   els.fileInfo.innerHTML = ''
-  els.generate.disabled = true
+  pendingIntent = null
+  updateUploadContext(null)
   show('upload')
 }
 
@@ -520,28 +682,21 @@ $('#new-upload-solve')?.addEventListener('click', resetToUpload)
 $('#new-upload-summarize')?.addEventListener('click', resetToUpload)
 
 // ============================ Markdown renderer ============================
-// Minimal safe markdown: escapes HTML first, then applies bold/italic/newlines.
-// Only used on AI-generated text — the escapeHtml pass makes the substitutions safe.
 function renderMd(text) {
   if (!text) return ''
-  // Pull out LaTeX blocks first so \n inside them never becomes <br>
   const latexBlocks = []
-  const MARK = ''
+  const MARK = ''
   const safe = text.replace(/\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)/g, (m) => {
     latexBlocks.push(escapeHtml(m))
     return `${MARK}${latexBlocks.length - 1}${MARK}`
   })
   let out = escapeHtml(safe)
-  // Bold: **text**
   out = out.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-  // Italic: *text* (not adjacent to other asterisks)
   out = out.replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
-  // Double newline → paragraph break; single newline → <br>
   out = out
     .split('\n\n')
     .map((p) => `<p class="ask-answer__para">${p.replace(/\n/g, '<br>')}</p>`)
     .join('')
-  // Restore LaTeX blocks (already HTML-escaped)
   if (latexBlocks.length) {
     out = out.replace(new RegExp(`${MARK}(\\d+)${MARK}`, 'g'), (_, i) => latexBlocks[+i])
   }
@@ -549,7 +704,6 @@ function renderMd(text) {
 }
 
 // ============================ Result renderers =============================
-
 function renderSolveResult(result) {
   const el = $('#solve-content')
   if (!result) { el.innerHTML = '<p class="muted">No guidance was generated.</p>'; return }
@@ -670,10 +824,8 @@ function renderAskResult(result, container, onChipClick) {
 }
 
 // ============================ Ask anything — conversation thread ===========
-/** Full history of this session's ask-thread exchanges. */
 let conversationHistory = []
 
-/** Compact plain-text summary of a result, used as the assistant's turn in history. */
 function summariseForHistory(result) {
   const parts = []
   if (result.headline) parts.push(result.headline.replace(/\*\*/g, ''))
@@ -682,14 +834,12 @@ function summariseForHistory(result) {
   return parts.join('\n\n')
 }
 
-/** Auto-send a follow-up question from a suggested chip. */
 function fillFollowup(text) {
   els.askFollowupInput.value = text
   els.askFollowupBtn.disabled = false
   sendFollowup()
 }
 
-/** Append a Q/A exchange to the thread and scroll it into view. */
 function appendExchange(question, result) {
   const exchange = document.createElement('div')
   exchange.className = 'ask-exchange'
@@ -712,7 +862,6 @@ function appendExchange(question, result) {
   )
 }
 
-/** Switch from initial-input view to the thread+followup view. */
 function showThread(question, result) {
   conversationHistory = []
   els.askInputWrap.classList.add('hidden')
@@ -773,12 +922,10 @@ async function sendFollowup() {
   els.askFollowupBtn.disabled = true
   els.askFollowupInput.disabled = true
 
-  // Hide previous "Dig deeper" chip sections
   els.askThread.querySelectorAll('.followup-chips').forEach((el) => {
     el.parentElement?.remove()
   })
 
-  // Immediately show user bubble + loading placeholder before the API call
   const exchange = document.createElement('div')
   exchange.className = 'ask-exchange'
   const userBubble = document.createElement('div')
