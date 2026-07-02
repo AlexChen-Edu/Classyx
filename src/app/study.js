@@ -572,7 +572,7 @@ function renderAskResult(result, container, onChipClick) {
     .map((q) => `<button class="followup-chip" type="button">${escapeHtml(q)}</button>`)
     .join('')
   const followUpsHtml = followUps
-    ? `<div style="margin-top:16px"><p class="ask-explore-label">Explore more</p><div class="followup-chips">${followUps}</div></div>`
+    ? `<div style="margin-top:16px"><p class="ask-explore-label">Dig deeper</p><div class="followup-chips">${followUps}</div></div>`
     : ''
 
   let html
@@ -633,22 +633,19 @@ function appendExchange(question, result) {
   const exchange = document.createElement('div')
   exchange.className = 'ask-exchange'
 
-  const chip = document.createElement('div')
-  chip.className = 'ask-q-chip'
-  chip.textContent = question
-  chip.title = question
+  const userBubble = document.createElement('div')
+  userBubble.className = 'ask-user-bubble'
+  userBubble.textContent = question
 
-  const answerWrap = document.createElement('div')
-  answerWrap.className = 'ask-answer-wrap'
+  const aiResponse = document.createElement('div')
+  aiResponse.className = 'ask-ai-response'
 
-  exchange.appendChild(chip)
-  exchange.appendChild(answerWrap)
+  exchange.appendChild(userBubble)
+  exchange.appendChild(aiResponse)
   els.askThread.appendChild(exchange)
 
-  renderAskResult(result, answerWrap, fillFollowup)
+  renderAskResult(result, aiResponse, fillFollowup)
 
-  // Smooth-scroll the new exchange into view (not instant, so the user can
-  // see the transition from their question chip to the answer).
   requestAnimationFrame(() =>
     exchange.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   )
@@ -711,8 +708,30 @@ async function sendFollowup() {
 
   const statusEl = $('[data-ask-status]')
   setStatus(statusEl, '', '')
+  els.askFollowupInput.value = ''
   els.askFollowupBtn.disabled = true
   els.askFollowupInput.disabled = true
+
+  // Hide previous "Dig deeper" chip sections
+  els.askThread.querySelectorAll('.followup-chips').forEach((el) => {
+    el.parentElement?.remove()
+  })
+
+  // Immediately show user bubble + loading placeholder before the API call
+  const exchange = document.createElement('div')
+  exchange.className = 'ask-exchange'
+  const userBubble = document.createElement('div')
+  userBubble.className = 'ask-user-bubble'
+  userBubble.textContent = question
+  const aiResponse = document.createElement('div')
+  aiResponse.className = 'ask-ai-response ask-ai-response--loading'
+  aiResponse.innerHTML = '<span class="spinner"></span>'
+  exchange.appendChild(userBubble)
+  exchange.appendChild(aiResponse)
+  els.askThread.appendChild(exchange)
+  requestAnimationFrame(() =>
+    exchange.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  )
 
   try {
     const data = await askQuestion({
@@ -721,15 +740,18 @@ async function sendFollowup() {
       viaParentSession,
       context: conversationHistory,
     })
-    els.askFollowupInput.value = ''
-    els.askThread.querySelectorAll('.followup-chips').forEach((el) => {
-      el.parentElement?.remove()
-    })
-    appendExchange(question, data.result)
+    aiResponse.className = 'ask-ai-response'
+    aiResponse.innerHTML = ''
+    renderAskResult(data.result, aiResponse, fillFollowup)
     conversationHistory.push({ role: 'user', content: question })
     conversationHistory.push({ role: 'assistant', content: summariseForHistory(data.result) })
     showMascot('Keep the questions coming!')
+    requestAnimationFrame(() =>
+      exchange.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    )
   } catch (err) {
+    aiResponse.className = 'ask-ai-response'
+    aiResponse.innerHTML = ''
     handleAskError(err, statusEl)
   } finally {
     els.askFollowupBtn.disabled = !els.askFollowupInput.value.trim()
