@@ -722,6 +722,9 @@ async function sendFollowup() {
       context: conversationHistory,
     })
     els.askFollowupInput.value = ''
+    els.askThread.querySelectorAll('.followup-chips').forEach((el) => {
+      el.parentElement?.remove()
+    })
     appendExchange(question, data.result)
     conversationHistory.push({ role: 'user', content: question })
     conversationHistory.push({ role: 'assistant', content: summariseForHistory(data.result) })
