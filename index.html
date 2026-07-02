@@ -60,15 +60,22 @@
           <span class="logo__word">Classyx</span>
         </a>
 
-        <nav class="site-nav" aria-label="Primary">
+        <nav class="site-nav" id="site-nav" aria-label="Primary">
           <a href="#how">How it works</a>
           <a href="#dashboard">Dashboard</a>
           <a href="#pricing">Pricing</a>
           <a href="#story">Our story</a>
           <a href="/blog/index.html">Blog</a>
+          <a href="/app/child.html" class="btn btn-primary btn-sm site-nav__btn" style="color: #fff;">Sign in</a>
         </nav>
 
         <button class="btn btn-primary btn-sm site-header__cta" id="open-modal-btn">Join the waitlist</button>
+
+        <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="site-nav" aria-label="Open menu">
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+          <span class="nav-toggle__bar"></span>
+        </button>
       </div>
     </header>
 
@@ -385,53 +392,121 @@
             </p>
           </div>
 
+          <div class="billing-toggle-wrap" style="display:flex;justify-content:center;margin-bottom:28px">
+            <div class="billing-toggle" id="billing-toggle" role="group" aria-label="Billing period" style="display:inline-flex;align-items:center;background:var(--surface-2,#f0f0f0);border-radius:999px;padding:4px;gap:2px;border:1px solid var(--line,#e4e4e4)">
+              <button class="billing-toggle__opt" data-period="monthly" type="button" style="padding:7px 20px;border-radius:999px;border:none;background:transparent;font:inherit;font-size:0.88rem;font-weight:500;cursor:pointer;color:var(--ink-3,#666);transition:background 0.22s,color 0.22s,box-shadow 0.22s">Monthly</button>
+              <button class="billing-toggle__opt is-active" data-period="annual" type="button" style="padding:7px 20px;border-radius:999px;border:none;background:var(--brand);color:#fff;font:inherit;font-size:0.88rem;font-weight:500;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,0.15);transition:background 0.22s,color 0.22s,box-shadow 0.22s">Annual</button>
+            </div>
+          </div>
+
           <div class="grid grid-3 plans">
-            <article class="card plan" data-reveal>
+            <article class="card plan" data-reveal data-plan="free">
               <div class="plan__head">
                 <h3 class="plan__name">Free</h3>
                 <p class="plan__for">Try Classyx with one learner</p>
               </div>
-              <p class="plan__price"><span class="plan__amount">$0</span><span class="plan__per">/month</span></p>
+              <p class="plan__price">
+                <span class="plan__amount">$0</span><span class="plan__per">/month</span>
+              </p>
+              <p class="plan__billed" style="font-size:0.78rem;color:var(--ink-3,#888);margin-top:2px;min-height:1.2em"></p>
               <ul class="plan__features">
                 <li>1 child account</li>
-                <li>10 AI study packs / month</li>
+                <li>10 study packs / month</li>
                 <li>Basic parent dashboard</li>
                 <li class="plan__features-no">No advanced features</li>
               </ul>
-              <button class="btn btn-ghost btn-block open-modal-btn">Join the waitlist</button>
+              <a class="btn btn-ghost btn-block" href="/app/login.html">Choose plan</a>
             </article>
 
-            <article class="card plan plan--featured" data-reveal>
+            <article class="card plan plan--featured" data-reveal data-plan="single_child">
               <span class="plan__badge">Most popular</span>
               <div class="plan__head">
                 <h3 class="plan__name">Single Child</h3>
                 <p class="plan__for">For one focused learner</p>
               </div>
-              <p class="plan__price"><span class="plan__amount">$7.99</span><span class="plan__per">/month</span></p>
+              <p class="plan__price">
+                <span class="plan__amount">$6.39</span><span class="plan__per">/mo</span>
+                <span class="plan__original" style="font-size:0.9rem;color:var(--ink-3,#888);text-decoration:line-through;margin-left:4px">$7.99/mo</span>
+                <span class="plan__save-badge" style="display:inline-flex;align-items:center;font-size:0.72rem;font-weight:700;color:var(--brand-ink,#1a5c35);background:var(--brand-tint,#e6f4ec);border-radius:999px;padding:2px 8px;margin-left:6px">Save 20%</span>
+              </p>
+              <p class="plan__billed" style="font-size:0.78rem;color:var(--ink-3,#888);margin-top:2px;min-height:1.2em">billed $76.68/year</p>
               <ul class="plan__features">
                 <li>1 child account</li>
-                <li>300 AI study packs / month</li>
+                <li>300 study packs / month</li>
                 <li>Advanced dashboard</li>
-                <li>AI parent insights</li>
+                <li>Parent Insights</li>
                 <li>Smart alerts</li>
               </ul>
-              <button class="btn btn-primary btn-block open-modal-btn">Join the waitlist</button>
+              <a class="btn btn-primary btn-block" href="/app/login.html">Choose plan</a>
             </article>
 
-            <article class="card plan" data-reveal>
+            <article class="card plan" data-reveal data-plan="family">
               <div class="plan__head">
                 <h3 class="plan__name">Family</h3>
                 <p class="plan__for">For households with more than one student</p>
               </div>
-              <p class="plan__price"><span class="plan__amount">$19.99</span><span class="plan__per">/month</span></p>
+              <p class="plan__price">
+                <span class="plan__amount">$15.99</span><span class="plan__per">/mo</span>
+                <span class="plan__original" style="font-size:0.9rem;color:var(--ink-3,#888);text-decoration:line-through;margin-left:4px">$19.99/mo</span>
+                <span class="plan__save-badge" style="display:inline-flex;align-items:center;font-size:0.72rem;font-weight:700;color:var(--brand-ink,#1a5c35);background:var(--brand-tint,#e6f4ec);border-radius:999px;padding:2px 8px;margin-left:6px">Save 20%</span>
+              </p>
+              <p class="plan__billed" style="font-size:0.78rem;color:var(--ink-3,#888);margin-top:2px;min-height:1.2em">billed $191.88/year</p>
               <ul class="plan__features">
                 <li>Up to 3 child accounts</li>
-                <li>900 AI study packs / month</li>
+                <li>900 study packs / month</li>
                 <li>Everything in Single Child</li>
               </ul>
-              <button class="btn btn-ghost btn-block open-modal-btn">Join the waitlist</button>
+              <a class="btn btn-ghost btn-block" href="/app/login.html">Choose plan</a>
             </article>
           </div>
+
+          <script>
+          (function() {
+            var PRICES = {
+              free:         { monthly: '$0',     annual: '$0',     billed: '' },
+              single_child: { monthly: '$7.99',  annual: '$6.39',  billed: 'billed $76.68/year' },
+              family:       { monthly: '$19.99', annual: '$15.99', billed: 'billed $191.88/year' },
+            };
+            var period = 'annual';
+            function applyToggle(toggleEl) {
+              toggleEl.querySelectorAll('.billing-toggle__opt').forEach(function(btn) {
+                var active = btn.dataset.period === period;
+                btn.classList.toggle('is-active', active);
+                btn.style.background = active ? 'var(--brand)' : 'transparent';
+                btn.style.color = active ? '#fff' : 'var(--ink-3,#666)';
+                btn.style.boxShadow = active ? '0 1px 4px rgba(0,0,0,0.15)' : 'none';
+              });
+            }
+            function updatePrices() {
+              var isAnnual = period === 'annual';
+              document.querySelectorAll('.plans [data-plan]').forEach(function(card) {
+                var p = PRICES[card.dataset.plan];
+                if (!p) return;
+                var amountEl = card.querySelector('.plan__amount');
+                var origEl = card.querySelector('.plan__original');
+                var billedEl = card.querySelector('.plan__billed');
+                var badgeEl = card.querySelector('.plan__save-badge');
+                if (amountEl) amountEl.textContent = isAnnual ? p.annual : p.monthly;
+                if (origEl) origEl.style.display = isAnnual && card.dataset.plan !== 'free' ? '' : 'none';
+                if (billedEl) billedEl.textContent = isAnnual ? p.billed : '';
+                if (badgeEl) badgeEl.style.display = isAnnual && card.dataset.plan !== 'free' ? '' : 'none';
+              });
+            }
+            document.addEventListener('DOMContentLoaded', function() {
+              var toggle = document.getElementById('billing-toggle');
+              if (!toggle) return;
+              applyToggle(toggle);
+              updatePrices();
+              toggle.addEventListener('click', function(e) {
+                var btn = e.target.closest('.billing-toggle__opt');
+                if (!btn) return;
+                period = btn.dataset.period;
+                applyToggle(toggle);
+                updatePrices();
+              });
+            });
+          })();
+          </script>
         </div>
       </section>
 
@@ -533,7 +608,7 @@
           <div>
             <h4>Legal</h4>
             <a href="/privacy-policy.html" aria-label="Privacy Policy">Privacy Policy</a>
-            
+            <a href="/tos.html" aria-label="Terms of Service">Terms of Service</a>
           </div>
         </nav>
       </div>
@@ -571,6 +646,7 @@
       <button type="submit" id="modal-submit" class="btn btn-primary" disabled>
         <span data-btn-label>Join the waitlist</span>
       </button>
+      <p class="hint" style="text-align:center;margin-top:8px">By joining you agree to Classyx's <a href="/privacy-policy.html" target="_blank">Privacy Policy</a>.</p>
       <p id="modal-status" class="form-status" role="status" aria-live="polite"></p>
     </form>
   </div>

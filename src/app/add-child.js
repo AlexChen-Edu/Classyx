@@ -1,0 +1,71 @@
+// Parent creates a child profile. A 6-character access code is generated
+// automatically and shown once, right after creation.
+import { requireSession, signOut } from './auth.js'
+import { createChild, setChildPin, generateChildCode, listChildren, childLimitFor } from './api.js'
+import { $, setStatus, loading, friendlyMessage } from './ui.js'
+
+$('[data-signout]')?.addEventListener('click', signOut)
+
+const form = $('#child-form')
+const nameEl = $('#name')
+const gradeEl = $('#grade')
+const submitBtn = $('#submit')
+const statusEl = $('[data-status]')
+const formCard = $('#form-card')
+const codeCard = $('#code-card')
+const codeValueEl = $('#code-value')
+const limitBanner = $('#limit-banner')
+
+let plan = 'free'
+
+// Redirect to login if there's no session, or to child.html if the signed-in
+// user isn't a parent (no top-level await — keeps the production build
+// target happy). Self learners are single-profile by design (their own
+// account IS the child), so they're bounced to their dashboard instead.
+;(async () => {
+  const session = await requireSession()
+  if (!session) return
+  const role = session.user.user_metadata?.role
+  if (role === 'self') {
+    location.replace('/app/dashboard.html')
+    return
+  }
+  if (role && role !== 'parent') {
+    location.replace('/app/child.html')
+    return
+  }
+  plan = session.user.user_metadata?.plan || 'free'
+})()
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const name = nameEl.value.trim()
+  if (!name) return setStatus(statusEl, 'Please enter a name.', 'error')
+
+  const restore = loading(submitBtn, 'Creating…')
+  setStatus(statusEl, '')
+  try {
+    // Re-checked here (not just on page load) so a second tab adding a child
+    // first can't be raced past the limit.
+    const existing = await listChildren()
+    if (existing.length >= childLimitFor(plan)) {
+      restore()
+      limitBanner.classList.remove('hidden')
+      form.querySelectorAll('input, select, button').forEach((el) => (el.disabled = true))
+      return
+    }
+    const child = await createChild({ name, grade: gradeEl.value })
+    const code = generateChildCode()
+    await setChildPin(child.id, code)
+    codeValueEl.textContent = code
+    formCard.classList.add('hidden')
+    codeCard.classList.remove('hidden')
+  } catch (err) {
+    setStatus(statusEl, friendlyMessage(err, 'Could not create the profile.'), 'error')
+    restore()
+  }
+})
+
+$('#code-done').addEventListener('click', () => {
+  location.href = '/app/dashboard.html'
+})

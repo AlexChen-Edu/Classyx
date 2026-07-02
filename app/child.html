@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Who's studying? · Classyx</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/app/app.css" />
+  </head>
+  <body class="app">
+    <header class="app-header">
+      <div class="container app-header__inner">
+        <a class="app-logo" href="/app/dashboard.html">
+          <span class="app-logo__mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
+          </span>
+          Classyx
+        </a>
+        <div class="app-header__spacer"></div>
+        <a class="btn btn-ghost btn-sm" href="/app/dashboard.html">Parent dashboard</a>
+        <button class="btn btn-ghost btn-sm" data-signout type="button">Sign out</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="container" style="text-align:center">
+        <!-- Remembered device: shown instead of everything below when a
+             classyx_child_profile is found in localStorage (see child.js). -->
+        <div id="welcome-back" class="hidden center-narrow">
+          <span class="avatar-lg" id="welcome-avatar" style="margin-inline:auto"></span>
+          <h1 id="welcome-name" style="margin-top:14px"></h1>
+          <button class="btn btn-primary btn-lg btn-block" id="welcome-start" type="button" style="margin-top:18px">Start studying</button>
+          <p style="margin-top:12px"><button class="btn-link" id="welcome-switch" type="button">Not you? Switch profile</button></p>
+        </div>
+
+        <!-- Shown instead of the code form for an account-less visitor with no
+             saved profile yet — lets an adult bail out to the real login page
+             instead of being funneled straight into a kid-only code box. -->
+        <div id="role-fork" class="hidden center-narrow">
+          <h1>Who's studying?</h1>
+          <p class="muted" style="margin-bottom:18px">Pick one to continue.</p>
+          <button class="btn btn-primary btn-lg btn-block" id="fork-student" type="button">I'm a student</button>
+          <button class="btn btn-ghost btn-lg btn-block" id="fork-adult" type="button" style="margin-top:10px">I'm an adult / self learner</button>
+        </div>
+
+        <!-- "Ready to study?" confirmation, shown after a code is verified
+             (either path) and before the redirect to study.html. -->
+        <div id="confirm-start" class="hidden center-narrow">
+          <span class="avatar-lg" id="confirm-avatar" style="margin-inline:auto"></span>
+          <h1 id="confirm-name" style="margin-top:14px"></h1>
+          <button class="btn btn-primary btn-lg btn-block" id="confirm-go" type="button" style="margin-top:18px">Start study session</button>
+          <p style="margin-top:12px"><button class="btn-link" id="confirm-not-you" type="button">Not you?</button></p>
+        </div>
+
+        <div id="code-gate">
+          <h1>Who's studying?</h1>
+          <p class="muted">Pick your profile to begin.</p>
+          <div id="profiles" class="profiles" aria-live="polite">
+            <div class="generating"><span class="spinner spinner--lg"></span></div>
+          </div>
+
+          <!-- Account-less code entry: shown instead of the profile grid when
+               there is no parent session (e.g. "I'm a student" with no account).
+               There's nothing to list/click here — the code itself identifies
+               the child via the anon-safe redeem_child_code RPC. -->
+          <div id="anon-code-section" class="hidden center-narrow" style="margin-top:24px">
+            <div class="card">
+              <h2 style="font-size:1.1rem;margin-bottom:6px">Enter your code</h2>
+              <p class="muted" style="margin-bottom:14px">Ask your parent for your 6-character code.</p>
+              <div class="pin-inputs" id="anon-pin-inputs">
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 1" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 2" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 3" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 4" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 5" />
+                <input class="pin-box" type="text" maxlength="1" aria-label="Code character 6" />
+              </div>
+              <p class="form-status" data-anon-status role="status" aria-live="polite"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Code modal -->
+    <div class="overlay" id="pin-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pin-title">
+        <h2 id="pin-title">Enter code</h2>
+        <p class="muted" id="pin-sub">Enter your 6-character code</p>
+        <div class="pin-inputs" id="pin-inputs">
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 1" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 2" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 3" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 4" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 5" />
+          <input class="pin-box" type="text" maxlength="1" aria-label="Code character 6" />
+        </div>
+        <p class="form-status" data-status role="status" aria-live="polite"></p>
+        <button class="btn btn-ghost btn-sm" id="pin-cancel" type="button" style="margin-top:10px">Cancel</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/app/child.js"></script>
+  </body>
+</html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Card Preview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/app/app.css" />
+  </head>
+  <body class="app">
+    <main class="app-main">
+      <div class="container">
+        <div class="child-grid" id="content"></div>
+      </div>
+    </main>
+    <script type="module">
+      function escapeHtml(s){return s}
+      function initials(n){return n.split(' ').map(w=>w[0]).join('').toUpperCase()}
+      function tintFor(n){return '#5b8def'}
+      function renderGoalRing(todayMinutes, goalMinutes) {
+        const r = 19
+        const circumference = 2 * Math.PI * r
+        const pct = goalMinutes > 0 ? Math.min(100, Math.round((todayMinutes / goalMinutes) * 100)) : 0
+        const offset = circumference * (1 - pct / 100)
+        const met = pct >= 100
+        return `
+          <div class="goal-ring-wrap goal-ring-wrap--sm">
+            <svg class="goal-ring${met ? '' : ' goal-ring--pulsing'}" viewBox="0 0 48 48" width="48" height="48">
+              <circle class="goal-ring__track" cx="24" cy="24" r="${r}" />
+              <circle class="goal-ring__fill${met ? ' goal-ring__fill--flash' : ''}" cx="24" cy="24" r="${r}"
+                stroke-dasharray="${circumference.toFixed(2)}" stroke-dashoffset="${offset.toFixed(2)}" />
+            </svg>
+            <span class="goal-ring__center goal-ring__center--sm">${pct}%</span>
+          </div>`
+      }
+      function accuracyHue(pct) {
+        const p = Math.max(0, Math.min(100, pct))
+        const stops = [[0, 4], [50, 4], [70, 45], [90, 141], [100, 141]]
+        for (let i = 0; i < stops.length - 1; i++) {
+          const [p0, h0] = stops[i]
+          const [p1, h1] = stops[i + 1]
+          if (p <= p1) return h0 + (h1 - h0) * ((p - p0) / (p1 - p0))
+        }
+        return stops.at(-1)[1]
+      }
+      function accuracyColor(pct) { return `hsl(${accuracyHue(pct).toFixed(0)}, 72%, 44%)` }
+      function accuracyLabel(pct) {
+        if (pct >= 90) return 'Excellent'
+        if (pct >= 75) return 'Good'
+        if (pct >= 60) return 'Fair'
+        if (pct >= 50) return 'Needs practice'
+        return 'Struggling'
+      }
+      function relativeDay(iso) {
+        if (!iso) return 'Never'
+        const d = new Date(iso), today = new Date()
+        const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate())
+        const diffDays = Math.round((startOf(today) - startOf(d)) / 86400000)
+        if (diffDays <= 0) return 'Today'
+        if (diffDays === 1) return 'Yesterday'
+        if (diffDays < 7) return `${diffDays} days ago`
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      }
+      function renderStreakBadge(streak) {
+        if (streak <= 0) return ''
+        let tier
+        if (streak <= 3) tier = 'orange'
+        else if (streak <= 6) tier = 'red'
+        else if (streak <= 13) tier = 'blue'
+        else if (streak <= 20) tier = 'purple'
+        else tier = 'gold'
+        return `<div class="streak-badge streak-badge--${tier}"><span class="streak-badge__emoji">🔥</span><span>${streak}-day streak</span></div>`
+      }
+      function renderStats(c) {
+        const accuracyHtml = c.accuracy == null
+          ? `<span class="child-card__stat-value">—</span>`
+          : `<span class="child-card__stat-value" style="color:${accuracyColor(c.accuracy)}">${c.accuracy}%</span>
+             <span class="child-card__stat-sub">${accuracyLabel(c.accuracy)}</span>`
+        return `
+          <div class="child-card__stats">
+            <div class="child-card__stat">
+              <span class="child-card__stat-label">Quiz accuracy</span>
+              ${accuracyHtml}
+            </div>
+            <div class="child-card__stat">
+              <span class="child-card__stat-label">Last studied</span>
+              <span class="child-card__stat-value">${relativeDay(c.lastStudied)}</span>
+            </div>
+            <div class="child-card__stat">
+              <span class="child-card__stat-label">Streak</span>
+              ${c.streak > 0 ? renderStreakBadge(c.streak) : `<span class="child-card__stat-value">0 days</span>`}
+            </div>
+          </div>`
+      }
+      function renderCard(c, isActive) {
+        const tint = tintFor(c.name)
+        const neverStudied = !c.lastStudied
+        const goalMinutes = c.daily_goal_minutes || 30
+        const todayMinutes = c.todayMinutes || 0
+        const met = todayMinutes >= goalMinutes
+        const minutesToGo = Math.max(0, Math.ceil(goalMinutes - todayMinutes))
+        return `
+          <article class="card child-card${neverStudied ? ' child-card--waiting' : ''}" data-child-id="${c.id}">
+            <div class="child-card__top">
+              <span class="avatar" style="background:${tint}">${escapeHtml(initials(c.name))}</span>
+              <div class="child-card__identity">
+                <span class="child-card__name">${escapeHtml(c.name)}</span>
+                <div class="child-card__grade">${c.grade ? 'Grade ' + escapeHtml(c.grade) : 'Learner'}</div>
+              </div>
+              ${!neverStudied ? renderGoalRing(todayMinutes, goalMinutes) : ''}
+            </div>
+            ${neverStudied ? `
+            <div class="waiting-banner">
+              <span class="waiting-banner__icon">👋</span>
+              <div>
+                <p class="waiting-banner__title">Ready when ${escapeHtml(c.name)} is</p>
+                <p class="waiting-banner__text">Get ${escapeHtml(c.name)}'s sign-in code from Settings, then have them enter it at the student sign-in screen to start their first session.</p>
+              </div>
+            </div>` : `
+            <div class="child-card__meta-row">
+              <span class="child-card__goal-text${met ? ' is-complete' : ''}">${met ? '✓ Goal met!' : `${minutesToGo} min to go`}</span>
+              <div class="presence${isActive ? '' : ' hidden'}">
+                <span class="presence__dot"></span>
+                <span>Active now</span>
+              </div>
+            </div>
+            ${renderStats(c)}
+            <a class="child-card__analytics-link" href="#">Analytics →</a>`}
+          </article>`
+      }
+      const sample = [
+        { id: 1, name: 'Maya Thompson', grade: '7', daily_goal_minutes: 30, todayMinutes: 12, lastStudied: '2026-06-29', accuracy: 96, streak: 2 },
+        { id: 2, name: 'Leo', grade: '4', daily_goal_minutes: 30, todayMinutes: 30, lastStudied: '2026-06-30', accuracy: 64, streak: 9 },
+        { id: 3, name: 'Wren', grade: null, daily_goal_minutes: 30, todayMinutes: 0, lastStudied: null },
+        { id: 4, name: 'Sam', grade: '2', daily_goal_minutes: 30, todayMinutes: 5, lastStudied: '2026-06-20', accuracy: 38, streak: 0 },
+      ]
+      document.getElementById('content').innerHTML = sample.map((c,i) => renderCard(c, i===1)).join('')
+    </script>
+  </body>
+</html>

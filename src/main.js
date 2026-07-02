@@ -46,6 +46,46 @@ if (header) {
 }
 
 /* --------------------------------------------------------------------------
+ * Mobile nav toggle (hamburger -> dropdown). Desktop nav is untouched —
+ * this only ever shows/hides the mobile-only .site-nav dropdown panel.
+ * ------------------------------------------------------------------------ */
+const navToggle = document.getElementById('nav-toggle')
+const siteNav = document.getElementById('site-nav')
+if (navToggle && siteNav) {
+  const closeNav = () => {
+    siteNav.classList.remove('is-open')
+    navToggle.setAttribute('aria-expanded', 'false')
+    navToggle.setAttribute('aria-label', 'Open menu')
+  }
+  const openNav = () => {
+    siteNav.classList.add('is-open')
+    navToggle.setAttribute('aria-expanded', 'true')
+    navToggle.setAttribute('aria-label', 'Close menu')
+  }
+
+  navToggle.addEventListener('click', () => {
+    const isOpen = siteNav.classList.contains('is-open')
+    if (isOpen) closeNav()
+    else openNav()
+  })
+
+  // Close after picking a link, on outside click, on Escape, or on resize
+  // back up to the desktop layout (where the dropdown CSS no longer applies).
+  siteNav.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeNav))
+  document.addEventListener('click', (event) => {
+    if (!siteNav.classList.contains('is-open')) return
+    if (siteNav.contains(event.target) || navToggle.contains(event.target)) return
+    closeNav()
+  })
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeNav()
+  })
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 860) closeNav()
+  })
+}
+
+/* --------------------------------------------------------------------------
  * Reveal-on-scroll (progressive enhancement; disabled for reduced-motion)
  * ------------------------------------------------------------------------ */
 const revealEls = document.querySelectorAll('[data-reveal]')

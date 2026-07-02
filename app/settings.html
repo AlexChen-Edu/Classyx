@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings · Classyx</title>
+    <meta name="robots" content="noindex" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/app/app.css" />
+  </head>
+  <body class="app">
+    <header class="app-header">
+      <div class="container app-header__inner">
+        <a class="app-logo" href="/app/dashboard.html">
+          <span class="app-logo__mark" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 2.7 2.5 6 2.5s6-1.5 6-2.5v-5"/></svg>
+          </span>
+          Classyx
+        </a>
+        <div class="app-header__spacer"></div>
+        <a class="btn btn-ghost btn-sm" href="/app/dashboard.html">← Dashboard</a>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="container">
+        <div class="page-head"><div><h1>Settings</h1></div></div>
+
+        <div class="settings-page">
+          <div class="settings-layout">
+            <nav class="settings-sidebar" aria-label="Settings sections">
+              <button class="settings-tab" data-settings-tab="children" type="button" aria-selected="true">Children</button>
+              <button class="settings-tab" data-settings-tab="billing" type="button" aria-selected="false">Billing</button>
+              <button class="settings-tab" data-settings-tab="account" type="button" aria-selected="false">Account</button>
+              <button class="settings-tab" data-settings-tab="legal" type="button" aria-selected="false">Legal</button>
+            </nav>
+
+            <div class="settings-panel-body">
+              <h2 id="settings-title" class="settings-panel-title">Children</h2>
+
+              <div class="settings-pane" data-settings-pane="children">
+                <div id="children-list"><p class="muted">Loading…</p></div>
+              </div>
+
+              <div class="settings-pane hidden" data-settings-pane="billing">
+                <p class="settings-billing-note">Your family's current plan is highlighted below.</p>
+
+                <div class="billing-toggle-wrap">
+                  <div class="billing-toggle" id="billing-toggle" role="group" aria-label="Billing period">
+                    <button class="billing-toggle__opt" data-period="monthly" type="button">Monthly</button>
+                    <button class="billing-toggle__opt is-active" data-period="annual" type="button">Annual</button>
+                  </div>
+                </div>
+
+                <div class="billing-plans">
+                  <article class="card plan" data-plan="free">
+                    <div class="plan__head">
+                      <h3 class="plan__name">Free</h3>
+                      <p class="plan__for">Try Classyx with one learner</p>
+                    </div>
+                    <p class="plan__price">
+                      <span class="plan__amount">$0</span><span class="plan__per">/month</span>
+                    </p>
+                    <p class="plan__billed"></p>
+                    <ul class="plan__features">
+                      <li>1 child account</li>
+                      <li>10 study packs / month</li>
+                      <li>Basic parent dashboard</li>
+                      <li class="plan__features-no">No advanced features</li>
+                    </ul>
+                    <button class="btn btn-ghost btn-block billing-upgrade-btn" type="button">Upgrade</button>
+                  </article>
+
+                  <article class="card plan plan--featured" data-plan="single_child">
+                    <span class="plan__badge">Most popular</span>
+                    <div class="plan__head">
+                      <h3 class="plan__name">Single Child</h3>
+                      <p class="plan__for">For one focused learner</p>
+                    </div>
+                    <p class="plan__price">
+                      <span class="plan__amount">$6.39</span><span class="plan__per">/mo</span>
+                      <span class="plan__original">$7.99/mo</span>
+                      <span class="plan__save-badge">Save 20%</span>
+                    </p>
+                    <p class="plan__billed">billed $76.68/year</p>
+                    <ul class="plan__features">
+                      <li>1 child account</li>
+                      <li>300 study packs / month</li>
+                      <li>Advanced dashboard</li>
+                      <li>Parent Insights</li>
+                      <li>Smart alerts</li>
+                    </ul>
+                    <button class="btn btn-primary btn-block billing-upgrade-btn" type="button">Upgrade</button>
+                  </article>
+
+                  <article class="card plan" data-plan="family">
+                    <div class="plan__head">
+                      <h3 class="plan__name">Family</h3>
+                      <p class="plan__for">For households with more than one student</p>
+                    </div>
+                    <p class="plan__price">
+                      <span class="plan__amount">$15.99</span><span class="plan__per">/mo</span>
+                      <span class="plan__original">$19.99/mo</span>
+                      <span class="plan__save-badge">Save 20%</span>
+                    </p>
+                    <p class="plan__billed">billed $191.88/year</p>
+                    <ul class="plan__features">
+                      <li>300 study packs / month per child</li>
+                      <li>Advanced dashboard</li>
+                      <li>Parent Insights</li>
+                      <li>Smart alerts</li>
+                    </ul>
+                    <p class="plan__divider">Everything in Single Child, plus:</p>
+                    <ul class="plan__features">
+                      <li>Up to 3 child accounts</li>
+                      <li>Individual dashboard for every child</li>
+                      <li>900 study packs / month total</li>
+                      <li>Priority support</li>
+                    </ul>
+                    <button class="btn btn-ghost btn-block billing-upgrade-btn" type="button">Upgrade</button>
+                  </article>
+                </div>
+              </div>
+
+              <div class="settings-pane hidden" data-settings-pane="account">
+                <div class="settings-account-row">
+                  <span class="settings-field__label">Email</span>
+                  <span class="settings-field__value" id="account-email"></span>
+                </div>
+
+                <div class="settings-danger-zone">
+                  <button class="btn btn-ghost btn-block" id="signout-btn" type="button">Sign out</button>
+                </div>
+
+                <div class="settings-danger-zone">
+                  <p class="muted" style="margin-bottom:14px">Deactivating your account signs you out and blocks future sign-in. This can't be undone yourself — contact support to reactivate.</p>
+                  <button class="btn btn-danger btn-block" id="deactivate-btn" type="button">Deactivate account</button>
+                  <p class="form-status" id="deactivate-status" role="status" aria-live="polite"></p>
+                </div>
+              </div>
+
+              <div class="settings-pane hidden" data-settings-pane="legal">
+                <div class="settings-legal-list">
+                  <a href="/privacy-policy.html" target="_blank" rel="noopener">Privacy Policy ↗</a>
+                  <a href="/tos.html" target="_blank" rel="noopener">Terms of Service ↗</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Configure child modal -->
+    <div class="overlay" id="configure-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="configure-title" style="max-width:480px; text-align:left">
+        <button class="modal-close" id="configure-close" type="button" aria-label="Close">&times;</button>
+        <h2 id="configure-title" style="margin-bottom:18px">Configure</h2>
+
+        <div class="account-avatar-row">
+          <div class="account-avatar" id="configure-avatar"></div>
+          <div>
+            <label class="btn btn-ghost btn-sm" for="configure-avatar-input">Upload photo</label>
+            <input type="file" id="configure-avatar-input" accept="image/*" class="hidden" />
+            <p class="form-status" id="configure-avatar-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+
+        <div class="settings-field-edit">
+          <label for="configure-name-input" class="settings-label">Name</label>
+          <div class="settings-goal-row">
+            <input type="text" class="input" id="configure-name-input" maxlength="80" />
+            <button class="btn btn-primary btn-sm" id="configure-name-save" type="button">Save</button>
+          </div>
+          <p class="form-status" id="configure-name-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="settings-field-edit">
+          <label for="configure-grade-input" class="settings-label">Grade level</label>
+          <div class="settings-goal-row">
+            <select class="input" id="configure-grade-input">
+              <option value="">Select grade…</option>
+              <option>K</option><option>1</option><option>2</option><option>3</option>
+              <option>4</option><option>5</option><option>6</option><option>7</option>
+              <option>8</option><option>9</option><option>10</option><option>11</option>
+              <option>12</option><option value="College">College</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="configure-grade-save" type="button">Save</button>
+          </div>
+          <p class="form-status" id="configure-grade-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="settings-field-edit">
+          <label for="configure-goal-input" class="settings-label">Daily study goal</label>
+          <div class="settings-goal-row">
+            <input type="number" class="input" id="configure-goal-input" min="5" max="600" step="5" />
+            <button class="btn btn-primary btn-sm" id="configure-goal-save" type="button">Set</button>
+          </div>
+          <p class="settings-current-goal" id="configure-goal-current"></p>
+          <p class="form-status" id="configure-goal-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="settings-field-edit" id="configure-code-field">
+          <span class="settings-label">Access code</span>
+          <button class="btn btn-ghost btn-sm" id="configure-show-code" type="button">Show code</button>
+          <div class="code-reveal-inline hidden" id="configure-code-area">
+            <div class="code-pill-row">
+              <span class="code-pill" id="configure-code-pill"></span>
+              <button class="code-refresh-btn" id="configure-refresh-code" type="button" title="Generate a new code" aria-label="Generate a new code">↻</button>
+            </div>
+            <p class="code-pill__note">Share this code with your child. It changes each time you view it.</p>
+          </div>
+          <p class="form-status" id="configure-code-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div id="configure-remove-section">
+          <div class="divider"></div>
+
+          <p class="muted" style="margin-bottom:14px">Removing a profile permanently deletes their data. This can't be undone.</p>
+          <button class="btn btn-danger btn-block" id="configure-remove-btn" type="button">Remove child</button>
+          <p class="form-status" id="configure-remove-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deactivate confirmation -->
+    <div class="overlay" id="deactivate-overlay" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deactivate-confirm-title">
+        <h2 id="deactivate-confirm-title">Deactivate your account?</h2>
+        <p class="muted" style="margin-bottom:18px">You'll be signed out immediately and won't be able to sign back in. This can't be undone yourself.</p>
+        <button class="btn btn-danger btn-block" id="deactivate-confirm-btn" type="button" style="margin-bottom:10px">Yes, deactivate my account</button>
+        <button class="btn btn-ghost btn-block" id="deactivate-cancel-btn" type="button">Cancel</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/app/settings.js"></script>
+  </body>
+</html>

@@ -22,3 +22,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase =
   supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null
+
+/**
+ * A second client that never persists or attaches a session, so every
+ * request it makes goes out as the `anon` Postgres role — regardless of
+ * whether a parent happens to be signed in elsewhere in this browser tab.
+ * Used only for redeem_child_code, the account-less child code-redemption
+ * RPC, which is intentionally granted to anon only (see migration
+ * 20260623125000_redeem_child_code.sql).
+ */
+export const supabaseAnon =
+  supabaseUrl && supabaseAnonKey
+    ? createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+    : null

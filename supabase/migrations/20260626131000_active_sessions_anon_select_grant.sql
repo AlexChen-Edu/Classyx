@@ -1,0 +1,24 @@
+-- ============================================================================
+-- Fix: anon could not ping its own presence row.
+-- ----------------------------------------------------------------------------
+-- PostgreSQL requires SELECT *privilege* (a static grant-level check) to
+-- evaluate ANY WHERE clause in an UPDATE — even with no RETURNING and no RLS
+-- SELECT policy involved. Without it, `update active_sessions set last_ping =
+-- ... where child_id = ...` fails with "permission denied for table", which
+-- is exactly what was observed end-to-end testing the ping path.
+--
+-- This grant does NOT let anon read presence data: there is still no RLS
+-- SELECT *policy* for anon on this table (only the authenticated, owner-
+-- scoped one from the previous migration), so a plain anon
+-- `select * from active_sessions` still returns zero rows — verified live.
+-- RLS policies and table grants are two independent layers; this closes the
+-- grant-layer gap without touching the RLS layer at all.
+--
+-- (INSERT...ON CONFLICT DO UPDATE/`upsert()` was tried first and still fails
+-- under RLS for a separate reason — Postgres requires the row to satisfy
+-- both the INSERT and UPDATE policies simultaneously for the conflict branch.
+-- The application now does a plain INSERT and falls back to UPDATE on a
+-- unique-violation instead, which avoids that interaction entirely.)
+-- ============================================================================
+
+grant select on public.active_sessions to anon;
