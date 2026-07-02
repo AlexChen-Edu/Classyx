@@ -108,7 +108,7 @@
                 <div class="role-card__icon" style="font-size:1.4rem">🃏</div>
                 <div class="role-card__text">
                   <span class="role-card__label">Make me flashcards</span>
-                  <span class="role-card__sub">Turns your notes into study cards and a study guide you can review anytime.</span>
+                  <span class="role-card__sub">Turns your notes into 20 flashcards you can flip through and study.</span>
                 </div>
               </button>
               <button class="role-card" data-intent="summarize" type="button">
@@ -169,44 +169,26 @@
 
           <!-- Flashcards mode -->
           <div id="results-flashcards">
-            <div style="text-align:center;margin-bottom:20px">
-              <div class="seg" role="tablist">
-                <button role="tab" aria-selected="true" data-tab="cards">Flashcards</button>
-                <button role="tab" aria-selected="false" data-tab="guide">Study guide</button>
-                <button role="tab" aria-selected="false" data-tab="test">Self-test</button>
-              </div>
-            </div>
-
-            <div id="panel-cards" class="panel-view">
-              <div class="flashcard-flip" id="flashcard" role="button" tabindex="0" aria-label="Flashcard, press Enter to flip">
-                <div class="flashcard-flip__inner">
-                  <div class="flashcard-face flashcard-front">
-                    <span class="flashcard-face__tag">Question</span>
-                    <div class="flashcard-face__text" id="card-q"></div>
-                    <span class="flashcard-face__hint">Tap to flip</span>
-                  </div>
-                  <div class="flashcard-face flashcard-back">
-                    <span class="flashcard-face__tag">Answer</span>
-                    <div class="flashcard-face__text" id="card-a"></div>
-                    <span class="flashcard-face__hint">Tap to flip back</span>
-                  </div>
+            <div class="flashcard-flip" id="flashcard" role="button" tabindex="0" aria-label="Flashcard, press Enter to flip">
+              <div class="flashcard-flip__inner">
+                <div class="flashcard-face flashcard-front">
+                  <span class="flashcard-face__tag">Question</span>
+                  <div class="flashcard-face__text" id="card-q"></div>
+                  <span class="flashcard-face__hint">Tap to flip</span>
+                </div>
+                <div class="flashcard-face flashcard-back">
+                  <span class="flashcard-face__tag">Answer</span>
+                  <div class="flashcard-face__text" id="card-a"></div>
+                  <span class="flashcard-face__hint">Tap to flip back</span>
                 </div>
               </div>
-              <div class="deck-nav">
-                <button class="btn btn-ghost btn-sm" id="prev">← Prev</button>
-                <span class="deck-count" id="deck-count">1 / 1</span>
-                <button class="btn btn-ghost btn-sm" id="next">Next →</button>
-              </div>
-              <p style="text-align:center;margin-top:18px"><button class="btn btn-ghost btn-sm" id="new-upload">↺ Upload more notes</button></p>
             </div>
-
-            <div id="panel-guide" class="panel-view hidden">
-              <div class="card guide" id="guide-content"></div>
+            <div class="deck-nav">
+              <button class="btn btn-ghost btn-sm" id="prev">← Prev</button>
+              <span class="deck-count" id="deck-count">1 / 1</span>
+              <button class="btn btn-ghost btn-sm" id="next">Next →</button>
             </div>
-
-            <div id="panel-test" class="panel-view hidden">
-              <div class="card center-narrow" id="test-content"></div>
-            </div>
+            <p style="text-align:center;margin-top:18px"><button class="btn btn-ghost btn-sm" id="new-upload">↺ Upload more notes</button></p>
           </div>
 
           <!-- Solve mode -->

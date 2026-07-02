@@ -3,8 +3,8 @@
 import { supabase } from '../supabaseClient.js'
 import { getActiveChild, getChildSession, setChildSession, getRememberedDevice, clearRememberedDevice, clearChildSession, clearActiveChild, markStudiedToday } from './auth.js'
 import {
-  uploadNote, generateContent, askQuestion, getFlashcards, getStudyGuide,
-  recordQuizResult, startSession, touchSession,
+  uploadNote, generateContent, askQuestion, getFlashcards,
+  startSession, touchSession,
   startPresence, pingPresence, endPresenceBeacon, getChildStreak,
   saveChildSession, saveChildSessionBeacon,
 } from './api.js'
@@ -44,6 +44,7 @@ const els = {
 
 let chosenFile = null
 let currentStudyMode = 'flashcards'
+let currentUploadId = null
 
 /**
  * The active child can come from either trust path:
@@ -97,7 +98,6 @@ async function main() {
   wireIntent()
   wireModeTab()
   wireAskSection()
-  wireTabs()
   wireForgetDevice()
   wireEndSession()
   renderStreak()
@@ -454,17 +454,13 @@ async function generate(mode) {
   show('generating')
   try {
     const upload = await uploadNote({ child, file: chosenFile, subject, viaParentSession })
+    currentUploadId = upload.id
     const result = await generateContent({ uploadId: upload.id, childId: child.id, subject, viaParentSession, mode })
 
     if (mode === 'flashcards') {
-      const [cards, guide] = await Promise.all([
-        getFlashcards(upload.id, viaParentSession),
-        getStudyGuide(upload.id, viaParentSession),
-      ])
+      const cards = await getFlashcards(upload.id, viaParentSession)
       if (!cards.length) throw new Error('No flashcards were generated. Try a clearer photo.')
       loadDeck(cards)
-      renderGuide(guide)
-      buildTest(cards)
       showResults('flashcards')
     } else if (mode === 'solve') {
       renderSolveResult(result.result)
@@ -562,10 +558,59 @@ function renderSolveResult(result) {
     <p class="guide__summary">${escapeHtml(result.concept || '')}</p>
     <h3>A Hint</h3>
     <p class="guide__summary">${escapeHtml(result.hint || '')}</p>
-    <h3>First Step</h3>
-    <p class="guide__summary">${escapeHtml(result.first_step || '')}</p>
     <h3>Think About This</h3>
-    <p class="guide__summary" style="font-style:italic;color:var(--brand-ink)">${escapeHtml(result.guiding_question || '')}</p>`
+    <p class="guide__summary" style="font-style:italic;color:var(--brand-ink)">${escapeHtml(result.guiding_question || '')}</p>
+    <div style="margin-top:20px">
+      <button class="btn btn-ghost btn-sm" id="show-first-step-btn" type="button">Show first step</button>
+      <div id="first-step-content" class="hidden" style="margin-top:12px">
+        <h3>First Step</h3>
+        <p class="guide__summary">${escapeHtml(result.first_step || '')}</p>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:28px">
+      <button class="btn btn-ghost" id="reveal-answer-btn" type="button">Reveal full answer</button>
+    </div>
+    <div id="solve-reveal-content"></div>`
+
+  $('#show-first-step-btn')?.addEventListener('click', () => {
+    const content = $('#first-step-content')
+    const btn = $('#show-first-step-btn')
+    if (content.classList.contains('hidden')) {
+      content.classList.remove('hidden')
+      btn.textContent = 'Hide first step'
+    } else {
+      content.classList.add('hidden')
+      btn.textContent = 'Show first step'
+    }
+  })
+
+  $('#reveal-answer-btn')?.addEventListener('click', revealFullAnswer)
+}
+
+async function revealFullAnswer() {
+  const btn = $('#reveal-answer-btn')
+  const container = $('#solve-reveal-content')
+  if (!btn || !container || !currentUploadId) return
+  const restore = loading(btn, 'Loading solution…')
+  try {
+    const data = await generateContent({
+      uploadId: currentUploadId,
+      childId: child.id,
+      subject: els.subject.value || 'General',
+      viaParentSession,
+      mode: 'solve_reveal',
+    })
+    btn.style.display = 'none'
+    const steps = (data.result?.steps || []).map((s) => `<li>${escapeHtml(s)}</li>`).join('')
+    container.innerHTML = `
+      <hr style="margin:20px 0;opacity:0.2">
+      <h3>Full Solution</h3>
+      <p class="guide__summary">${escapeHtml(data.result?.solution || '')}</p>
+      ${steps ? `<ol style="padding-left:1.4em">${steps}</ol>` : ''}`
+  } catch (err) {
+    container.innerHTML = `<p style="color:var(--danger);margin-top:12px">${escapeHtml(friendlyMessage(err, 'Could not load solution. Please try again.'))}</p>`
+    restore()
+  }
 }
 
 function renderSummarizeResult(result) {
@@ -813,81 +858,5 @@ flashcard.addEventListener('keydown', (e) => {
 $('#prev').addEventListener('click', () => { deckIndex = (deckIndex - 1 + deck.length) % deck.length; renderCard() })
 $('#next').addEventListener('click', () => { deckIndex = (deckIndex + 1) % deck.length; renderCard() })
 
-// ============================ Study guide ==============================
-function renderGuide(guide) {
-  const el = $('#guide-content')
-  if (!guide) { el.innerHTML = '<p class="muted">No study guide was generated.</p>'; return }
-  const g = guide.guide
-  const concepts = (g.key_concepts || []).map((c) => `<li>${escapeHtml(c)}</li>`).join('')
-  const practice = (g.practice_questions || []).map((p) => `<li>${escapeHtml(p)}</li>`).join('')
-  el.innerHTML = `
-    ${guide.subject ? `<span class="eyebrow">${escapeHtml(guide.subject)}</span>` : ''}
-    <h3>Summary</h3>
-    <p class="guide__summary">${escapeHtml(g.summary || '')}</p>
-    ${concepts ? `<h3>Key concepts</h3><ul>${concepts}</ul>` : ''}
-    ${practice ? `<h3>Practice questions</h3><ul>${practice}</ul>` : ''}`
-}
-
-// ============================ Self-test ==============================
-let test = { cards: [], i: 0, revealed: false, correct: 0, total: 0 }
-const testEl = $('#test-content')
-
-function buildTest(cards) {
-  test = { cards, i: 0, revealed: false, correct: 0, total: 0 }
-  renderTest()
-}
-
-function renderTest() {
-  if (test.i >= test.cards.length) {
-    const pct = test.total ? Math.round((test.correct / test.total) * 100) : 0
-    testEl.innerHTML = `
-      <div style="text-align:center">
-        <div class="score-big">${pct}%</div>
-        <p class="muted">${test.correct} of ${test.total} correct</p>
-        <button class="btn btn-primary" id="test-restart" style="margin-top:16px">Try again</button>
-      </div>`
-    $('#test-restart').addEventListener('click', () => buildTest(test.cards))
-    return
-  }
-  const card = test.cards[test.i]
-  testEl.innerHTML = `
-    <p class="test-progress">Question ${test.i + 1} of ${test.cards.length}</p>
-    <p class="flashcard-face__text" style="margin:10px 0 6px">${escapeHtml(card.question)}</p>
-    ${test.revealed ? `<p class="guide__summary" style="margin-bottom:6px"><strong>Answer:</strong> ${escapeHtml(card.answer)}</p>` : ''}
-    <div class="test-actions" id="test-actions"></div>`
-  const actions = $('#test-actions')
-  if (!test.revealed) {
-    actions.innerHTML = `<button class="btn btn-primary" id="reveal">Show answer</button>`
-    $('#reveal').addEventListener('click', () => { test.revealed = true; renderTest() })
-  } else {
-    actions.innerHTML = `
-      <button class="btn btn-wrong" data-correct="0">✗ Got it wrong</button>
-      <button class="btn btn-correct" data-correct="1">✓ Got it right</button>`
-    actions.querySelectorAll('[data-correct]').forEach((b) =>
-      b.addEventListener('click', () => mark(b.dataset.correct === '1', card)))
-  }
-}
-
-async function mark(correct, card) {
-  test.total += 1
-  if (correct) test.correct += 1
-  try { await recordQuizResult({ childId: child.id, flashcardId: card.id, correct, viaParentSession }) } catch { /* best effort */ }
-  test.i += 1
-  test.revealed = false
-  renderTest()
-}
-
-// ============================ Tabs (flashcard results) =====================
-function wireTabs() {
-  $$('.seg [data-tab]').forEach((tab) => {
-    tab.addEventListener('click', () => {
-      $$('.seg [data-tab]').forEach((t) => t.setAttribute('aria-selected', String(t === tab)))
-      const which = tab.dataset.tab
-      $('#panel-cards').classList.toggle('hidden', which !== 'cards')
-      $('#panel-guide').classList.toggle('hidden', which !== 'guide')
-      $('#panel-test').classList.toggle('hidden', which !== 'test')
-    })
-  })
-}
 
 main()

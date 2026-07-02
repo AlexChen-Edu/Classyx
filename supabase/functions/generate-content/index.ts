@@ -2,10 +2,11 @@
 // generate-content — Classyx AI generation (server-side ONLY)
 // ---------------------------------------------------------------------------
 // Modes:
-//   flashcards  — 20 Q&A flashcards + study guide, saved to DB
-//   solve       — Socratic guidance on a problem, returned directly
-//   summarize   — concise summary + key points, returned directly
-//   ask         — text question answered without a file upload
+//   flashcards   — 20 Q&A flashcards, saved to DB
+//   solve        — Socratic guidance on a problem, returned directly
+//   solve_reveal — complete worked solution, returned directly
+//   summarize    — concise summary + key points, returned directly
+//   ask          — text question answered without a file upload
 //
 // Input (POST JSON):
 //   { mode, child_id, upload_id?, subject? }           — flashcards/solve/summarize
@@ -96,15 +97,17 @@ function extractOutputText(ai: unknown): string | undefined {
 const SYSTEM_PROMPTS: Record<string, string> = {
   flashcards:
     "You are a study assistant for K-12 and early-college students. You read a " +
-    "student's uploaded class notes (an image or PDF) and turn them into study " +
-    "materials. Be accurate to the source notes; do not invent facts that are " +
-    "not supported by the notes. Keep questions and answers concise and clear " +
-    "for the student's level.",
+    "student's uploaded class notes (an image or PDF) and turn them into flashcards. " +
+    "Be accurate to the source notes; do not invent facts that are not supported by " +
+    "the notes. Keep questions and answers concise and clear for the student's level.",
   solve:
     "You are a Socratic tutor. Do NOT give the answer directly. Instead, look at " +
     "the problem and guide the student to figure it out themselves. Ask a leading " +
     "question, explain the concept behind it, and show the first step only. " +
     "Return JSON with { concept: string, hint: string, first_step: string, guiding_question: string }",
+  solve_reveal:
+    "You are a tutor. Give the complete step-by-step solution to this problem. " +
+    "Show all work clearly. Return JSON with { solution: string, steps: string[] }",
   summarize:
     "Summarize the key concepts from these notes into a clear, concise study guide. " +
     "Return JSON with { summary: string, key_points: string[] }",
@@ -180,18 +183,8 @@ const OUTPUT_SCHEMAS: Record<string, object> = {
           required: ["question", "answer"],
         },
       },
-      study_guide: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          summary: { type: "string" },
-          key_concepts: { type: "array", items: { type: "string" } },
-          practice_questions: { type: "array", items: { type: "string" } },
-        },
-        required: ["summary", "key_concepts", "practice_questions"],
-      },
     },
-    required: ["flashcards", "study_guide"],
+    required: ["flashcards"],
   },
   solve: {
     type: "object",
@@ -203,6 +196,15 @@ const OUTPUT_SCHEMAS: Record<string, object> = {
       guiding_question: { type: "string" },
     },
     required: ["concept", "hint", "first_step", "guiding_question"],
+  },
+  solve_reveal: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      solution: { type: "string" },
+      steps: { type: "array", items: { type: "string" } },
+    },
+    required: ["solution", "steps"],
   },
   summarize: {
     type: "object",
@@ -230,6 +232,7 @@ const OUTPUT_SCHEMAS: Record<string, object> = {
 const SCHEMA_NAMES: Record<string, string> = {
   flashcards: "study_pack",
   solve: "solve_response",
+  solve_reveal: "solve_reveal_response",
   summarize: "summarize_response",
   ask: "ask_response",
 };
@@ -309,7 +312,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    mode = ["flashcards", "solve", "summarize", "ask"].includes(body.mode)
+    mode = ["flashcards", "solve", "solve_reveal", "summarize", "ask"].includes(body.mode)
       ? body.mode
       : "flashcards";
     child_id = body.child_id;
@@ -535,13 +538,15 @@ Deno.serve(async (req: Request) => {
     const userTextByMode: Record<string, string> = {
       flashcards:
         `These are a student's notes for ${subj}. Read them carefully and ` +
-        `produce exactly 20 flashcards (question/answer) plus a study guide ` +
-        `with a short summary, a list of key concepts, and 5 practice ` +
-        `questions. Base everything strictly on the notes.`,
+        `produce exactly 20 flashcards (question/answer). ` +
+        `Base everything strictly on the notes.`,
       solve:
         `This is a student's homework problem or question for ${subj}. ` +
         `Use the Socratic method to guide them — do NOT give the answer, ` +
         `just help them think through it step by step.`,
+      solve_reveal:
+        `This is a student's homework problem or question for ${subj}. ` +
+        `Give the complete step-by-step solution. Show all work clearly.`,
       summarize:
         `These are a student's notes for ${subj}. ` +
         `Summarize the key concepts into a clear, concise overview.`,
@@ -590,21 +595,6 @@ Deno.serve(async (req: Request) => {
         throw new Error("Saving flashcards failed.");
       }
 
-      const { data: guide, error: sgErr } = await admin
-        .from("study_guides")
-        .insert({
-          upload_id: upload_id!,
-          child_id,
-          subject: subj,
-          content: JSON.stringify(parsed.study_guide ?? {}),
-        })
-        .select("id")
-        .single();
-      if (sgErr) {
-        console.error("Saving study guide failed:", sgErr.message);
-        throw new Error("Saving study guide failed.");
-      }
-
       await admin
         .from("uploads")
         .update({ processed: true, error: null })
@@ -618,7 +608,6 @@ Deno.serve(async (req: Request) => {
       return json({
         success: true,
         flashcard_count: flashcards.length,
-        guide_id: guide.id,
       });
     }
 
